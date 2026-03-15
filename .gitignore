@@ -1,6 +1,8 @@
 node_modules/
 dist/
 studio.db
+studio.db-shm
+studio.db-wal
 .env
 *.log
 .DS_Store
