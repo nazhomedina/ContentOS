@@ -1,0 +1,7 @@
+node_modules/
+dist/
+studio.db
+.env
+*.log
+.DS_Store
+client/node_modules/
