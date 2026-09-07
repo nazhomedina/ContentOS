@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "contentos": {
+      "type": "http",
+      "url": "http://localhost:3017/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${CONTENTOS_MCP_KEY}"
+      }
+    }
+  }
+}
