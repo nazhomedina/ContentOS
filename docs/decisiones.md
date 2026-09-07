@@ -71,3 +71,17 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **`ideas.origen` admite `legado` y `nazho`** (migración 006) para no inventar procedencias. `ideas.notion_url` y `ideas.formato_sugerido` dan trazabilidad y prellenan el formulario de pieza.
 
 **Pantalla Ideas construida:** tres columnas (nuevas, shortlist, convertidas) + descartadas plegadas, captura rápida, atajos S/D/C/N y «Convertir» que abre el formulario de pieza con título, notas y etapa prellenados; al crear, la idea pasa a convertida (lo hace `crear_pieza_validada`).
+
+## 2026-09-07 (noche) · Simplificación aplicada
+
+**Una sola base: las ideas son piezas en estado `idea`** (migración 007). `formato`, `etapa_embudo` e `hipotesis` son opcionales hasta `para_grabar`; el check `completa_segun_estado` lo exige ahí. `crear_pieza_validada` acepta solo título. `cambiar_estado_pieza` explica qué falta con un mensaje legible. La tabla `ideas` quedó vacía; se borra cuando nada la lea.
+
+**`id_publico` se genera solo** por prefijo de formato (REE, YAP, CAR, HIS, XPO, CAN, NEW, ART, YTB; IDE para ideas) y consecutivo. Al dar formato a una idea, el ID cambia de IDE- a su prefijo.
+
+**Hipótesis: la escribe Claude.** Nazho captura una línea; Claude desarrolla con `actualizar_pieza`. La regla 1 sigue en el esquema, exigida para grabar y no para pensar.
+
+**Pantallas:** Inicio (Hoy + Semana), Piezas (única, con captura y filtros), Formatos (nueva), Sistemas (Máquina + Latidos), Cola, Historias. Se eliminaron Ideas, Semana, Embudo, Latidos y el formulario de pieza nueva. Tema claro, menú lateral. Rol viewer sin navegación hasta que tenga pantalla útil.
+
+**MCP: 15 tools.** Fuera las de ideas; `actualizar_pieza` acepta hipótesis, formato, etapa y format card y es la forma en que Claude convierte una idea en pieza. Nueva `listar_formatos`.
+
+**Tabla `hooks` ligera** (texto, categoría, formato, pieza de origen, favorito). Sin pantalla todavía.

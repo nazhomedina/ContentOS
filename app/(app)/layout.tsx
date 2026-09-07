@@ -8,10 +8,12 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col md:flex-row">
       <Navegacion rol={sesion.perfil.rol as Rol} nombre={sesion.perfil.nombre} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-4 md:pb-8">{children}</main>
-      <Toaster position="top-center" richColors />
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8">{children}</div>
+      </main>
+      <Toaster position="top-center" />
     </div>
   );
 }

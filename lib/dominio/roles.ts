@@ -1,22 +1,22 @@
 export type Rol = "owner" | "editor" | "viewer";
 
-/** Pantalla de inicio por rol (handoff §7 y diseño §6). */
+/** Pantalla de inicio por rol. */
 export function inicioPorRol(rol: Rol): string {
   switch (rol) {
     case "owner":
-      return "/hoy";
+      return "/inicio";
     case "editor":
       return "/cola";
     case "viewer":
-      return "/semana";
+      return "/piezas";
   }
 }
 
 /** Prefijos de ruta que cada rol puede abrir. owner: todo. */
 const RUTAS: Record<Rol, string[]> = {
   owner: ["/"],
-  editor: ["/cola", "/piezas", "/historias"],
-  viewer: ["/semana", "/maquina", "/embudo", "/tablero", "/piezas", "/historias"],
+  editor: ["/cola", "/piezas", "/historias", "/formatos"],
+  viewer: ["/piezas", "/historias"],
 };
 
 export function rutaPermitida(rol: Rol, pathname: string): boolean {

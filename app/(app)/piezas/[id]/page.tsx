@@ -49,21 +49,24 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <IdPublico id={pieza.id_publico} />
-          <InsigniaFormato formato={pieza.formato} />
+          {pieza.formato && <InsigniaFormato formato={pieza.formato} />}
           <InsigniaEstado estado={pieza.estado} />
           {pieza.format_card && <span className="text-xs text-muted-foreground">{pieza.format_card.codigo} · {pieza.format_card.nombre}</span>}
         </div>
         <h1 className="text-2xl font-extrabold tracking-tight">{pieza.titulo ?? pieza.id_publico}</h1>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-          <Dato k="Serie" v={pieza.serie ?? "—"} />
-          <Dato k="Fecha objetivo" v={fechaCorta(pieza.fecha_objetivo)} />
-          <Dato k="Responsable" v={pieza.responsable?.nombre ?? "—"} />
-          <Dato k="Etapa" v={pieza.etapa_embudo} />
-        </dl>
-        <p className={pieza.requiere_hipotesis ? "rounded-md border border-rojo/40 bg-rojo/5 px-3 py-2 text-sm text-rojo" : "text-sm text-muted-foreground"}>
-          <span className="font-semibold">Hipótesis:</span> {hipotesisEnUnaLinea(pieza.hipotesis)}
-          {pieza.requiere_hipotesis && " · falta que Nazho la complete"}
-        </p>
+        {rol !== "owner" && (
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+            <Dato k="Fecha objetivo" v={fechaCorta(pieza.fecha_objetivo)} />
+            <Dato k="Responsable" v={pieza.responsable?.nombre ?? "—"} />
+            <Dato k="Hipótesis" v={hipotesisEnUnaLinea(pieza.hipotesis)} />
+          </dl>
+        )}
+        {pieza.estado === "idea" && (
+          <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+            Es una idea. Desde Claude: «desarrolla la pieza {pieza.id_publico}» y el guion, la hipótesis y el formato llegan por MCP.
+          </p>
+        )}
+        {pieza.notas && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{pieza.notas}</p>}
         {pieza.estado === "publicada" && pieza.url && (
           <p className="text-sm">
             Publicada {fechaHora(pieza.publicada_en)} en {pieza.plataforma} · <a href={pieza.url} target="_blank" rel="noreferrer" className="text-primary underline">ver</a>
@@ -76,8 +79,28 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
       )}
 
       <Seccion titulo="Guion"><Markdown texto={pieza.guion} /></Seccion>
-      <Seccion titulo="Spec visual"><Markdown texto={pieza.spec_visual} /></Seccion>
-      {pieza.cta && <Seccion titulo="CTA"><p className="text-sm">{pieza.cta}</p></Seccion>}
+
+      <details className="group rounded-xl border">
+        <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">
+          Lo que llenó Claude <span className="ml-2 font-medium normal-case tracking-normal">hipótesis · etapa · format card · serie · CTA · spec visual</span>
+        </summary>
+        <div className="space-y-4 border-t px-4 py-4 text-sm">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+            <Dato k="Hipótesis" v={hipotesisEnUnaLinea(pieza.hipotesis)} />
+            <Dato k="Etapa del embudo" v={pieza.etapa_embudo ?? "—"} />
+            <Dato k="Format Card" v={pieza.format_card ? `${pieza.format_card.codigo} · ${pieza.format_card.nombre}` : "—"} />
+            <Dato k="Serie" v={pieza.serie ?? "—"} />
+            <Dato k="CTA" v={pieza.cta ?? "—"} />
+            <Dato k="Fidelidad" v={pieza.fidelidad} />
+            <Dato k="Origen" v={pieza.origen ?? "—"} />
+            {pieza.notion_url && <Dato k="Notion" v={<a href={pieza.notion_url} target="_blank" rel="noreferrer" className="text-primary underline">abrir</a>} />}
+          </dl>
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Spec visual</p>
+            <Markdown texto={pieza.spec_visual} />
+          </div>
+        </div>
+      </details>
 
       <Seccion titulo="Assets">
         <Assets piezaId={pieza.id} assets={assets} puedeSubir={rol !== "viewer"} />
@@ -95,7 +118,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
               </div>
               <Checklist
                 tareaId={t.id}
-                inicial={normalizarChecklist(t.checklist, checklistPorDefecto(t.tipo, pieza.formato))}
+                inicial={normalizarChecklist(t.checklist, checklistPorDefecto(t.tipo, pieza.formato ?? "reel"))}
                 editable={t.estado !== "hecha"}
               />
             </div>
@@ -121,7 +144,7 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   );
 }
 
-function Dato({ k, v }: { k: string; v: string }) {
+function Dato({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{k}</dt>

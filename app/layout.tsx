@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#121212",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
@@ -35,7 +35,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es-MX" className={`dark ${sans.variable} ${mono.variable}`} style={{ colorScheme: "dark" }}>
+    <html lang="es-MX" className={`${sans.variable} ${mono.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

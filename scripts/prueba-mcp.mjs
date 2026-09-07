@@ -47,7 +47,7 @@ try {
 
   r = await rpc(key, "tools/list", {}, 2);
   const tools = r.json?.result?.tools?.map((t) => t.name) ?? [];
-  ok("tools/list ≥ 17 herramientas", tools.length >= 17, `${tools.length}: ${tools.join(", ")}`);
+  ok("tools/list ≥ 15 herramientas sin las de ideas", tools.length >= 15 && !tools.includes("crear_idea"), `${tools.length}: ${tools.join(", ")}`);
 
   r = await rpc(key, "tools/call", { name: "listar_comunidades", arguments: {} }, 3);
   let com = [];
@@ -55,8 +55,17 @@ try {
   ok("listar_comunidades devuelve Fundadores con criterio", Array.isArray(com) && com.some((c) => c.nombre === "Fundadores con criterio"), `status ${r.status} · ${r.text.slice(0, 400)}`);
   if (!com[0]) { console.log("RAW listar_comunidades:", r.status, r.text.slice(0, 600)); throw new Error("sin comunidades; abortando"); }
 
-  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { id_publico: "TST-77", comunidad_id: com[0].id, formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "prueba de fecha pasada", campo: "views", numero: 100, fecha: "2020-01-01" } } }, 4);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp", estado: "para_grabar", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "prueba de fecha pasada", campo: "views", numero: 100, fecha: "2020-01-01" } } }, 4);
   ok("crear_pieza con fecha pasada → error legible", r.json?.result?.isError && /futuro/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "idea desde mcp" } }, 41);
+  const creada = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("crear_pieza solo con título → idea IDE-", creada?.estado === "idea" && /^IDE-/.test(creada?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, formato: "yap", etapa_embudo: "atraer", format_card: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, guion: "## Beats", estado: "para_grabar" } }, 42);
+  const dev = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("actualizar_pieza desarrolla la idea → YAP- en para_grabar", dev?.estado === "para_grabar" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.format_card_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
+  if (creada?.id) await admin.from("piezas").delete().eq("id", creada.id);
+  r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: {} }, 43);
+  ok("listar_formatos devuelve 6 cards", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).length === 6, "");
 
   r = await rpc(key, "tools/call", { name: "estado_semana", arguments: {} }, 5);
   const es = JSON.parse(r.json?.result?.content?.[0]?.text ?? "{}");
@@ -77,8 +86,8 @@ try {
   const { data: ue } = await admin.auth.admin.createUser({ email: emailE, password: "x-" + randomBytes(8).toString("hex"), email_confirm: true });
   const keyE = "cos_" + randomBytes(32).toString("base64url");
   await admin.from("perfiles").update({ api_key_hash: createHash("sha256").update(keyE + process.env.MCP_KEY_PEPPER).digest("hex") }).eq("user_id", ue.user.id);
-  r = await rpc(keyE, "tools/call", { name: "crear_idea", arguments: { comunidad_id: com[0].id, titulo: "no debería" } }, 8);
-  ok("editor por MCP: crear_idea bloqueada por RLS", r.json?.result?.isError && /row-level|policy/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
+  r = await rpc(keyE, "tools/call", { name: "crear_pieza", arguments: { titulo: "no debería" } }, 8);
+  ok("editor por MCP: crear_pieza bloqueada (requiere owner)", r.json?.result?.isError && /owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   await admin.auth.admin.deleteUser(ue.user.id);
   await admin.from("perfiles_permitidos").delete().eq("email", emailE);
 } finally {

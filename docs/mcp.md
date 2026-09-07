@@ -43,26 +43,25 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas
+## 5. Herramientas (15)
 
 | Tool | Para qué | Latido |
 |---|---|---|
-| `listar_comunidades` | ICP, dolor, promesa, tono | — |
-| `latidos` | última corrida por sistema | — |
-| `listar_ideas` · `crear_idea` · `mover_idea` · `agregar_pensamiento` | el embudo de ideas | `crear_idea`, `mover_idea` |
-| `crear_pieza` | exige hipótesis {texto, campo, numero, fecha}; error legible | `crear_pieza` (lo escribe la función SQL) |
-| `actualizar_pieza` · `listar_piezas` | guion, spec, fecha, responsable, estado | `actualizar_pieza` |
-| `asignar_tarea` · `cola_de` | la cola de Mariela (o de Nazho) | `asignar_tarea` |
-| `proponer_historias` · `aprobar_historias` | paquete semanal | `proponer_historias`, `aprobar_historias` |
+| `listar_comunidades` · `listar_formatos` · `latidos` | contexto: ICP, Format Cards, última corrida por sistema | — |
+| `crear_pieza` | una pieza nace con solo título (estado idea). Con formato → para_producir. Con formato + etapa + hipótesis → para_grabar | `crear_pieza` |
+| `actualizar_pieza` | **así Claude desarrolla una idea**: formato, hipótesis, etapa, format card, guion, spec, estado. Acepta id_publico | `actualizar_pieza` |
+| `listar_piezas` | por estado (ideas incluidas), formato o semana objetivo | — |
+| `asignar_tarea` · `cola_de` | la cola de Mariela o de Nazho | `asignar_tarea` |
+| `proponer_historias` · `aprobar_historias` | paquete semanal | ambas |
 | `leer_metricas` · `registrar_metrica_manual` | métricas y multiplicador | `registrar_metrica_manual` |
 | `listar_sistemas` · `definir_sistema` | los grafos del Nodo | `definir_sistema` |
 | `estado_semana` · `declarar_hueco` | cuota y estado por nodo; huecos | `declarar_hueco` |
 
-Las tools de v2 (`escribir_analisis`, `videos_outlier`) llegan con la migración del radar.
+Se retiraron `crear_idea`, `listar_ideas`, `mover_idea` y `agregar_pensamiento`: las ideas son piezas en estado `idea` (docs/simplificacion.md).
 
 ## 6. Cómo usa esto Milo
 
 1. `listar_comunidades` + `estado_semana` al arrancar el sprint del lunes.
-2. `listar_ideas(estado=shortlist)` → `crear_pieza` por cada pieza de la parrilla (con hipótesis) → `asignar_tarea`.
+2. `listar_piezas(estado=idea)` → `actualizar_pieza` por cada idea que entra a la parrilla (formato, hipótesis, guion, estado para_grabar) → `asignar_tarea`.
 3. `proponer_historias(semana)`; Nazho aprueba desde Hoy o con `aprobar_historias`.
 4. El viernes: `leer_metricas(desde, hasta)` → hallazgos; `declarar_hueco` para lo que no corrió.

@@ -101,28 +101,35 @@ try {
     return { status: r.status, location: r.headers.get("location"), html: (await r.text()).replace(/<!-- -->/g, "") };
   }
   r = await getO("/");
-  ok("owner / → /hoy", r.status === 307 && r.location?.endsWith("/hoy"), `${r.status} ${r.location}`);
-  r = await getO("/hoy");
-  ok("/hoy 200 con bloques", r.status === 200 && r.html.includes("Espera tu aprobación") && r.html.includes("Te toca grabar") && r.html.includes("DEMO-03"), String(r.status));
-  r = await getO("/semana");
-  ok("/semana 200 con cuota", r.status === 200 && r.html.includes("/ 10") && r.html.includes("publicadas") && r.html.includes("Reels"), String(r.status));
-  ok("/semana muestra huecos", r.html.includes("Hueco: nadie lo tiene"), "");
-  r = await getO("/maquina");
-  ok("/maquina 200 con nodos", r.status === 200 && r.html.includes("Máquina semanal") && r.html.includes("Post-scraper de grilla") && r.html.includes("Sin sistema"), String(r.status));
-  r = await getO("/maquina?sistema=pauta_pixel");
-  ok("/maquina cambia de sistema", r.status === 200 && r.html.includes("Campaña fría"), String(r.status));
-  r = await getO("/embudo");
-  ok("/embudo 200 con anillos", r.status === 200 && r.html.includes("Atraer") && r.html.includes("sin sensor"), String(r.status));
-  r = await getO("/piezas/nueva?formato=reel");
-  ok("/piezas/nueva 200", r.status === 200 && r.html.includes("Hipótesis (obligatoria"), String(r.status));
-  r = await getO("/ideas");
-  ok("/ideas 200 con columnas y atajos", r.status === 200 && r.html.includes("Shortlist") && r.html.includes("Capturar"), String(r.status));
+  ok("owner / → /inicio", r.status === 307 && r.location?.endsWith("/inicio"), `${r.status} ${r.location}`);
+  r = await getO("/inicio");
+  ok("/inicio 200 con captura, semana y máquina", r.status === 200 && r.html.includes("Nueva idea") && r.html.includes("La semana") && r.html.includes("La máquina") && r.html.includes("Te toca grabar"), String(r.status));
+  ok("/inicio muestra huecos y cuota", r.html.includes("Hueco") && /\/10 publicadas/.test(r.html), "");
+  r = await getO("/sistemas");
+  ok("/sistemas 200 con nodos y latidos", r.status === 200 && r.html.includes("Máquina semanal") && r.html.includes("Post-scraper de grilla") && r.html.includes("Latidos"), String(r.status));
+  r = await getO("/sistemas?sistema=pauta_pixel");
+  ok("/sistemas cambia de sistema", r.status === 200 && r.html.includes("Campaña fría"), String(r.status));
+  r = await getO("/formatos");
+  ok("/formatos 200 con las 6 cards", r.status === 200 && r.html.includes("FC-01") && r.html.includes("FC-08"), String(r.status));
+  r = await getO("/piezas?estado=idea");
+  ok("/piezas filtra ideas (IDE-)", r.status === 200 && r.html.includes("IDE-01"), String(r.status));
+  for (const viejo of ["/hoy", "/semana", "/maquina", "/embudo", "/ideas", "/tablero", "/piezas/nueva"]) {
+    r = await getO(viejo);
+    ok(`${viejo} ya no existe (404)`, r.status === 404, String(r.status));
+  }
   r = await getO("/piezas");
-  ok("/piezas owner ve tope y botón nueva", r.status === 200 && r.html.includes("en producción") && r.html.includes("Nueva pieza"), "");
+  ok("/piezas owner ve tope, captura y filtros", r.status === 200 && r.html.includes("en producción") && r.html.includes("Nueva idea") && r.html.includes("Idea ·"), "");
   // acciones reales como owner: crear pieza sin fecha → error; declarar hueco → ok
   const conOwner = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${so.session.access_token}` } }, auth: { persistSession: false } });
-  const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { id_publico: "TST-90", comunidad_id: "11111111-0000-4000-8000-000000000001", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
-  ok("owner: crear_pieza sin fecha → «Falta hipotesis.fecha.»", e6?.message?.includes("Falta hipotesis.fecha"), e6?.message);
+  const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "prueba e2e", estado: "para_grabar", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
+  ok("owner: para_grabar sin fecha → «falta hipotesis.fecha»", e6?.message?.includes("falta hipotesis.fecha"), e6?.message);
+  const { data: idea, error: e6b } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "idea de prueba e2e" } });
+  ok("owner: idea con solo título → IDE-nn", !e6b && idea?.estado === "idea" && /^IDE-\d+$/.test(idea?.id_publico ?? ""), e6b?.message ?? idea?.id_publico);
+  const { error: e6c } = await conOwner.rpc("cambiar_estado_pieza", { p_pieza_id: idea.id, p_nuevo_estado: "para_producir" });
+  ok("owner: idea → para_producir sin formato → mensaje legible", /formato/.test(e6c?.message ?? ""), e6c?.message);
+  const { data: conF } = await conOwner.from("piezas").update({ formato: "reel" }).eq("id", idea.id).select("id_publico").single();
+  ok("al dar formato, el ID pasa de IDE- a REE-", /^REE-\d+$/.test(conF?.id_publico ?? ""), conF?.id_publico);
+  await admin.from("piezas").delete().eq("id", idea.id);
   const { data: hk, error: e7 } = await conOwner.rpc("declarar_hueco", { p_semana: semanaISO(), p_sistema: "maquina_semanal", p_nodo: "review", p_nota: "prueba e2e" });
   ok("owner: declarar_hueco ok", !e7 && hk?.nota === "prueba e2e", e7?.message);
   const { data: en } = await conOwner.rpc("estado_nodos", { p_clave: "maquina_semanal", p_semana: semanaISO() });

@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-06, actualizado 2026-09-07 · **Repo:** `~/Repos/ContentOS`
 
-> **Reencuadre del 2026-09-07:** antes del import y de los jobs se construyó la capa de sistemas «el Nodo» (`docs/nodo.md`): Hoy, Semana, Máquina, Embudo, acciones de dueño y MCP con 19 herramientas. Estado en `docs/nodo.md` §5 y `docs/decisiones.md`.
+> **Reencuadre del 2026-09-07:** se construyó la capa de sistemas «el Nodo» (`docs/nodo.md`) y después se simplificó todo (`docs/simplificacion.md`): una sola base de piezas que nacen como idea, seis pantallas (Inicio, Piezas, Formatos, Sistemas, Cola, Historias), tema claro con menú lateral, MCP con 15 herramientas. El estado vigente está en `docs/decisiones.md`.
 **Fuentes leídas para este plan:**
 - `HANDOFF-taller-contenido.md` (este repo) — versión operativa
 - `03 ÁREAS/Contenidos/_sistema/taller-contenido/taller-contenido-diseno-2026-09-06.html` — diseño completo, incluye el SQL del núcleo (§4)

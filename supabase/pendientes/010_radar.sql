@@ -1,4 +1,5 @@
 -- 010 · Radar de outliers (v2). NO APLICAR EN v1.
+-- OJO: la tabla hooks ya existe desde 007 (versión ligera). Al promover, alter table hooks add column ... en vez de create.
 -- Vive fuera de supabase/migrations/ a propósito para que `db push` no lo tome.
 -- Cuando se promueva: mover a migrations/ con timestamp nuevo, añadir RLS (owner todo,
 -- editor sin acceso) y la FK ideas.video_origen_id → videos_referencia.

@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { asignarTarea, moverEstado, actualizarPieza } from "@/lib/acciones/nodo";
-import { ESTADOS_PIEZA, NOMBRE_ESTADO, checklistPorDefecto } from "@/lib/dominio/estados";
+import { ESTADOS_PIEZA, FORMATOS, NOMBRE_ESTADO, NOMBRE_FORMATO, checklistPorDefecto } from "@/lib/dominio/estados";
 import { hoyISO, sumarDias } from "@/lib/dominio/tiempo";
 
 type Perfil = { user_id: string; nombre: string; rol: string };
 
 export function AccionesOwner({ piezaId, estado, formato, fechaObjetivo, responsableId, perfiles }: {
-  piezaId: string; estado: string; formato: string; fechaObjetivo: string | null; responsableId: string | null; perfiles: Perfil[];
+  piezaId: string; estado: string; formato: string | null; fechaObjetivo: string | null; responsableId: string | null; perfiles: Perfil[];
 }) {
   const [pendiente, iniciar] = useTransition();
   const [abierto, setAbierto] = useState(false);
@@ -35,7 +35,7 @@ export function AccionesOwner({ piezaId, estado, formato, fechaObjetivo, respons
   }
   function asignar() {
     iniciar(async () => {
-      const r = await asignarTarea({ pieza_id: piezaId, tipo: t.tipo, asignado_a: t.para, vence: t.vence, checklist: checklistPorDefecto(t.tipo, formato) });
+      const r = await asignarTarea({ pieza_id: piezaId, tipo: t.tipo, asignado_a: t.para, vence: t.vence, checklist: checklistPorDefecto(t.tipo, formato ?? "reel") });
       if (r.ok) { toast.success(r.mensaje); setAbierto(false); } else toast.error(r.mensaje);
     });
   }
@@ -43,6 +43,13 @@ export function AccionesOwner({ piezaId, estado, formato, fechaObjetivo, respons
   const sel = "h-8 rounded-md border border-input bg-background px-2 text-xs";
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-muted/30 p-3 text-xs">
+      <div className="space-y-1">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Formato</Label>
+        <select className={sel} value={formato ?? ""} disabled={pendiente} onChange={(e) => guardar({ formato: e.target.value || null })}>
+          <option value="">Sin formato</option>
+          {FORMATOS.map((f) => <option key={f} value={f}>{NOMBRE_FORMATO[f]}</option>)}
+        </select>
+      </div>
       <div className="space-y-1">
         <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Estado</Label>
         <select className={sel} value={estado} disabled={pendiente || estado === "publicada"} onChange={(e) => mover(e.target.value)}>
@@ -61,7 +68,7 @@ export function AccionesOwner({ piezaId, estado, formato, fechaObjetivo, respons
           {perfiles.map((p) => <option key={p.user_id} value={p.user_id}>{p.nombre}</option>)}
         </select>
       </div>
-      <Dialog open={abierto} onOpenChange={setAbierto}>
+      {estado !== "idea" && <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogTrigger render={<Button size="sm" variant="outline" />}>Asignar tarea</DialogTrigger>
         <DialogContent>
           <DialogHeader><DialogTitle>Nueva tarea para la cola</DialogTitle></DialogHeader>
@@ -83,7 +90,7 @@ export function AccionesOwner({ piezaId, estado, formato, fechaObjetivo, respons
             <Button disabled={pendiente || !t.para || !t.vence} onClick={asignar}>Asignar</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </div>
   );
 }

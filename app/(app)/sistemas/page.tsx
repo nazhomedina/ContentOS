@@ -6,17 +6,20 @@ import { resumenSistema, type AristaDef, type NodoEstado } from "@/lib/dominio/n
 import { Grafo } from "@/components/maquina/grafo";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Máquina" };
+export const metadata = { title: "Sistemas" };
 export const dynamic = "force-dynamic";
 
-export default async function Maquina({ searchParams }: { searchParams: Promise<{ sistema?: string; semana?: string }> }) {
+export default async function Sistemas({ searchParams }: { searchParams: Promise<{ sistema?: string; semana?: string }> }) {
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
   const { sistema: sParam, semana: wParam } = await searchParams;
   const semana = wParam && /^\d{4}-\d{2}-\d{2}$/.test(wParam) ? lunesDe(wParam) : lunesDeHoy();
   const supabase = await crearClienteServidor();
 
-  const { data: sistemas } = await supabase.from("sistemas").select("clave, nombre, proposito, nodos, aristas, version, updated_at").eq("activo", true).order("orden");
+  const [{ data: sistemas }, { data: latidos }] = await Promise.all([
+    supabase.from("sistemas").select("clave, nombre, proposito, nodos, aristas, version, updated_at").eq("activo", true).order("orden"),
+    supabase.rpc("latidos"),
+  ]);
   if (!sistemas?.length) {
     return <p className="text-sm text-muted-foreground">No hay sistemas definidos. Se definen desde Claude con definir_sistema.</p>;
   }
@@ -32,14 +35,14 @@ export default async function Maquina({ searchParams }: { searchParams: Promise<
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">La máquina · semana del {fechaCorta(semana)}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sistemas · semana del {fechaCorta(semana)}</p>
           <h1 className="text-3xl font-extrabold tracking-tight">{activo.nombre}</h1>
           {activo.proposito && <p className="max-w-2xl text-sm text-muted-foreground">{activo.proposito}</p>}
         </div>
         <div className="flex gap-1 text-xs">
-          <Link href={`/maquina?sistema=${activo.clave}&semana=${sumarDias(semana, -7)}`} className="rounded-md border px-3 py-2">← semana</Link>
-          <Link href={`/maquina?sistema=${activo.clave}`} className="rounded-md border px-3 py-2 font-medium">hoy</Link>
-          <Link href={`/maquina?sistema=${activo.clave}&semana=${sumarDias(semana, 7)}`} className="rounded-md border px-3 py-2">semana →</Link>
+          <Link href={`/sistemas?sistema=${activo.clave}&semana=${sumarDias(semana, -7)}`} className="rounded-md border px-3 py-2">← semana</Link>
+          <Link href={`/sistemas?sistema=${activo.clave}`} className="rounded-md border px-3 py-2 font-medium">hoy</Link>
+          <Link href={`/sistemas?sistema=${activo.clave}&semana=${sumarDias(semana, 7)}`} className="rounded-md border px-3 py-2">semana →</Link>
         </div>
       </header>
 
@@ -50,7 +53,7 @@ export default async function Maquina({ searchParams }: { searchParams: Promise<
           return (
             <Link
               key={x.clave}
-              href={`/maquina?sistema=${x.clave}&semana=${semana}`}
+              href={`/sistemas?sistema=${x.clave}&semana=${semana}`}
               className={cn("flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm", es ? "border-foreground bg-foreground text-background" : "hover:bg-muted/50")}
             >
               <span className={cn("size-2 rounded-full", r.peor === "corrio" ? "bg-ok" : r.peor === "agendado" ? "bg-ambar" : r.peor === "hueco" ? "bg-muted-foreground" : "bg-rojo")} />
@@ -67,6 +70,24 @@ export default async function Maquina({ searchParams }: { searchParams: Promise<
         aristas={(activo.aristas as AristaDef[]) ?? []}
         puedeDeclarar={sesion.perfil.rol === "owner"}
       />
+
+      <section className="space-y-2">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Latidos · sistemas automáticos</h2>
+        <ul className="divide-y rounded-lg border text-sm">
+          {(latidos ?? []).map((l) => (
+            <li key={l.sistema} className="flex items-center justify-between gap-3 px-3 py-2">
+              <div className="min-w-0">
+                <p className="font-mono text-xs font-semibold">{l.sistema}</p>
+                <p className="truncate text-xs text-muted-foreground">{l.ultimo_resumen ?? "sin corridas"}</p>
+              </div>
+              <div className="text-right text-xs">
+                <p className={cn("font-semibold", l.atrasado ? "text-rojo" : "text-ok")}>{l.atrasado ? "atrasado" : "al día"}</p>
+                <p className="text-muted-foreground">{l.ultima_corrida ? fechaCorta(l.ultima_corrida.slice(0, 10)) : "nunca"}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <p className="text-xs text-muted-foreground">
         Versión {activo.version} · el sistema se redefine desde Claude con <code className="font-mono">definir_sistema</code>. Los nodos se pintan con la evidencia de esta semana: nada se estima.

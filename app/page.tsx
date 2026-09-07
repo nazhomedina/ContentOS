@@ -1,7 +1,7 @@
 import { MARCA } from "@/lib/dominio/marca";
 
 // Placeholder del sprint 0. El middleware de auth (sprint 1, paso 1.6)
-// enruta por rol: editor → /cola · owner → /piezas · viewer → /tablero.
+// enruta por rol: owner → /inicio · editor → /cola · viewer → /piezas.
 export default function Inicio() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-3 px-6">

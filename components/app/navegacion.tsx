@@ -2,82 +2,85 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Layers, Lightbulb, ListChecks, Gauge, LogOut, Sun, CalendarRange, Workflow, Filter } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, Layers, ListChecks, LogOut, Sun, Workflow, Shapes, Menu, X } from "lucide-react";
 import { MARCA } from "@/lib/dominio/marca";
 import type { Rol } from "@/lib/dominio/roles";
 import { cn } from "@/lib/utils";
 
 type Entrada = { href: string; etiqueta: string; icono: React.ComponentType<{ className?: string }>; roles: Rol[] };
 
-type EntradaNav = Entrada & { movil?: boolean };
-const ENTRADAS: EntradaNav[] = [
-  { href: "/hoy", etiqueta: "Hoy", icono: Sun, roles: ["owner"], movil: true },
-  { href: "/semana", etiqueta: "Semana", icono: CalendarRange, roles: ["owner", "viewer"], movil: true },
-  { href: "/maquina", etiqueta: "Máquina", icono: Workflow, roles: ["owner", "viewer"] },
-  { href: "/embudo", etiqueta: "Embudo", icono: Filter, roles: ["owner", "viewer"] },
-  { href: "/cola", etiqueta: "Cola", icono: ListChecks, roles: ["owner", "editor"], movil: true },
-  { href: "/piezas", etiqueta: "Piezas", icono: Layers, roles: ["owner", "editor", "viewer"], movil: true },
-  { href: "/historias", etiqueta: "Historias", icono: CalendarDays, roles: ["owner", "editor", "viewer"], movil: true },
-  { href: "/ideas", etiqueta: "Ideas", icono: Lightbulb, roles: ["owner"] },
-  { href: "/tablero", etiqueta: "Latidos", icono: Gauge, roles: ["owner", "viewer"] },
+const ENTRADAS: Entrada[] = [
+  { href: "/inicio", etiqueta: "Inicio", icono: Sun, roles: ["owner"] },
+  { href: "/piezas", etiqueta: "Piezas", icono: Layers, roles: ["owner", "editor", "viewer"] },
+  { href: "/formatos", etiqueta: "Formatos", icono: Shapes, roles: ["owner", "editor"] },
+  { href: "/sistemas", etiqueta: "Sistemas", icono: Workflow, roles: ["owner"] },
+  { href: "/cola", etiqueta: "Cola", icono: ListChecks, roles: ["owner", "editor"] },
+  { href: "/historias", etiqueta: "Historias", icono: CalendarDays, roles: ["owner", "editor", "viewer"] },
 ];
 
+/** Menú lateral fijo en escritorio; en móvil, barra superior con el mismo menú plegable. */
 export function Navegacion({ rol, nombre }: { rol: Rol; nombre: string }) {
   const pathname = usePathname();
+  const [abierto, setAbierto] = useState(false);
   const entradas = ENTRADAS.filter((e) => e.roles.includes(rol));
+
+  const lista = (
+    <ul className="space-y-0.5">
+      {entradas.map((e) => {
+        const activo = pathname === e.href || pathname.startsWith(e.href + "/");
+        return (
+          <li key={e.href}>
+            <Link
+              href={e.href}
+              onClick={() => setAbierto(false)}
+              className={cn(
+                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition",
+                activo ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <e.icono className="size-4" />
+              {e.etiqueta}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  const pie = (
+    <form action="/auth/salir" method="post" className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground">
+      <span className="truncate">{nombre}</span>
+      <button type="submit" className="rounded-md p-1.5 hover:bg-muted hover:text-foreground" aria-label="Salir" title="Salir">
+        <LogOut className="size-4" />
+      </button>
+    </form>
+  );
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="font-extrabold tracking-tight">
-            {MARCA.nombre}
-          </Link>
-          <nav className="hidden items-center gap-1 md:flex">
-            {entradas.map((e) => (
-              <Link
-                key={e.href}
-                href={e.href}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium",
-                  pathname.startsWith(e.href) ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {e.etiqueta}
-              </Link>
-            ))}
-          </nav>
-          <form action="/auth/salir" method="post" className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:inline">{nombre}</span>
-            <button type="submit" className="rounded-md p-1.5 text-muted-foreground hover:text-foreground" aria-label="Salir" title="Salir">
-              <LogOut className="size-4" />
-            </button>
-          </form>
+      {/* Escritorio */}
+      <aside className="hidden w-56 shrink-0 border-r bg-background md:flex md:flex-col">
+        <div className="px-5 py-5">
+          <Link href="/" className="text-lg font-extrabold tracking-tight">{MARCA.nombre}</Link>
         </div>
-      </header>
+        <nav className="flex-1 px-2">{lista}</nav>
+        <div className="border-t">{pie}</div>
+      </aside>
 
-      {/* Barra inferior: móvil primero para Mariela */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 backdrop-blur md:hidden">
-        <ul className="mx-auto flex max-w-3xl justify-around">
-          {entradas.filter((e) => e.movil || rol !== "owner").slice(0, 5).map((e) => {
-            const activo = pathname.startsWith(e.href);
-            return (
-              <li key={e.href} className="flex-1">
-                <Link
-                  href={e.href}
-                  className={cn(
-                    "flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium",
-                    activo ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  <e.icono className="size-5" />
-                  {e.etiqueta}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      {/* Móvil */}
+      <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b bg-background px-4 md:hidden">
+        <Link href="/" className="font-extrabold tracking-tight">{MARCA.nombre}</Link>
+        <button type="button" onClick={() => setAbierto((v) => !v)} className="rounded-md p-1.5" aria-label="Menú">
+          {abierto ? <X className="size-5" /> : <Menu className="size-5" />}
+        </button>
+      </header>
+      {abierto && (
+        <div className="fixed inset-0 top-12 z-10 bg-background md:hidden">
+          <nav className="p-2">{lista}</nav>
+          <div className="border-t">{pie}</div>
+        </div>
+      )}
     </>
   );
 }

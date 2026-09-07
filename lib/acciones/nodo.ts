@@ -6,7 +6,7 @@ import { esquemaHipotesis } from "@/lib/dominio/hipotesis";
 import { fallo, type Resultado } from "./resultado";
 
 function revalidarTodo() {
-  for (const p of ["/hoy", "/semana", "/maquina", "/embudo", "/piezas", "/cola", "/historias"]) revalidatePath(p);
+  for (const p of ["/inicio", "/sistemas", "/piezas", "/cola", "/historias", "/formatos"]) revalidatePath(p);
 }
 
 export async function declararHueco(semana: string, sistema: string, nodo: string, nota: string): Promise<Resultado> {
@@ -27,30 +27,26 @@ export async function aprobarHistoriasSemana(semana: string): Promise<Resultado>
 }
 
 export type PayloadPieza = {
-  id_publico: string; comunidad_id: string; formato: string; etapa_embudo: string; format_card?: string | null; idea_id?: string | null;
-  titulo?: string | null; serie?: string | null; cta?: string | null; guion?: string | null; spec_visual?: string | null;
-  fecha_objetivo?: string | null; responsable_id?: string | null; estado?: string | null; programa_aprobado?: boolean;
-  hipotesis: { texto: string; campo: string; numero: number; fecha: string };
+  titulo: string; notas?: string | null; formato?: string | null; estado?: string | null; origen?: string | null;
+  fecha_objetivo?: string | null; responsable_id?: string | null; guion?: string | null;
+  etapa_embudo?: string | null; format_card?: string | null; serie?: string | null; cta?: string | null;
+  hipotesis?: { texto: string; campo: string; numero: number; fecha: string } | null;
 };
 
-export async function crearPieza(p: PayloadPieza): Promise<Resultado & { id?: string }> {
-  const h = esquemaHipotesis.safeParse(p.hipotesis);
-  if (!h.success) return { ok: false, mensaje: h.error.issues[0]?.message ?? "Hipótesis inválida." };
-  if (!/^[A-Z]{2,5}-\d{2,3}([a-z]|-[A-E])?$/.test(p.id_publico)) return { ok: false, mensaje: "El ID público va como PREFIJO-## (por ejemplo CRI-31)." };
+/** Capturar es escribir una línea. Todo lo demás lo completa Claude por MCP. */
+export async function crearPieza(p: PayloadPieza): Promise<Resultado & { id?: string; id_publico?: string }> {
+  if (!p.titulo?.trim()) return { ok: false, mensaje: "Una pieza nace con al menos un título." };
+  if (p.hipotesis) {
+    const h = esquemaHipotesis.safeParse(p.hipotesis);
+    if (!h.success) return { ok: false, mensaje: h.error.issues[0]?.message ?? "Hipótesis inválida." };
+  }
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.rpc("crear_pieza_validada", {
-    payload: {
-      ...p,
-      format_card: p.format_card || null,
-      fecha_objetivo: p.fecha_objetivo || null,
-      responsable_id: p.responsable_id || null,
-      idea_id: p.idea_id || null,
-      estado: p.estado || "para_producir",
-    },
+    payload: { ...p, titulo: p.titulo.trim(), estado: p.estado || "idea", origen: p.origen || "nazho" },
   });
   if (error) return fallo(error);
   revalidarTodo();
-  return { ok: true, mensaje: `${data.id_publico} creada.`, id: data.id };
+  return { ok: true, mensaje: `${data.id_publico} capturada.`, id: data.id, id_publico: data.id_publico };
 }
 
 export async function asignarTarea(v: { pieza_id?: string; historia_id?: string; tipo: string; asignado_a: string; vence: string; checklist?: string[] }): Promise<Resultado> {
@@ -74,7 +70,7 @@ export async function moverEstado(piezaId: string, estado: string): Promise<Resu
   return { ok: true };
 }
 
-export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo?: string | null; responsable_id?: string | null; titulo?: string | null; programa_aprobado?: boolean }): Promise<Resultado> {
+export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo?: string | null; responsable_id?: string | null; titulo?: string | null; programa_aprobado?: boolean; formato?: string | null; notas?: string | null; guion?: string | null }): Promise<Resultado> {
   const supabase = await crearClienteServidor();
   const { error, count } = await supabase.from("piezas").update(cambios, { count: "exact" }).eq("id", piezaId);
   if (error) return fallo(error);

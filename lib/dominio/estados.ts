@@ -1,11 +1,12 @@
 import type { Rol } from "./roles";
 
 export const ESTADOS_PIEZA = [
-  "para_producir", "para_grabar", "edicion", "buffer", "programada", "publicada", "archivada", "en_trial",
+  "idea", "para_producir", "para_grabar", "edicion", "buffer", "programada", "publicada", "archivada", "en_trial",
 ] as const;
 export type EstadoPieza = (typeof ESTADOS_PIEZA)[number];
 
 export const NOMBRE_ESTADO: Record<EstadoPieza, string> = {
+  idea: "Idea",
   para_producir: "Para producir",
   para_grabar: "Para grabar",
   edicion: "Edición",
@@ -69,6 +70,8 @@ export function motivoNoPublicable(estado: string): string | null {
       return "Falta grabar y editar.";
     case "para_producir":
       return "Todavía no tiene guion final.";
+    case "idea":
+      return "Es una idea. Pídele a Claude que la desarrolle.";
     case "archivada":
       return "Está archivada.";
     case "en_trial":
