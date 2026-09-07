@@ -14,3 +14,6 @@ export const CLASE_SEMAFORO: Record<Semaforo, string> = {
 };
 
 export const TOPE_PRODUCCION = 10;
+
+/** Tope de ideas en shortlist (diseño §6: shortlist ≤ 20). */
+export const TOPE_SHORTLIST = 20;

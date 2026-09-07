@@ -115,6 +115,8 @@ try {
   ok("/embudo 200 con anillos", r.status === 200 && r.html.includes("Atraer") && r.html.includes("sin sensor"), String(r.status));
   r = await getO("/piezas/nueva?formato=reel");
   ok("/piezas/nueva 200", r.status === 200 && r.html.includes("Hipótesis (obligatoria"), String(r.status));
+  r = await getO("/ideas");
+  ok("/ideas 200 con columnas y atajos", r.status === 200 && r.html.includes("Shortlist") && r.html.includes("Capturar"), String(r.status));
   r = await getO("/piezas");
   ok("/piezas owner ve tope y botón nueva", r.status === 200 && r.html.includes("en producción") && r.html.includes("Nueva pieza"), "");
   // acciones reales como owner: crear pieza sin fecha → error; declarar hueco → ok

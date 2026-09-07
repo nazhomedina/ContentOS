@@ -27,7 +27,7 @@ export async function aprobarHistoriasSemana(semana: string): Promise<Resultado>
 }
 
 export type PayloadPieza = {
-  id_publico: string; comunidad_id: string; formato: string; etapa_embudo: string; format_card?: string | null;
+  id_publico: string; comunidad_id: string; formato: string; etapa_embudo: string; format_card?: string | null; idea_id?: string | null;
   titulo?: string | null; serie?: string | null; cta?: string | null; guion?: string | null; spec_visual?: string | null;
   fecha_objetivo?: string | null; responsable_id?: string | null; estado?: string | null; programa_aprobado?: boolean;
   hipotesis: { texto: string; campo: string; numero: number; fecha: string };
@@ -44,6 +44,7 @@ export async function crearPieza(p: PayloadPieza): Promise<Resultado & { id?: st
       format_card: p.format_card || null,
       fecha_objetivo: p.fecha_objetivo || null,
       responsable_id: p.responsable_id || null,
+      idea_id: p.idea_id || null,
       estado: p.estado || "para_producir",
     },
   });

@@ -16,7 +16,7 @@ type Props = {
   comunidades: { id: string; nombre: string }[];
   cards: { id: string; codigo: string; nombre: string }[];
   perfiles: { user_id: string; nombre: string; rol: string }[];
-  inicial: { formato: string; id_publico: string; semana: string };
+  inicial: { formato: string; id_publico: string; semana: string; idea?: { id: string; titulo: string; notas: string | null; etapa_embudo: string | null } | null };
 };
 
 const CAMPOS = ["multiplicador", "views", "saves", "follows", "suscriptores", "leads", "retencion_3s", "dms"];
@@ -35,10 +35,10 @@ export function FormularioPieza({ comunidades, cards, perfiles, inicial }: Props
     comunidad_id: comunidades[0]?.id ?? "",
     formato: inicial.formato,
     format_card: inicial.formato === "yap" ? cards.find((c) => c.codigo === "FC-08")?.codigo ?? "" : "",
-    titulo: "", serie: "", etapa_embudo: "atraer", cta: "",
+    titulo: inicial.idea?.titulo ?? "", serie: "", etapa_embudo: inicial.idea?.etapa_embudo ?? "atraer", cta: "",
     fecha_objetivo: sumarDias(inicial.semana, 4),
     responsable_id: "", estado: "para_producir", programa_aprobado: false,
-    guion: "", spec_visual: "",
+    guion: inicial.idea?.notas ? `> ${inicial.idea.notas}\n\n` : "", spec_visual: "",
     h_texto: "", h_campo: "multiplicador", h_numero: "3", h_fecha: sumarDias(inicial.semana, 28),
     tarea_tipo: inicial.formato === "carrusel" ? "diseñar" : "grabar",
     tarea_para: inicial.formato === "carrusel" ? (editor?.user_id ?? "") : (perfiles.find((p) => p.rol === "owner")?.user_id ?? ""),
@@ -50,6 +50,7 @@ export function FormularioPieza({ comunidades, cards, perfiles, inicial }: Props
   function enviar() {
     iniciar(async () => {
       const r = await crearPieza({
+        idea_id: inicial.idea?.id ?? null,
         id_publico: f.id_publico.trim().toUpperCase(),
         comunidad_id: f.comunidad_id, formato: f.formato, etapa_embudo: f.etapa_embudo,
         format_card: f.format_card || null, titulo: f.titulo || null, serie: f.serie || null, cta: f.cta || null,

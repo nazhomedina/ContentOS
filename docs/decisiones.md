@@ -63,3 +63,11 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **MCP en `/api/mcp` con 19 herramientas** (13 del handoff + listar_piezas + 4 del Nodo). Stateless; no se cierra el server tras `handleRequest` porque la Response es un stream. Las corridas de las tools se escriben con service_role (bitácora), todo lo demás con el JWT impersonado. Probado con `npm run prueba:mcp` (11/11).
 
 **Formulario de pieza nueva crea la primera tarea al guardar.** Reduce el «un solo punto» de Nazho a una pantalla.
+
+## 2026-09-07 (noche) · Import parcial de ideas
+
+**30 de las 45 ideas del 💡 Banco de ideas entraron a `ideas`** (`scripts/import-ideas-2026-09-07.sql`, idempotente por `notion_url`). Criterio: las 2 en Propuesta → shortlist; las 3 no-legacy (Radar, Markie); las legacy con tensión escrita; el resto por orden de captura. Quedan 15 en Notion para el import completo. Nazho pidió trabajar la plataforma antes del import total.
+
+**`ideas.origen` admite `legado` y `nazho`** (migración 006) para no inventar procedencias. `ideas.notion_url` y `ideas.formato_sugerido` dan trazabilidad y prellenan el formulario de pieza.
+
+**Pantalla Ideas construida:** tres columnas (nuevas, shortlist, convertidas) + descartadas plegadas, captura rápida, atajos S/D/C/N y «Convertir» que abre el formulario de pieza con título, notas y etapa prellenados; al crear, la idea pasa a convertida (lo hace `crear_pieza_validada`).

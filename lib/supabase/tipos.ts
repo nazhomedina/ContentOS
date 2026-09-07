@@ -53,9 +53,9 @@ export type Database = {
         ]
       }
       ideas: {
-        Row: { comunidad_id: string; creado_por: string | null; created_at: string; estado: string; etapa_embudo: string | null; id: string; notas: string | null; origen: string | null; titulo: string; updated_at: string; video_origen_id: string | null }
-        Insert: { comunidad_id: string; creado_por?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; id?: string; notas?: string | null; origen?: string | null; titulo: string; updated_at?: string; video_origen_id?: string | null }
-        Update: { comunidad_id?: string; creado_por?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; id?: string; notas?: string | null; origen?: string | null; titulo?: string; updated_at?: string; video_origen_id?: string | null }
+        Row: { comunidad_id: string; creado_por: string | null; created_at: string; estado: string; etapa_embudo: string | null; id: string; notas: string | null; origen: string | null; titulo: string; updated_at: string; video_origen_id: string | null; notion_url: string | null; formato_sugerido: string[] }
+        Insert: { comunidad_id: string; creado_por?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; id?: string; notas?: string | null; origen?: string | null; titulo: string; updated_at?: string; video_origen_id?: string | null; notion_url?: string | null; formato_sugerido?: string[] }
+        Update: { comunidad_id?: string; creado_por?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; id?: string; notas?: string | null; origen?: string | null; titulo?: string; updated_at?: string; video_origen_id?: string | null; notion_url?: string | null; formato_sugerido?: string[] }
         Relationships: [
           { foreignKeyName: "ideas_comunidad_id_fkey"; columns: ["comunidad_id"]; isOneToOne: false; referencedRelation: "comunidades"; referencedColumns: ["id"] },
           { foreignKeyName: "ideas_creado_por_fkey"; columns: ["creado_por"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
