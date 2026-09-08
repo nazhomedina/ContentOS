@@ -6,7 +6,7 @@ import { esquemaHipotesis } from "@/lib/dominio/hipotesis";
 import { fallo, type Resultado } from "./resultado";
 
 function revalidarTodo() {
-  for (const p of ["/inicio", "/sistemas", "/piezas", "/cola", "/historias", "/formatos"]) revalidatePath(p);
+  for (const p of ["/inicio", "/sistemas", "/piezas", "/cola", "/historias", "/formatos", "/equipo"]) revalidatePath(p);
 }
 
 export async function declararHueco(semana: string, sistema: string, nodo: string, nota: string): Promise<Resultado> {

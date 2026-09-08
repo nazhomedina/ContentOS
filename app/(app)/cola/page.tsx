@@ -4,6 +4,7 @@ import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { bucketVencimiento, sumarDias, hoyISO } from "@/lib/dominio/tiempo";
 import { ChipBuffer } from "@/components/app/insignias";
 import { FilaTarea, type TareaEnCola } from "@/components/cola/fila-tarea";
+import { TuDia, type Declaracion } from "@/components/bitacora/tu-dia";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Mi cola" };
@@ -23,12 +24,15 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
   const supabase = await crearClienteServidor();
   const esOwner = sesion.perfil.rol === "owner";
 
-  const [{ data: tareas }, { count: buffer }] = await Promise.all([
+  const hoyStr = hoyISO();
+  const [{ data: tareas }, { count: buffer }, { data: declaraciones }, { data: misPiezas }] = await Promise.all([
     supabase
       .from("tareas")
       .select("id, tipo, estado, vence, checklist, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, formato, estado), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
       .order("vence", { ascending: true, nullsFirst: false }),
     supabase.from("piezas").select("id", { count: "exact", head: true }).eq("estado", "buffer"),
+    esOwner ? Promise.resolve({ data: [] }) : supabase.from("bitacora").select("id, texto, minutos, evidencia_url, created_at, pieza:piezas(id, id_publico, titulo)").eq("perfil_id", sesion.userId).eq("fecha", hoyStr).order("created_at"),
+    esOwner ? Promise.resolve({ data: [] }) : supabase.from("piezas").select("id, id_publico, titulo").in("estado", ["para_grabar", "edicion", "buffer", "programada"]).order("updated_at", { ascending: false }).limit(50),
   ]);
 
   const hace7 = sumarDias(hoyISO(), -7);
@@ -76,6 +80,10 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
           ))}
         </div>
       </header>
+
+      {!esOwner && (
+        <TuDia userId={sesion.userId} hoy={hoyStr} declaraciones={(declaraciones ?? []) as unknown as Declaracion[]} piezas={misPiezas ?? []} />
+      )}
 
       <Grupo titulo="Hoy" tareas={hoy} vacio="Nada para hoy." mostrarAsignado={esOwner} />
       <Grupo titulo="Esta semana" tareas={semana} vacio="Nada más esta semana." mostrarAsignado={esOwner} />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
-import { fechaCorta, hoyISO, lunesDeHoy, DIAS_SEMANA } from "@/lib/dominio/tiempo";
+import { fechaCorta, hoyISO, lunesDeHoy, sumarDias, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { NOMBRE_META, resumenSistema, type NodoEstado } from "@/lib/dominio/nodo";
 import { ChipBuffer, IdPublico, InsigniaEstado, InsigniaFormato } from "@/components/app/insignias";
 import { BotonAprobarHistorias } from "@/components/hoy/aprobar-historias";
@@ -21,7 +21,7 @@ export default async function Inicio() {
   const semana = lunesDeHoy();
   const hoy = hoyISO();
 
-  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { count: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }] = await Promise.all([
+  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { count: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }] = await Promise.all([
     supabase.from("historias").select("id, dia, serie, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
     supabase.from("tareas").select("id, tipo, nota_bloqueo, vence, pieza:piezas(id, id_publico, titulo), asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("estado", "bloqueada").order("vence"),
     supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, formato)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
@@ -29,7 +29,18 @@ export default async function Inicio() {
     supabase.rpc("cuota_semana", { p_semana: semana }),
     supabase.rpc("latidos"),
     supabase.from("sistemas").select("clave, nombre").eq("activo", true).order("orden"),
+    supabase.from("perfiles").select("user_id, nombre").eq("rol", "editor").order("nombre"),
   ]);
+  const ayer = sumarDias(hoy, -1);
+  const equipo = await Promise.all((editores ?? []).map(async (e) => {
+    const [{ count: hoyN }, { count: ayerN }, { data: ev }] = await Promise.all([
+      supabase.from("bitacora").select("id", { count: "exact", head: true }).eq("perfil_id", e.user_id).eq("fecha", hoy),
+      supabase.from("bitacora").select("id", { count: "exact", head: true }).eq("perfil_id", e.user_id).eq("fecha", ayer),
+      supabase.rpc("evidencia_dia", { p_perfil: e.user_id, p_fecha: hoy }),
+    ]);
+    const evj = (ev ?? {}) as { tareas_hechas?: unknown[]; archivos?: unknown[] };
+    return { ...e, hoy: hoyN ?? 0, ayer: ayerN ?? 0, tareas: evj.tareas_hechas?.length ?? 0, archivos: evj.archivos?.length ?? 0 };
+  }));
   const estados = await Promise.all((sistemas ?? []).map(async (x) => {
     const { data } = await supabase.rpc("estado_nodos", { p_clave: x.clave, p_semana: semana });
     return { ...x, nodos: (data ?? []) as NodoEstado[] };
@@ -87,6 +98,26 @@ export default async function Inicio() {
                 <p className="text-sm text-rojo">{t.nota_bloqueo}</p>
               </li>
             ))}
+          </ul>
+        </Bloque>
+      )}
+
+      {equipo.length > 0 && (
+        <Bloque titulo="Equipo" extra={<Link href="/equipo" className="underline">ver la semana</Link>}>
+          <ul className="divide-y rounded-lg border text-sm">
+            {equipo.map((e) => {
+              const esLaboral = new Date(hoy + "T12:00:00").getDay() % 6 !== 0;
+              return (
+                <li key={e.user_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                  <Link href={`/equipo?persona=${e.user_id}`} className="font-medium hover:underline">{e.nombre}</Link>
+                  <span className="flex items-center gap-3 text-xs">
+                    <span className={cn(e.hoy === 0 && esLaboral ? "font-semibold text-ambar" : "text-muted-foreground")}>hoy: {e.hoy === 0 ? "sin bitácora" : `${e.hoy} entradas`}</span>
+                    <span className={cn(e.ayer === 0 ? "text-rojo" : "text-muted-foreground")}>ayer: {e.ayer === 0 ? "sin bitácora" : `${e.ayer} entradas`}</span>
+                    <span className="text-muted-foreground">{e.tareas} tareas · {e.archivos} archivos hoy</span>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </Bloque>
       )}

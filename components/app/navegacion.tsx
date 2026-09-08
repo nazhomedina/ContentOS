@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { CalendarDays, Layers, ListChecks, LogOut, Sun, Workflow, Shapes, Menu, X } from "lucide-react";
+import { CalendarDays, Layers, ListChecks, LogOut, Sun, Workflow, Shapes, Menu, X, Users } from "lucide-react";
 import { MARCA } from "@/lib/dominio/marca";
 import type { Rol } from "@/lib/dominio/roles";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const ENTRADAS: Entrada[] = [
   { href: "/formatos", etiqueta: "Formatos", icono: Shapes, roles: ["owner", "editor"] },
   { href: "/sistemas", etiqueta: "Sistemas", icono: Workflow, roles: ["owner"] },
   { href: "/cola", etiqueta: "Cola", icono: ListChecks, roles: ["owner", "editor"] },
+  { href: "/equipo", etiqueta: "Equipo", icono: Users, roles: ["owner"] },
   { href: "/historias", etiqueta: "Historias", icono: CalendarDays, roles: ["owner", "editor", "viewer"] },
 ];
 

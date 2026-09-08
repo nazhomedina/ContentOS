@@ -85,3 +85,13 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **MCP: 15 tools.** Fuera las de ideas; `actualizar_pieza` acepta hipótesis, formato, etapa y format card y es la forma en que Claude convierte una idea en pieza. Nueva `listar_formatos`.
 
 **Tabla `hooks` ligera** (texto, categoría, formato, pieza de origen, favorito). Sin pantalla todavía.
+
+## 2026-09-08 · Bitácora diaria (accountability)
+
+**Prioridad declarada por Nazho:** claridad sobre en qué trabaja Mariela. Se construyó `bitacora` (migración 008): cada persona declara al día en qué trabajó, opcionalmente ligado a una pieza, con minutos y archivo. RLS: cada quien escribe lo suyo; lo de hoy se corrige, lo de ayer queda como se declaró. Los archivos van a `assets/piezas/{id}/final/` si hay pieza, o a `assets/bitacora/{user}/{fecha}/` si no.
+
+**Declarado junto a evidencia.** `evidencia_dia(perfil, fecha)` junta lo que la plataforma vio: tareas cerradas, estados movidos (corridas con actor), historias publicadas, archivos subidos, comentarios. La pantalla Equipo muestra las dos columnas por día; los días laborales sin bitácora se pintan en rojo. Cuando no coinciden es una conversación, no una estimación.
+
+**Dónde declara Mariela:** bloque «Tu día» arriba de su Cola, en ámbar hasta que declare. **Dónde lo ve Nazho:** bloque «Equipo» en Inicio (hoy y ayer por persona) y pantalla Equipo por semana. **Desde Claude:** tool `bitacora_de(persona, desde, hasta)`.
+
+**Sin recordatorio externo todavía.** El empujón es el bloque ámbar en su Cola. Un aviso por WhatsApp a las 17:00 si no ha declarado es un job de n8n para después.

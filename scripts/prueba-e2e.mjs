@@ -55,6 +55,17 @@ try {
 
   r = await get("/cola");
   ok("/cola 200", r.status === 200, String(r.status));
+  ok("/cola muestra «Tu día» sin bitácora", r.html.includes("Tu día") && r.html.includes("Todavía no declaras"), "");
+  {
+    const { data: pz } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-02").single();
+    const conEd = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${s.session.access_token}` } }, auth: { persistSession: false } });
+    const { error: eb } = await conEd.from("bitacora").insert({ perfil_id: userId, texto: "diseñé 3 slides del carrusel (prueba e2e)", pieza_id: pz.id, minutos: 90 });
+    ok("editora declara en bitácora (RLS propia)", !eb, eb?.message);
+    const { error: eb2 } = await conEd.from("bitacora").insert({ perfil_id: "00000000-0000-4000-8000-0000000000aa", texto: "suplantación" });
+    ok("editora no declara por otra persona", !!eb2, eb2?.message);
+    r = await get("/cola");
+    ok("/cola muestra la entrada declarada", r.html.includes("diseñé 3 slides") && !r.html.includes("Todavía no declaras"), "");
+  }
   ok("/cola muestra DEMO-01 y semáforo", r.html.includes("DEMO-01") && r.html.includes("buffer 1"), "");
   ok("/cola agrupa Hoy con 1", /Hoy.*?·\s*1/s.test(r.html), "");
 
@@ -105,6 +116,9 @@ try {
   r = await getO("/inicio");
   ok("/inicio 200 con captura, semana y máquina", r.status === 200 && r.html.includes("Nueva idea") && r.html.includes("La semana") && r.html.includes("La máquina") && r.html.includes("Te toca grabar"), String(r.status));
   ok("/inicio muestra huecos y cuota", r.html.includes("Hueco") && /\/10 publicadas/.test(r.html), "");
+  r = await getO("/equipo");
+  ok("/equipo 200 con la bitácora de la editora", r.status === 200 && r.html.includes("Editora Prueba") && r.html.includes("diseñé 3 slides") && r.html.includes("Lo que la plataforma registró"), String(r.status));
+  await admin.from("bitacora").delete().eq("perfil_id", userId);
   r = await getO("/sistemas");
   ok("/sistemas 200 con nodos y latidos", r.status === 200 && r.html.includes("Máquina semanal") && r.html.includes("Post-scraper de grilla") && r.html.includes("Latidos"), String(r.status));
   r = await getO("/sistemas?sistema=pauta_pixel");

@@ -171,6 +171,22 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     return json(porEstado);
   });
 
+  server.registerTool("bitacora_de", {
+    description: "Bitácora diaria de una persona (lo que declaró) junto a la evidencia automática (tareas hechas, estados movidos, archivos subidos), por día en un rango. Para el review y para saber en qué trabajó Mariela.",
+    inputSchema: { persona: z.string().describe("nombre o user_id"), desde: fecha.optional(), hasta: fecha.optional() },
+  }, async ({ persona, desde, hasta }) => {
+    const id = await resolverPersona(supabase, persona);
+    if (!id) return error(`No encuentro a ${persona}.`);
+    const d = desde ?? lunesDeHoy(), h = hasta ?? sumar(d, 6);
+    const { data: decl } = await supabase.from("bitacora").select("fecha, texto, minutos, evidencia_url, pieza:piezas(id_publico, titulo)").eq("perfil_id", id).gte("fecha", d).lte("fecha", h).order("fecha").order("created_at");
+    const dias: Record<string, unknown> = {};
+    for (let x = d; x <= h; x = sumar(x, 1)) {
+      const { data: ev } = await supabase.rpc("evidencia_dia", { p_perfil: id, p_fecha: x });
+      dias[x] = { declaro: (decl ?? []).filter((b) => b.fecha === x), evidencia: ev };
+    }
+    return json({ persona: id, desde: d, hasta: h, dias });
+  });
+
   // -------------------------------------------------------------------------
   // Historias
   // -------------------------------------------------------------------------

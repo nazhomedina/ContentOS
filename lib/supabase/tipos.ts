@@ -141,6 +141,16 @@ export type Database = {
         Update: { activa?: boolean; created_at?: string; fin?: string | null; id?: string; inicio?: string | null; meta_campaign_id?: string | null; nombre?: string; objetivo?: string; pieza_id?: string | null; presupuesto_semanal?: number | null; recurso_id?: string | null }
         Relationships: []
       }
+      bitacora: {
+        Row: { created_at: string; evidencia_url: string | null; fecha: string; id: string; minutos: number | null; perfil_id: string; pieza_id: string | null; tarea_id: string | null; texto: string }
+        Insert: { created_at?: string; evidencia_url?: string | null; fecha?: string; id?: string; minutos?: number | null; perfil_id: string; pieza_id?: string | null; tarea_id?: string | null; texto: string }
+        Update: { created_at?: string; evidencia_url?: string | null; fecha?: string; id?: string; minutos?: number | null; perfil_id?: string; pieza_id?: string | null; tarea_id?: string | null; texto?: string }
+        Relationships: [
+          { foreignKeyName: "bitacora_perfil_id_fkey"; columns: ["perfil_id"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
+          { foreignKeyName: "bitacora_pieza_id_fkey"; columns: ["pieza_id"]; isOneToOne: false; referencedRelation: "piezas"; referencedColumns: ["id"] },
+          { foreignKeyName: "bitacora_tarea_id_fkey"; columns: ["tarea_id"]; isOneToOne: false; referencedRelation: "tareas"; referencedColumns: ["id"] },
+        ]
+      }
       hooks: {
         Row: { categoria: string | null; created_at: string; favorito: boolean; formato: string | null; id: string; pieza_id: string | null; texto: string }
         Insert: { categoria?: string | null; created_at?: string; favorito?: boolean; formato?: string | null; id?: string; pieza_id?: string | null; texto: string }
@@ -181,6 +191,11 @@ export type Database = {
         Args: { payload: Json }
         Returns: Database["public"]["Tables"]["piezas"]["Row"]
         SetofOptions: { from: "*"; to: "piezas"; isOneToOne: true; isSetofReturn: false }
+      }
+      evidencia_dia: { Args: { p_perfil: string; p_fecha: string }; Returns: Json }
+      resumen_semana_persona: {
+        Args: { p_perfil: string; p_semana: string }
+        Returns: { fecha: string; declaraciones: number; tareas_hechas: number; archivos: number; estados: number }[]
       }
       estado_nodos: {
         Args: { p_clave: string; p_semana: string }
