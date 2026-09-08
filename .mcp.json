@@ -2,7 +2,7 @@
   "mcpServers": {
     "contentos": {
       "type": "http",
-      "url": "http://localhost:3017/api/mcp",
+      "url": "https://content-os-nazho-flkmxs-projects.vercel.app/api/mcp",
       "headers": {
         "Authorization": "Bearer ${CONTENTOS_MCP_KEY}"
       }

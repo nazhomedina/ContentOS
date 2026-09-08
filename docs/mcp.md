@@ -15,14 +15,13 @@ Imprime la key una sola vez. Correrlo de nuevo la rota.
 
 ## 2. Registrar en Claude Code
 
-`.mcp.json` ya apunta a `http://localhost:3017/api/mcp` y lee la key de la variable `CONTENTOS_MCP_KEY`:
+`.mcp.json` apunta a producción (`https://content-os-nazho-flkmxs-projects.vercel.app/api/mcp`) y lee la key de la variable `CONTENTOS_MCP_KEY`. Para desarrollo local cambia la URL a `http://localhost:3017/api/mcp`.
 
 ```bash
 export CONTENTOS_MCP_KEY=cos_…      # en ~/.zshrc o antes de abrir claude
 claude                              # acepta el servidor "contentos" cuando lo pregunte
 ```
 
-Con la app en producción, cambia la URL a `https://<dominio>/api/mcp`.
 
 ## 3. Registrar en Cowork / claude.ai
 

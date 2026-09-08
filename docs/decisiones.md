@@ -95,3 +95,15 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Dónde declara Mariela:** bloque «Tu día» arriba de su Cola, en ámbar hasta que declare. **Dónde lo ve Nazho:** bloque «Equipo» en Inicio (hoy y ayer por persona) y pantalla Equipo por semana. **Desde Claude:** tool `bitacora_de(persona, desde, hasta)`.
 
 **Sin recordatorio externo todavía.** El empujón es el bloque ámbar en su Cola. Un aviso por WhatsApp a las 17:00 si no ha declarado es un job de n8n para después.
+
+## 2026-09-08 · Deploy
+
+**Producción en Vercel:** `https://content-os-nazho-flkmxs-projects.vercel.app`, proyecto `content-os`, región `sfo1` (cerca de Supabase us-west-1). Variables cargadas por CLI en production y preview. `TZ` no se puede definir en Vercel (reservada); el código ya fija America/Mexico_City por su cuenta.
+
+**El push del domingo había fallado en Vercel** por framework sin detectar y el alias `@/` en el middleware. Se fijó `framework: nextjs` en `vercel.json` y el middleware importa por ruta relativa.
+
+**Deployment Protection apagada.** Vercel Authentication exigía cuenta de Vercel a cualquier visitante, lo que bloqueaba a Mariela y al MCP. La protección real es el login de la app y la lista blanca.
+
+**`.mcp.json` apunta a producción.** Para local, cambiar la URL.
+
+**Pendiente de Nazho:** Site URL y redirect de producción en Supabase Auth; SMTP propio (Resend) para el magic link.
