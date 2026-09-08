@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export const metadata = { title: "Piezas" };
 export const dynamic = "force-dynamic";
 
-const ORDEN: EstadoPieza[] = ["idea", "para_producir", "para_grabar", "edicion", "buffer", "programada", "publicada", "en_trial", "archivada"];
+const ORDEN: EstadoPieza[] = ["borrador", "redaccion", "grabacion", "diseno", "listo", "programada", "publicada", "en_trial", "archivada"];
 
 export default async function Piezas({ searchParams }: { searchParams: Promise<{ estado?: string; formato?: string }> }) {
   const sesion = await sesionActual();
@@ -31,7 +31,7 @@ export default async function Piezas({ searchParams }: { searchParams: Promise<{
 
   const { data: todas } = await supabase.from("piezas").select("estado, formato, programa_aprobado").neq("estado", "archivada");
   const conteo = (e: string) => (todas ?? []).filter((p) => p.estado === e).length;
-  const enProduccion = (todas ?? []).filter((p) => ["para_producir", "para_grabar"].includes(p.estado) && !p.programa_aprobado).length;
+  const enProduccion = (todas ?? []).filter((p) => ["redaccion", "grabacion"].includes(p.estado) && !p.programa_aprobado).length;
 
   const grupos = ORDEN.filter((e) => !fEstado || e === fEstado).map((e) => ({ estado: e, items: piezas.filter((p) => p.estado === e) })).filter((g) => g.items.length > 0);
   const url = (k: "estado" | "formato", v: string | null) => {
@@ -82,7 +82,7 @@ export default async function Piezas({ searchParams }: { searchParams: Promise<{
                       <IdPublico id={p.id_publico} />
                       <span className="truncate font-medium">{p.titulo ?? "(sin título)"}</span>
                     </div>
-                    {p.estado === "idea" && p.notas && <p className="mt-0.5 truncate text-xs text-muted-foreground">{p.notas.split("\n")[0]}</p>}
+                    {p.estado === "borrador" && p.notas && <p className="mt-0.5 truncate text-xs text-muted-foreground">{p.notas.split("\n")[0]}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                     {p.formato && <InsigniaFormato formato={p.formato} />}

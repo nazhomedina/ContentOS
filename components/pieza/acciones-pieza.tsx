@@ -23,6 +23,7 @@ export function AccionesPieza({ piezaId, estado, rol }: { piezaId: string; estad
   const motivo = motivoNoPublicable(estado);
   const siguiente = siguienteEstadoEditor(estado);
   const puedeAvanzar = siguiente && transicionPermitida(rol, estado, siguiente);
+  const listoEs = estado === "diseno";
 
   function avanzar(a: EstadoPieza) {
     iniciar(async () => {
@@ -43,7 +44,7 @@ export function AccionesPieza({ piezaId, estado, rol }: { piezaId: string; estad
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-end gap-2">
         {puedeAvanzar && siguiente && (
           <Button variant="outline" disabled={pendiente} onClick={() => avanzar(siguiente)}>
-            Pasar a {NOMBRE_ESTADO[siguiente]}
+            {listoEs ? "Marcar como lista" : `Pasar a ${NOMBRE_ESTADO[siguiente]}`}
           </Button>
         )}
         {motivo ? (

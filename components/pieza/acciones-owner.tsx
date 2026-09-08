@@ -68,7 +68,7 @@ export function AccionesOwner({ piezaId, estado, formato, fechaObjetivo, respons
           {perfiles.map((p) => <option key={p.user_id} value={p.user_id}>{p.nombre}</option>)}
         </select>
       </div>
-      {estado !== "idea" && <Dialog open={abierto} onOpenChange={setAbierto}>
+      {estado !== "borrador" && <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogTrigger render={<Button size="sm" variant="outline" />}>Asignar tarea</DialogTrigger>
         <DialogContent>
           <DialogHeader><DialogTitle>Nueva tarea para la cola</DialogTitle></DialogHeader>

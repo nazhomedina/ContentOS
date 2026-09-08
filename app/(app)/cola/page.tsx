@@ -30,9 +30,9 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
       .from("tareas")
       .select("id, tipo, estado, vence, checklist, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, formato, estado), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
       .order("vence", { ascending: true, nullsFirst: false }),
-    supabase.from("piezas").select("id", { count: "exact", head: true }).eq("estado", "buffer"),
+    supabase.from("piezas").select("id", { count: "exact", head: true }).in("estado", ["listo", "programada"]),
     esOwner ? Promise.resolve({ data: [] }) : supabase.from("bitacora").select("id, texto, minutos, evidencia_url, created_at, pieza:piezas(id, id_publico, titulo)").eq("perfil_id", sesion.userId).eq("fecha", hoyStr).order("created_at"),
-    esOwner ? Promise.resolve({ data: [] }) : supabase.from("piezas").select("id, id_publico, titulo").in("estado", ["para_grabar", "edicion", "buffer", "programada"]).order("updated_at", { ascending: false }).limit(50),
+    esOwner ? Promise.resolve({ data: [] }) : supabase.from("piezas").select("id, id_publico, titulo").in("estado", ["grabacion", "diseno", "listo", "programada"]).order("updated_at", { ascending: false }).limit(50),
   ]);
 
   const hace7 = sumarDias(hoyISO(), -7);

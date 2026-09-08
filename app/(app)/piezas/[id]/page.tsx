@@ -61,9 +61,9 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
             <Dato k="Hipótesis" v={hipotesisEnUnaLinea(pieza.hipotesis)} />
           </dl>
         )}
-        {pieza.estado === "idea" && (
+        {pieza.estado === "borrador" && (
           <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-            Es una idea. Desde Claude: «desarrolla la pieza {pieza.id_publico}» y el guion, la hipótesis y el formato llegan por MCP.
+            Es un borrador. Desde Ideas se manda a redacción con un formato; desde Claude: «desarrolla la pieza {pieza.id_publico}» y guion, hipótesis y etapa llegan por MCP.
           </p>
         )}
         {pieza.notas && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{pieza.notas}</p>}

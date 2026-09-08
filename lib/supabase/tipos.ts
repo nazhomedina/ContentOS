@@ -151,6 +151,12 @@ export type Database = {
           { foreignKeyName: "bitacora_tarea_id_fkey"; columns: ["tarea_id"]; isOneToOne: false; referencedRelation: "tareas"; referencedColumns: ["id"] },
         ]
       }
+      cuentas_referencia: {
+        Row: { activa: boolean; comunidad_id: string | null; created_at: string; format_card_sugerida: string | null; handle: string; id: string; nota: string | null; plataforma: string; ultimo_scrape: string | null }
+        Insert: { activa?: boolean; comunidad_id?: string | null; created_at?: string; format_card_sugerida?: string | null; handle: string; id?: string; nota?: string | null; plataforma?: string; ultimo_scrape?: string | null }
+        Update: { activa?: boolean; comunidad_id?: string | null; created_at?: string; format_card_sugerida?: string | null; handle?: string; id?: string; nota?: string | null; plataforma?: string; ultimo_scrape?: string | null }
+        Relationships: []
+      }
       hooks: {
         Row: { categoria: string | null; created_at: string; favorito: boolean; formato: string | null; id: string; pieza_id: string | null; texto: string }
         Insert: { categoria?: string | null; created_at?: string; favorito?: boolean; formato?: string | null; id?: string; pieza_id?: string | null; texto: string }

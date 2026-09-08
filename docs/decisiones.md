@@ -107,3 +107,17 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **`.mcp.json` apunta a producción.** Para local, cambiar la URL.
 
 **Pendiente de Nazho:** Site URL y redirect de producción en Supabase Auth; SMTP propio (Resend) para el magic link.
+
+## 2026-09-08 · Estructura: Borrador → Producción → Publicado
+
+**Una sola base de piezas** (docs/estructura.md §1). Lo que cambia por formato son las sub-etapas que aplican (`subetapas(formato)` en código), no la tabla. Historias se quedan en su tabla hasta operar el paquete semanal una vez.
+
+**Estados renombrados** (migración 009): `borrador · redaccion · grabacion · diseno · listo · programada · publicada · archivada · en_trial`. `listo` + `programada` = buffer. Tope de 10 = `redaccion` + `grabacion`. Hipótesis exigida desde `grabacion` (Claude la escribe en redacción). Mariela ve desde `grabacion` y mueve `grabacion → diseno → listo → programada`.
+
+**Menú del owner:** Inicio · Ideas · Calendario ── Historias · Reels · Carruseles · Artículos · Newsletter ── Formatos · Cuentas en seguimiento · Todas las piezas. Mariela: Cola · Calendario ── las pestañas ── Formatos. Equipo y Sistemas se abren desde Inicio.
+
+**Ideas = borradores.** Captura de una línea, notas, «Producir» con formato → redacción en su pestaña. **Pestañas por formato:** columnas de producción (omiten Grabación cuando no aplica) y Publicados con views, likes, saves y multiplicador. **Calendario semanal** por fecha objetivo y de publicación. **Cuentas en seguimiento:** tabla `cuentas_referencia` ligera (el radar la scrapea en v2).
+
+**Inicio con cuatro bloques:** crecimiento de cuenta (sensores vacíos hasta los jobs), metas de la semana, buffer con semáforo, cierre del día (bitácora del equipo + máquina).
+
+**MCP:** enums de estado actualizados; nuevas `listar_cuentas` y `seguir_cuenta`. 17 tools.

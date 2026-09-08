@@ -53,10 +53,10 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   // Piezas
   // -------------------------------------------------------------------------
   server.registerTool("crear_pieza", {
-    description: "Crea una pieza. Una pieza nace como idea con solo un título. Para estado para_producir hace falta formato; de para_grabar en adelante hacen falta formato, etapa_embudo e hipótesis {texto, campo, numero, fecha}. id_publico se genera solo si no se manda. Devuelve error legible si falta algo.",
+    description: "Crea una pieza. Nace como borrador con solo un título (aparece en Ideas). Para redaccion hace falta formato; de grabacion en adelante hacen falta formato, etapa_embudo e hipótesis {texto, campo, numero, fecha}. id_publico se genera solo. Devuelve error legible si falta algo.",
     inputSchema: {
       titulo: z.string().min(3),
-      estado: z.enum(["idea", "para_producir", "para_grabar", "edicion"]).default("idea"),
+      estado: z.enum(["borrador", "redaccion", "grabacion", "diseno"]).default("borrador"),
       formato: z.enum(["reel", "yap", "carrusel", "historia", "x", "canal_ig", "newsletter", "articulo", "youtube"]).optional(),
       notas: z.string().optional().describe("tensión, ángulo, contexto"),
       origen: z.enum(["radar", "voz", "destilado", "markie", "coyuntura", "audiencia", "claude", "legado", "nazho"]).default("claude"),
@@ -76,7 +76,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("actualizar_pieza", {
-    description: "Desarrolla o actualiza una pieza (así es como Claude convierte una idea en pieza): formato, hipótesis {texto, campo, numero, fecha}, etapa_embudo, format_card, guion, spec_visual, título, serie, cta, notas, fecha_objetivo, responsable, fidelidad y estado. Para publicar se usa marcar_publicada desde la app. Acepta pieza_id o id_publico.",
+    description: "Desarrolla o actualiza una pieza (así Claude convierte un borrador en pieza en redacción o grabación): formato, hipótesis {texto, campo, numero, fecha}, etapa_embudo, format_card, guion, spec_visual, título, serie, cta, notas, fecha_objetivo, responsable, fidelidad y estado. Para publicar se usa marcar_publicada desde la app. Acepta pieza_id o id_publico.",
     inputSchema: {
       pieza: z.string().describe("uuid o id_publico"),
       titulo: z.string().optional(), notas: z.string().nullable().optional(), serie: z.string().optional(), cta: z.string().optional(),
@@ -86,7 +86,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       format_card: z.string().optional().describe("código FC-08 o uuid"),
       guion: z.string().optional(), spec_visual: z.string().optional(), fecha_objetivo: fecha.nullable().optional(),
       responsable: z.string().nullable().optional(), fidelidad: z.enum(["mis_palabras", "reescribe"]).optional(),
-      programa_aprobado: z.boolean().optional(), estado: z.enum(["idea", "para_producir", "para_grabar", "edicion", "buffer", "programada", "archivada", "en_trial"]).optional(),
+      programa_aprobado: z.boolean().optional(), estado: z.enum(["borrador", "redaccion", "grabacion", "diseno", "listo", "programada", "archivada", "en_trial"]).optional(),
     },
   }, async ({ pieza, responsable, estado, format_card, ...campos }) => {
     const { data: ref } = await supabase.from("piezas").select("id").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
@@ -113,7 +113,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("listar_piezas", {
-    description: "Piezas por estado (idea · para_producir · para_grabar · edicion · buffer · programada · publicada · en_trial · archivada), formato o semana objetivo. Sin filtros devuelve las no archivadas más recientes, ideas incluidas.",
+    description: "Piezas por estado (borrador · redaccion · grabacion · diseno · listo · programada · publicada · en_trial · archivada), formato o semana objetivo. Sin filtros devuelve las no archivadas más recientes, borradores incluidos.",
     inputSchema: {
       estado: z.string().optional(), formato: z.string().optional(), semana: fecha.optional().describe("lunes; filtra por fecha_objetivo en esa semana"),
       limite: z.number().int().min(1).max(300).default(100),
@@ -125,6 +125,26 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     if (semana) q = q.gte("fecha_objetivo", semana).lt("fecha_objetivo", sumar(semana, 7));
     const { data, error: e } = await q;
     return e ? error(e.message) : json(data);
+  });
+
+  server.registerTool("listar_cuentas", {
+    description: "Cuentas en seguimiento (watchlist) con plataforma y nota.",
+    inputSchema: { solo_activas: z.boolean().default(true) },
+  }, async ({ solo_activas }) => {
+    let q = supabase.from("cuentas_referencia").select("id, handle, plataforma, nota, activa, ultimo_scrape").order("created_at");
+    if (solo_activas) q = q.eq("activa", true);
+    const { data, error: e } = await q;
+    return e ? error(e.message) : json(data);
+  });
+
+  server.registerTool("seguir_cuenta", {
+    description: "Agrega una cuenta a la watchlist.",
+    inputSchema: { handle: z.string(), plataforma: z.enum(["instagram", "tiktok", "youtube", "x", "linkedin", "newsletter"]).default("instagram"), nota: z.string().optional() },
+  }, async ({ handle, plataforma, nota }) => {
+    const { data, error: e } = await supabase.from("cuentas_referencia").insert({ handle: handle.replace(/^@/, ""), plataforma, nota }).select().single();
+    if (e) return error(limpiarError(e.message));
+    await corrida("seguir_cuenta", `@${data.handle} (${plataforma})`, { cuenta_id: data.id }, perfil);
+    return json(data);
   });
 
   server.registerTool("listar_formatos", {

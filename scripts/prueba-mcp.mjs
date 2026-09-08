@@ -55,14 +55,14 @@ try {
   ok("listar_comunidades devuelve Fundadores con criterio", Array.isArray(com) && com.some((c) => c.nombre === "Fundadores con criterio"), `status ${r.status} · ${r.text.slice(0, 400)}`);
   if (!com[0]) { console.log("RAW listar_comunidades:", r.status, r.text.slice(0, 600)); throw new Error("sin comunidades; abortando"); }
 
-  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp", estado: "para_grabar", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "prueba de fecha pasada", campo: "views", numero: 100, fecha: "2020-01-01" } } }, 4);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp", estado: "grabacion", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "prueba de fecha pasada", campo: "views", numero: 100, fecha: "2020-01-01" } } }, 4);
   ok("crear_pieza con fecha pasada → error legible", r.json?.result?.isError && /futuro/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "idea desde mcp" } }, 41);
   const creada = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
-  ok("crear_pieza solo con título → idea IDE-", creada?.estado === "idea" && /^IDE-/.test(creada?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 120));
-  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, formato: "yap", etapa_embudo: "atraer", format_card: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, guion: "## Beats", estado: "para_grabar" } }, 42);
+  ok("crear_pieza solo con título → borrador IDE-", creada?.estado === "borrador" && /^IDE-/.test(creada?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, formato: "yap", etapa_embudo: "atraer", format_card: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, guion: "## Beats", estado: "grabacion" } }, 42);
   const dev = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
-  ok("actualizar_pieza desarrolla la idea → YAP- en para_grabar", dev?.estado === "para_grabar" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.format_card_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
+  ok("actualizar_pieza desarrolla el borrador → YAP- en grabacion", dev?.estado === "grabacion" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.format_card_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (creada?.id) await admin.from("piezas").delete().eq("id", creada.id);
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: {} }, 43);
   ok("listar_formatos devuelve 6 cards", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).length === 6, "");

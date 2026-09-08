@@ -6,7 +6,7 @@ import { esquemaHipotesis } from "@/lib/dominio/hipotesis";
 import { fallo, type Resultado } from "./resultado";
 
 function revalidarTodo() {
-  for (const p of ["/inicio", "/sistemas", "/piezas", "/cola", "/historias", "/formatos", "/equipo"]) revalidatePath(p);
+  for (const p of ["/inicio", "/ideas", "/calendario", "/sistemas", "/piezas", "/cola", "/historias", "/formatos", "/equipo", "/reels", "/carruseles", "/articulos", "/newsletter"]) revalidatePath(p);
 }
 
 export async function declararHueco(semana: string, sistema: string, nodo: string, nota: string): Promise<Resultado> {
@@ -42,7 +42,7 @@ export async function crearPieza(p: PayloadPieza): Promise<Resultado & { id?: st
   }
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.rpc("crear_pieza_validada", {
-    payload: { ...p, titulo: p.titulo.trim(), estado: p.estado || "idea", origen: p.origen || "nazho" },
+    payload: { ...p, titulo: p.titulo.trim(), estado: p.estado || "borrador", origen: p.origen || "nazho" },
   });
   if (error) return fallo(error);
   revalidarTodo();

@@ -31,7 +31,7 @@ export function Captura() {
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); capturar(e.metaKey || e.ctrlKey); } }}
-        placeholder="Nueva idea… Enter para capturar, ⌘Enter para abrirla"
+        placeholder="Nueva idea… Enter para guardarla como borrador, ⌘Enter para abrirla"
         className="h-10"
         disabled={pendiente}
       />

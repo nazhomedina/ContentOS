@@ -18,7 +18,7 @@ export function esLegado(h: Json): h is HipotesisLegado {
 
 /** Una línea para la cabecera del detalle: «multiplicador ≥ 3 al 31 oct». */
 export function hipotesisEnUnaLinea(h: Json | null | undefined): string {
-  if (typeof h !== "object" || h === null || Array.isArray(h)) return "Sin hipótesis todavía";
+  if (typeof h !== "object" || h === null || Array.isArray(h)) return "Sin hipótesis todavía (la escribe Claude en redacción)";
   const o = h as Record<string, unknown>;
   if (o.legado === true && !o.numero) return "Sin hipótesis (heredada de Notion)";
   const texto = typeof o.texto === "string" && o.texto.trim() ? o.texto.trim() : null;

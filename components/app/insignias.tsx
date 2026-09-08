@@ -7,7 +7,8 @@ export function InsigniaEstado({ estado }: { estado: string }) {
   const nombre = NOMBRE_ESTADO[estado as EstadoPieza] ?? estado;
   const clase =
     estado === "publicada" ? "bg-ok/10 text-ok border-ok/30"
-    : estado === "buffer" || estado === "programada" ? "bg-primary/10 text-primary border-primary/30"
+    : estado === "listo" || estado === "programada" ? "bg-primary/10 text-primary border-primary/30"
+    : estado === "borrador" ? "border-dashed text-muted-foreground"
     : estado === "archivada" ? "bg-muted text-muted-foreground"
     : "";
   return <Badge variant="outline" className={cn("font-medium", clase)}>{nombre}</Badge>;

@@ -73,18 +73,18 @@ try {
   r = await get(`/piezas/${pieza.id}`);
   ok("/piezas/[id] 200", r.status === 200, String(r.status));
   ok("detalle muestra hipótesis, guion y botón Publicada", r.html.includes("Hipótesis") && r.html.includes("La afirmación") && r.html.includes("Publicada"), "");
-  ok("detalle propone «Pasar a Programada» desde buffer", r.html.includes("Pasar a Programada"), "");
+  ok("detalle propone «Pasar a Programada» desde listo", r.html.includes("Pasar a Programada"), "");
 
   const { data: p3 } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-03").single();
   r = await get(`/piezas/${p3.id}`);
-  ok("para_grabar explica por qué no se publica", r.html.includes("Falta grabar y editar"), "");
+  ok("grabacion explica por qué no se publica", r.html.includes("Falta grabar y producir"), "");
 
   r = await get("/historias");
   ok("/historias 200 con 4 historias", r.status === 200 && r.html.includes("4 historias"), String(r.status));
   ok("historias muestra keyword RORY y amplifica DEMO-01", r.html.includes("RORY") && r.html.includes("amplifica DEMO-01"), "");
 
   r = await get("/piezas");
-  ok("/piezas lista solo lo visible al editor (3 demo)", r.status === 200 && r.html.includes("DEMO-02") && !r.html.includes("en producción"), "");
+  ok("/piezas lista solo lo visible al editor", r.status === 200 && r.html.includes("DEMO-02") && !r.html.includes("en producción"), "");
 
   r = await get("/tablero");
   ok("/tablero prohibido para editor → redirige", r.status === 307 && r.location?.endsWith("/cola"), `${r.status} ${r.location}`);
@@ -114,8 +114,18 @@ try {
   r = await getO("/");
   ok("owner / → /inicio", r.status === 307 && r.location?.endsWith("/inicio"), `${r.status} ${r.location}`);
   r = await getO("/inicio");
-  ok("/inicio 200 con captura, semana y máquina", r.status === 200 && r.html.includes("Nueva idea") && r.html.includes("La semana") && r.html.includes("La máquina") && r.html.includes("Te toca grabar"), String(r.status));
-  ok("/inicio muestra huecos y cuota", r.html.includes("Hueco") && /\/10 publicadas/.test(r.html), "");
+  ok("/inicio 200 con los cuatro bloques", r.status === 200 && r.html.includes("Crecimiento de cuenta") && r.html.includes("Metas de la semana") && r.html.includes("Buffer de contenidos") && r.html.includes("Cierre del día"), String(r.status));
+  ok("/inicio muestra huecos, cuota y sensores vacíos", r.html.includes("Hueco") && /\/10 publicadas/.test(r.html) && r.html.includes("sin sensor"), "");
+  r = await getO("/ideas");
+  ok("/ideas 200 con borradores IDE-", r.status === 200 && r.html.includes("IDE-01") && r.html.includes("Producir"), String(r.status));
+  r = await getO("/reels?vista=publicados");
+  ok("/reels publicados 200 con tabla", r.status === 200 && r.html.includes("Multiplicador"), String(r.status));
+  r = await getO("/carruseles");
+  ok("/carruseles 200 con CAR-01 en redacción y DEMO-02 en diseño", r.status === 200 && r.html.includes("CAR-01") && r.html.includes("DEMO-02") && !r.html.includes(">Grabación<"), String(r.status));
+  r = await getO("/calendario");
+  ok("/calendario 200 con DEMO-01", r.status === 200 && r.html.includes("DEMO-01"), String(r.status));
+  r = await getO("/cuentas");
+  ok("/cuentas 200", r.status === 200 && r.html.includes("Cuentas en seguimiento"), String(r.status));
   r = await getO("/equipo");
   ok("/equipo 200 con la bitácora de la editora", r.status === 200 && r.html.includes("Editora Prueba") && r.html.includes("diseñé 3 slides") && r.html.includes("Lo que la plataforma registró"), String(r.status));
   await admin.from("bitacora").delete().eq("perfil_id", userId);
@@ -125,22 +135,22 @@ try {
   ok("/sistemas cambia de sistema", r.status === 200 && r.html.includes("Campaña fría"), String(r.status));
   r = await getO("/formatos");
   ok("/formatos 200 con las 6 cards", r.status === 200 && r.html.includes("FC-01") && r.html.includes("FC-08"), String(r.status));
-  r = await getO("/piezas?estado=idea");
-  ok("/piezas filtra ideas (IDE-)", r.status === 200 && r.html.includes("IDE-01"), String(r.status));
-  for (const viejo of ["/hoy", "/semana", "/maquina", "/embudo", "/ideas", "/tablero", "/piezas/nueva"]) {
+  r = await getO("/piezas?estado=borrador");
+  ok("/piezas filtra borradores (IDE-)", r.status === 200 && r.html.includes("IDE-01"), String(r.status));
+  for (const viejo of ["/hoy", "/semana", "/maquina", "/embudo", "/tablero", "/piezas/nueva"]) {
     r = await getO(viejo);
     ok(`${viejo} ya no existe (404)`, r.status === 404, String(r.status));
   }
   r = await getO("/piezas");
-  ok("/piezas owner ve tope, captura y filtros", r.status === 200 && r.html.includes("en producción") && r.html.includes("Nueva idea") && r.html.includes("Idea ·"), "");
+  ok("/piezas owner ve tope, captura y filtros", r.status === 200 && r.html.includes("en producción") && r.html.includes("Nueva idea") && r.html.includes("Borrador ·"), "");
   // acciones reales como owner: crear pieza sin fecha → error; declarar hueco → ok
   const conOwner = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${so.session.access_token}` } }, auth: { persistSession: false } });
-  const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "prueba e2e", estado: "para_grabar", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
-  ok("owner: para_grabar sin fecha → «falta hipotesis.fecha»", e6?.message?.includes("falta hipotesis.fecha"), e6?.message);
+  const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "prueba e2e", estado: "grabacion", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
+  ok("owner: grabacion sin fecha → «falta hipotesis.fecha»", e6?.message?.includes("falta hipotesis.fecha"), e6?.message);
   const { data: idea, error: e6b } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "idea de prueba e2e" } });
-  ok("owner: idea con solo título → IDE-nn", !e6b && idea?.estado === "idea" && /^IDE-\d+$/.test(idea?.id_publico ?? ""), e6b?.message ?? idea?.id_publico);
-  const { error: e6c } = await conOwner.rpc("cambiar_estado_pieza", { p_pieza_id: idea.id, p_nuevo_estado: "para_producir" });
-  ok("owner: idea → para_producir sin formato → mensaje legible", /formato/.test(e6c?.message ?? ""), e6c?.message);
+  ok("owner: borrador con solo título → IDE-nn", !e6b && idea?.estado === "borrador" && /^IDE-\d+$/.test(idea?.id_publico ?? ""), e6b?.message ?? idea?.id_publico);
+  const { error: e6c } = await conOwner.rpc("cambiar_estado_pieza", { p_pieza_id: idea.id, p_nuevo_estado: "redaccion" });
+  ok("owner: borrador → redaccion sin formato → mensaje legible", /formato/.test(e6c?.message ?? ""), e6c?.message);
   const { data: conF } = await conOwner.from("piezas").update({ formato: "reel" }).eq("id", idea.id).select("id_publico").single();
   ok("al dar formato, el ID pasa de IDE- a REE-", /^REE-\d+$/.test(conF?.id_publico ?? ""), conF?.id_publico);
   await admin.from("piezas").delete().eq("id", idea.id);
