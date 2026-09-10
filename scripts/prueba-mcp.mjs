@@ -64,6 +64,28 @@ try {
   const dev = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("actualizar_pieza desarrolla el borrador → YAP- en grabacion", dev?.estado === "grabacion" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.format_card_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (creada?.id) await admin.from("piezas").delete().eq("id", creada.id);
+  // stream de redacción
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "stream de prueba", origen: "voz" } }, 50);
+  const st = JSON.parse(r.json.result.content[0].text);
+  r = await rpc(key, "tools/call", { name: "agregar_pensamiento", arguments: { pieza: st.id_publico, tipo: "voz", transcript: "lo que nadie te dice de cobrar caro es que el cliente que llega por precio se va por precio", duracion_s: 94 } }, 51);
+  ok("agregar_pensamiento voz", !r.json?.result?.isError, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "agregar_pensamiento", arguments: { pieza: st.id_publico, tipo: "pregunta", texto: "¿Cuál fue el cliente que te enseñó esto?", ronda: 1 } }, 52);
+  const preg = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("agregar_pensamiento pregunta ronda 1", preg?.tipo === "pregunta" && preg?.ronda === 1, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "agregar_pensamiento", arguments: { pieza: st.id_publico, tipo: "respuesta", texto: "el de la constructora en 2019", responde_a: preg?.id } }, 53);
+  ok("agregar_pensamiento respuesta ligada", !r.json?.result?.isError, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "stream_de", arguments: { pieza: st.id_publico } }, 54);
+  const stream = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("stream_de devuelve 3 pensamientos, 1 ronda, 0 sin responder", stream?.stream?.length === 3 && stream?.rondas_de_preguntas === 1 && stream?.preguntas_sin_responder?.length === 0, JSON.stringify({ n: stream?.stream?.length, r: stream?.rondas_de_preguntas, s: stream?.preguntas_sin_responder }));
+  r = await rpc(key, "tools/call", { name: "guardar_guion", arguments: { pieza: st.id_publico, guion: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer.", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, fidelidad: "mis_palabras", autor: "yap-scripter" } }, 55);
+  ok("guardar_guion versión 1", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 1, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "guardar_guion", arguments: { pieza: st.id_publico, guion: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer. (v2 más corta)", instruccion: "más corto", autor: "yap-scripter" } }, 56);
+  ok("guardar_guion versión 2 conserva hipótesis", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 2, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: st.id_publico, formato: "yap", etapa_embudo: "atraer", estado: "grabacion" } }, 57);
+  const fin = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("la pieza pasa a grabación con guion e hipótesis del stream", fin?.estado === "grabacion" && /^YAP-/.test(fin?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 160));
+  if (st?.id) await admin.from("piezas").delete().eq("id", st.id);
+
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: {} }, 43);
   ok("listar_formatos devuelve 6 cards", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).length === 6, "");
 

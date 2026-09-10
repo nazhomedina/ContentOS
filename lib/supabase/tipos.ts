@@ -77,9 +77,9 @@ export type Database = {
         ]
       }
       pensamientos: {
-        Row: { audio_url: string | null; autor: string | null; created_at: string; id: string; idea_id: string; responde_a: string | null; texto: string | null; tipo: string; transcript_crudo: string | null; transcript_pulido: string | null }
-        Insert: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; idea_id: string; responde_a?: string | null; texto?: string | null; tipo: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
-        Update: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; idea_id?: string; responde_a?: string | null; texto?: string | null; tipo?: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
+        Row: { audio_url: string | null; autor: string | null; created_at: string; id: string; idea_id: string | null; pieza_id: string | null; duracion_s: number | null; ronda: number | null; responde_a: string | null; texto: string | null; tipo: string; transcript_crudo: string | null; transcript_pulido: string | null }
+        Insert: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; idea_id?: string | null; pieza_id?: string | null; duracion_s?: number | null; ronda?: number | null; responde_a?: string | null; texto?: string | null; tipo: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
+        Update: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; idea_id?: string | null; pieza_id?: string | null; duracion_s?: number | null; ronda?: number | null; responde_a?: string | null; texto?: string | null; tipo?: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
         Relationships: [
           { foreignKeyName: "pensamientos_autor_fkey"; columns: ["autor"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
           { foreignKeyName: "pensamientos_idea_id_fkey"; columns: ["idea_id"]; isOneToOne: false; referencedRelation: "ideas"; referencedColumns: ["id"] },
@@ -157,6 +157,12 @@ export type Database = {
         Update: { activa?: boolean; comunidad_id?: string | null; created_at?: string; format_card_sugerida?: string | null; handle?: string; id?: string; nota?: string | null; plataforma?: string; ultimo_scrape?: string | null }
         Relationships: []
       }
+      guion_versiones: {
+        Row: { autor: string | null; created_at: string; fidelidad: string | null; guion: string; hipotesis: Json | null; id: string; instruccion: string | null; pieza_id: string; spec_visual: string | null; version: number }
+        Insert: { autor?: string | null; created_at?: string; fidelidad?: string | null; guion: string; hipotesis?: Json | null; id?: string; instruccion?: string | null; pieza_id: string; spec_visual?: string | null; version: number }
+        Update: { autor?: string | null; created_at?: string; fidelidad?: string | null; guion?: string; hipotesis?: Json | null; id?: string; instruccion?: string | null; pieza_id?: string; spec_visual?: string | null; version?: number }
+        Relationships: []
+      }
       hooks: {
         Row: { categoria: string | null; created_at: string; favorito: boolean; formato: string | null; id: string; pieza_id: string | null; texto: string }
         Insert: { categoria?: string | null; created_at?: string; favorito?: boolean; formato?: string | null; id?: string; pieza_id?: string | null; texto: string }
@@ -197,6 +203,11 @@ export type Database = {
         Args: { payload: Json }
         Returns: Database["public"]["Tables"]["piezas"]["Row"]
         SetofOptions: { from: "*"; to: "piezas"; isOneToOne: true; isSetofReturn: false }
+      }
+      guardar_guion: {
+        Args: { p_pieza_id: string; p_guion: string; p_hipotesis?: Json | null; p_spec_visual?: string | null; p_fidelidad?: string | null; p_instruccion?: string | null; p_autor?: string | null }
+        Returns: Database["public"]["Tables"]["guion_versiones"]["Row"]
+        SetofOptions: { from: "*"; to: "guion_versiones"; isOneToOne: true; isSetofReturn: false }
       }
       evidencia_dia: { Args: { p_perfil: string; p_fecha: string }; Returns: Json }
       resumen_semana_persona: {

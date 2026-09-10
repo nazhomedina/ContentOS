@@ -42,14 +42,16 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (15)
+## 5. Herramientas (20)
 
 | Tool | Para qué | Latido |
 |---|---|---|
 | `listar_comunidades` · `listar_formatos` · `latidos` | contexto: ICP, Format Cards, última corrida por sistema | — |
 | `crear_pieza` | una pieza nace con solo título (estado idea). Con formato → para_producir. Con formato + etapa + hipótesis → para_grabar | `crear_pieza` |
 | `actualizar_pieza` | **así Claude desarrolla una idea**: formato, hipótesis, etapa, format card, guion, spec, estado. Acepta id_publico | `actualizar_pieza` |
-| `listar_piezas` | por estado (ideas incluidas), formato o semana objetivo | — |
+| `listar_piezas` | por estado (borradores incluidos), formato o semana objetivo | — |
+| `stream_de` · `agregar_pensamiento` · `guardar_guion` | el stream de redacción (voz, texto, link, preguntas, respuestas) y las versiones del guion; los usa el skill `entrevistador-redaccion` | `agregar_pensamiento`, `guardar_guion` |
+| `listar_cuentas` · `seguir_cuenta` | la watchlist | `seguir_cuenta` |
 | `asignar_tarea` · `cola_de` | la cola de Mariela o de Nazho | `asignar_tarea` |
 | `proponer_historias` · `aprobar_historias` | paquete semanal | ambas |
 | `leer_metricas` · `registrar_metrica_manual` | métricas y multiplicador | `registrar_metrica_manual` |

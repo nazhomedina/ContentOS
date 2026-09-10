@@ -121,3 +121,13 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Inicio con cuatro bloques:** crecimiento de cuenta (sensores vacíos hasta los jobs), metas de la semana, buffer con semáforo, cierre del día (bitácora del equipo + máquina).
 
 **MCP:** enums de estado actualizados; nuevas `listar_cuentas` y `seguir_cuenta`. 17 tools.
+
+## 2026-09-09 · Redacción por entrevista: skill antes que rutina
+
+**Nazho propuso un skill para Cowork en vez de la cola de solicitudes + rutina en la nube** (docs/redaccion.md §2). Se adopta como primer paso: el criterio vive en Claude, la app solo guarda el stream. La cola y la rutina quedan como segunda fase si hace falta operar desde el teléfono sin abrir Claude.
+
+**Skill `entrevistador-redaccion`** en `skills/` del repo (se sube a Cowork como zip). Cuatro modos: capturar, entrevistar (2–3 preguntas, máximo 2 rondas), redactar (delega en el guionista del formato, fidelidad `mis_palabras`, hipótesis obligatoria, revisión contra VOZ-MAESTRA), cerrar. Nombre según la doctrina `[rol]-[dominio]`; Nazho puede bautizarlo.
+
+**Migración 010:** `pensamientos.pieza_id` (las ideas ya son piezas), `guion_versiones` y `guardar_guion` que versiona y actualiza la pieza. MCP: `stream_de`, `agregar_pensamiento`, `guardar_guion` (20 tools).
+
+**Pendiente:** verificar que Cowork acepte el conector MCP con Bearer (hallazgo 8); si exige OAuth, construir el shim. En Claude Code el skill ya opera.
