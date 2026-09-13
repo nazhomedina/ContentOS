@@ -131,3 +131,11 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Migración 010:** `pensamientos.pieza_id` (las ideas ya son piezas), `guion_versiones` y `guardar_guion` que versiona y actualiza la pieza. MCP: `stream_de`, `agregar_pensamiento`, `guardar_guion` (20 tools).
 
 **Pendiente:** verificar que Cowork acepte el conector MCP con Bearer (hallazgo 8); si exige OAuth, construir el shim. En Claude Code el skill ya opera.
+
+## 2026-09-13 · Stream de redacción en la web
+
+**El conector MCP dio 401 porque el perfil de Nazho en producción nunca tuvo key.** Las corridas del 8-sep las hizo `prueba-mcp` con usuarios temporales. La key la genera Nazho con `scripts/api-key.mjs` y la exporta como `CONTENTOS_MCP_KEY` en `env` de `~/.claude/settings.json`; Claude no la toca. Con eso, el skill `entrevistador-redaccion` ya dejó su primera ronda de preguntas en IDE-04 desde Claude Code.
+
+**Pantalla de Redacción, primera parte (docs/redaccion.md §4).** En `/piezas/[id]`, para el owner: bloque «Stream de redacción» cuando la pieza está en borrador o redacción, con las entradas en orden (voz, texto, link, pregunta, respuesta), caja para responder debajo de cada pregunta sin contestar, y captura de texto o link. Fuera de esos estados el stream queda plegado y de solo lectura. El guion muestra su versión vigente y un historial desplegable; «Volver a esta versión» no borra: entra como versión nueva con la instrucción `volver a vN`. En Ideas, cada borrador dice cuántas entradas tiene y si hay preguntas de Claude sin contestar (ámbar).
+
+**Lo que no entra todavía:** grabador de voz en el navegador (depende del job `voz_transcribir`), cola de `solicitudes` y rutina en la nube (segunda fase, decisión del 9-sep), botón de voz en Inicio. Las escrituras humanas desde la web no dejan corrida; solo las de jobs y tools.

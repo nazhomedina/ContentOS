@@ -7,6 +7,8 @@ import { AccionesOwner } from "@/components/pieza/acciones-owner";
 import { Assets } from "@/components/pieza/assets";
 import { Checklist } from "@/components/pieza/checklist";
 import { Comentarios } from "@/components/pieza/comentarios";
+import { Stream, type Pensamiento } from "@/components/pieza/stream";
+import { Versiones, type Version } from "@/components/pieza/versiones";
 import { hipotesisEnUnaLinea } from "@/lib/dominio/hipotesis";
 import { checklistPorDefecto } from "@/lib/dominio/estados";
 import { fechaCorta, fechaHora } from "@/lib/dominio/tiempo";
@@ -27,12 +29,30 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
     .maybeSingle();
   if (!pieza) notFound();
 
-  const [{ data: tareas }, { data: comentarios }, { data: archivos }, { data: perfiles }] = await Promise.all([
+  const rol = sesion.perfil.rol as Rol;
+  const esOwner = rol === "owner";
+
+  const [{ data: tareas }, { data: comentarios }, { data: archivos }, { data: perfiles }, { data: pensamientos }, { data: versiones }] = await Promise.all([
     supabase.from("tareas").select("id, tipo, estado, vence, checklist, nota_bloqueo, asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("pieza_id", id).order("created_at"),
     supabase.from("comentarios").select("id, texto, created_at, autor:perfiles!comentarios_autor_fkey(nombre)").eq("pieza_id", id).order("created_at"),
     supabase.storage.from("assets").list(`piezas/${id}`, { limit: 100, sortBy: { column: "created_at", order: "desc" } }),
     supabase.from("perfiles").select("user_id, nombre, rol").in("rol", ["owner", "editor"]).order("nombre"),
+    // El stream es del owner (RLS); a los demás ni se les consulta.
+    esOwner
+      ? supabase.from("pensamientos").select("id, tipo, texto, transcript_crudo, transcript_pulido, audio_url, duracion_s, ronda, responde_a, created_at").eq("pieza_id", id).order("created_at")
+      : Promise.resolve({ data: [] as never[] }),
+    supabase.from("guion_versiones").select("version, guion, hipotesis, fidelidad, instruccion, autor, created_at").eq("pieza_id", id).order("version"),
   ]);
+
+  const stream: Pensamiento[] = (pensamientos ?? []).map((p) => ({
+    id: p.id, tipo: p.tipo, texto: p.texto, transcript: p.transcript_crudo, transcript_pulido: p.transcript_pulido,
+    audio_url: p.audio_url, duracion_s: p.duracion_s, ronda: p.ronda, responde_a: p.responde_a, cuando: fechaHora(p.created_at),
+  }));
+  const historial: Version[] = (versiones ?? []).map((v) => ({
+    version: v.version, guion: v.guion, hipotesis: hipotesisEnUnaLinea(v.hipotesis), fidelidad: v.fidelidad, instruccion: v.instruccion, autor: v.autor, cuando: fechaHora(v.created_at),
+  }));
+  const enRedaccion = pieza.estado === "borrador" || pieza.estado === "redaccion";
+  const vigente = historial.length > 0 ? historial[historial.length - 1] : null;
 
   // Storage.list no es recursivo: listamos las tres carpetas convencionales.
   const carpetas = ["raw", "portada", "final"];
@@ -41,8 +61,6 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
     ...(archivos ?? []).filter((a) => a.id).map((a) => ({ ruta: `piezas/${id}/${a.name}`, nombre: a.name, carpeta: "" })),
     ...listados.flatMap((l, i) => (l.data ?? []).filter((a) => a.id).map((a) => ({ ruta: `piezas/${id}/${carpetas[i]}/${a.name}`, nombre: a.name, carpeta: carpetas[i] }))),
   ];
-
-  const rol = sesion.perfil.rol as Rol;
 
   return (
     <article className="space-y-8">
@@ -63,7 +81,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
         )}
         {pieza.estado === "borrador" && (
           <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-            Es un borrador. Desde Ideas se manda a redacción con un formato; desde Claude: «desarrolla la pieza {pieza.id_publico}» y guion, hipótesis y etapa llegan por MCP.
+            Es un borrador. Habla aquí abajo en el stream, contesta lo que Claude pregunte y, cuando tenga formato, «Producir» la manda a redacción. Desde Claude: «entrevístame sobre {pieza.id_publico}».
           </p>
         )}
         {pieza.notas && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{pieza.notas}</p>}
@@ -78,7 +96,32 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
         <AccionesOwner piezaId={pieza.id} estado={pieza.estado} formato={pieza.formato} fechaObjetivo={pieza.fecha_objetivo} responsableId={pieza.responsable_id} perfiles={perfiles ?? []} />
       )}
 
-      <Seccion titulo="Guion"><Markdown texto={pieza.guion} /></Seccion>
+      {esOwner && enRedaccion && (
+        <Seccion titulo="Stream de redacción">
+          <Stream piezaId={pieza.id} idPublico={pieza.id_publico} items={stream} puedeEscribir />
+        </Seccion>
+      )}
+
+      <Seccion titulo={vigente ? `Guion · v${vigente.version}` : "Guion"}>
+        {vigente && (
+          <p className="text-xs text-muted-foreground">
+            {vigente.autor ?? "claude"} · {vigente.fidelidad === "reescribe" ? "reescrito" : "con las palabras de Nazho"} · {vigente.cuando}
+          </p>
+        )}
+        <Markdown texto={pieza.guion} />
+        {historial.length > 1 && <Versiones piezaId={pieza.id} versiones={historial} puedeVolver={esOwner} />}
+      </Seccion>
+
+      {esOwner && !enRedaccion && stream.length > 0 && (
+        <details className="group rounded-xl border">
+          <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">
+            Stream de redacción <span className="ml-2 font-medium normal-case tracking-normal">· {stream.length} · lo que se dijo antes de escribir el guion</span>
+          </summary>
+          <div className="border-t px-4 py-4">
+            <Stream piezaId={pieza.id} idPublico={pieza.id_publico} items={stream} puedeEscribir={false} />
+          </div>
+        </details>
+      )}
 
       <details className="group rounded-xl border">
         <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">

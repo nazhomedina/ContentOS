@@ -105,7 +105,7 @@ Funciones: `crear_solicitud`, `solicitudes_pendientes()` (owner y MCP), `cerrar_
 ## 6. Orden de construcción
 
 1. Migración 010 (pensamientos → piezas, solicitudes, guion_versiones) + MCP: `stream_de`, `agregar_pensamiento`, `solicitudes_pendientes`, `cerrar_solicitud`, `guardar_guion` (versiona).
-2. Pantalla Redacción con stream, grabador de voz, texto y link, botones de solicitud y versiones.
+2. Pantalla Redacción con stream, grabador de voz, texto y link, botones de solicitud y versiones. *(2026-09-13: stream, respuestas, texto, link y versiones listos en `/piezas/[id]`; falta grabador y solicitudes.)*
 3. Job n8n `voz_transcribir` (Whisper) con latido; mientras no exista, la transcripción la hace Claude con Descript MCP cuando atiende la solicitud.
 4. Rutina de Claude en la nube «atender solicitudes» cada 30 min con los skills entrevistador y guionistas. La escribo yo con el skill `schedule`; el criterio (prompts) lo revisas tú.
 5. Botón de voz en Inicio e Ideas; Atajo de iOS opcional.
