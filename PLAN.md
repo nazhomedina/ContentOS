@@ -1,5 +1,7 @@
 # ContentOS — Plan de trabajo del repo
 
+> **Semana del 14 de septiembre:** el plan de cierre de la versión 1.0, frente por frente y día por día, está en [`docs/cierre-v1.md`](docs/cierre-v1.md).
+
 **Fecha:** 2026-09-06, actualizado 2026-09-07 · **Repo:** `~/Repos/ContentOS`
 
 > **Reencuadre del 2026-09-07:** se construyó la capa de sistemas «el Nodo» (`docs/nodo.md`) y después se simplificó todo (`docs/simplificacion.md`): una sola base de piezas que nacen como idea, seis pantallas (Inicio, Piezas, Formatos, Sistemas, Cola, Historias), tema claro con menú lateral, MCP con 15 herramientas. El estado vigente está en `docs/decisiones.md`.
