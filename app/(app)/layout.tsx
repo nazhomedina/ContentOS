@@ -11,7 +11,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     <div className="flex min-h-dvh flex-col md:flex-row">
       <Navegacion rol={sesion.perfil.rol as Rol} nombre={sesion.perfil.nombre} />
       <main className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8">{children}</div>
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">{children}</div>
       </main>
       <Toaster position="top-center" />
     </div>

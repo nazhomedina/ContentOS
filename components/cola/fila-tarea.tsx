@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { IdPublico, InsigniaFormato, InsigniaTarea } from "@/components/app/insignias";
+import { IdPublico, InsigniaEstado, InsigniaFormato, InsigniaTarea } from "@/components/app/insignias";
 import { cambiarEstadoTarea } from "@/lib/acciones/tareas";
+import { checklistPorDefecto } from "@/lib/dominio/estados";
+import { normalizarChecklist, progresoChecklist } from "@/lib/dominio/checklist";
 import { bucketVencimiento, fechaCorta, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +21,8 @@ export type TareaEnCola = {
   hecha_en: string | null;
   nota_bloqueo: string | null;
   asignado_a: string | null;
-  pieza: { id: string; id_publico: string; titulo: string | null; formato: string; estado: string } | null;
+  checklist: unknown;
+  pieza: { id: string; id_publico: string; titulo: string | null; formato: string; estado: string; serie: string | null } | null;
   historia: { id: string; serie: string; dia: number; semana: string; copy: string | null } | null;
   asignado: { nombre: string } | null;
 };
@@ -29,12 +32,15 @@ const SERIE: Record<string, string> = {
   amplificacion: "Amplificación", espontanea: "Espontánea",
 };
 
+/** Una tarea en la cola. En escritorio es una fila de cuatro columnas: pieza · tarea y siguiente paso · vence · acciones. */
 export function FilaTarea({ tarea, mostrarAsignado }: { tarea: TareaEnCola; mostrarAsignado: boolean }) {
   const [pendiente, iniciar] = useTransition();
   const [abierto, setAbierto] = useState(false);
   const [nota, setNota] = useState("");
   const b = bucketVencimiento(tarea.vence);
   const vencida = b === "vencida" && tarea.estado !== "hecha";
+  const pasos = normalizarChecklist(tarea.checklist, checklistPorDefecto(tarea.tipo, tarea.pieza?.formato ?? "reel"));
+  const pr = progresoChecklist(pasos);
 
   const href = tarea.pieza ? `/piezas/${tarea.pieza.id}` : tarea.historia ? `/historias?semana=${tarea.historia.semana}` : "#";
   const titulo = tarea.pieza
@@ -52,29 +58,46 @@ export function FilaTarea({ tarea, mostrarAsignado }: { tarea: TareaEnCola; most
   }
 
   return (
-    <li className={cn("flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between", tarea.estado === "hecha" && "opacity-60")}>
+    <li className={cn("grid gap-2 p-3 md:grid-cols-[minmax(0,1fr)_16rem_7rem_auto] md:items-center md:gap-4", tarea.estado === "hecha" && "opacity-60")}>
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           {tarea.pieza && <IdPublico id={tarea.pieza.id_publico} />}
           <Link href={href} className="truncate font-semibold hover:underline">{titulo}</Link>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           {tarea.pieza && <InsigniaFormato formato={tarea.pieza.formato} />}
+          {tarea.pieza && <InsigniaEstado estado={tarea.pieza.estado} />}
           {tarea.historia && <InsigniaFormato formato="historia" />}
-          <InsigniaTarea tipo={tarea.tipo} />
-          <span className={cn("font-medium", vencida ? "text-rojo" : "text-muted-foreground")}>
-            {vencida ? "venció " : "vence "}{fechaCorta(tarea.vence)}
-          </span>
-          {mostrarAsignado && <span className="text-muted-foreground">· {tarea.asignado?.nombre ?? "sin asignar"}</span>}
-          {tarea.estado === "en_curso" && <span className="text-primary">· en curso</span>}
+          {tarea.pieza?.serie && <span>{tarea.pieza.serie}</span>}
+          {mostrarAsignado && <span>· {tarea.asignado?.nombre ?? "sin asignar"}</span>}
         </div>
-        {tarea.estado === "bloqueada" && tarea.nota_bloqueo && (
-          <p className="text-xs text-rojo">Bloqueada: {tarea.nota_bloqueo}</p>
+        {tarea.estado === "bloqueada" && tarea.nota_bloqueo && <p className="text-xs text-rojo">Bloqueada: {tarea.nota_bloqueo}</p>}
+      </div>
+
+      <div className="space-y-1 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <InsigniaTarea tipo={tarea.tipo} />
+          {tarea.estado === "en_curso" && <span className="font-semibold text-primary">en curso</span>}
+          {pr.total > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <span className="flex h-1.5 w-14 overflow-hidden rounded-full bg-muted"><span className="bg-primary" style={{ width: `${(pr.hechos / pr.total) * 100}%` }} /></span>
+              {pr.hechos}/{pr.total}
+            </span>
+          )}
+        </div>
+        {tarea.estado !== "hecha" && (
+          <p className="text-muted-foreground">
+            {pr.siguiente ? <>sigue: <span className="font-medium text-foreground">{pr.siguiente}</span></> : pr.total > 0 ? "checklist completo, márcala hecha" : "sin checklist"}
+          </p>
         )}
       </div>
 
-      {tarea.estado !== "hecha" && (
-        <div className="flex shrink-0 gap-1.5">
+      <div className={cn("text-xs font-medium", vencida ? "text-rojo" : tarea.estado === "hecha" ? "text-muted-foreground" : b === "hoy" ? "text-ambar" : "text-muted-foreground")}>
+        {tarea.estado === "hecha" ? `hecha ${fechaCorta(tarea.hecha_en?.slice(0, 10))}` : `${vencida ? "venció" : "vence"} ${fechaCorta(tarea.vence)}`}
+      </div>
+
+      {tarea.estado !== "hecha" ? (
+        <div className="flex shrink-0 flex-wrap gap-1.5 md:justify-end">
           {tarea.estado === "bloqueada" ? (
             <Button size="sm" variant="outline" disabled={pendiente} onClick={() => mover("en_curso")}>Desbloquear</Button>
           ) : (
@@ -97,7 +120,7 @@ export function FilaTarea({ tarea, mostrarAsignado }: { tarea: TareaEnCola; most
             </>
           )}
         </div>
-      )}
+      ) : <div />}
     </li>
   );
 }

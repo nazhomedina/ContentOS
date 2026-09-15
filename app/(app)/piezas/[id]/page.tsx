@@ -11,6 +11,7 @@ import { Stream, type Pensamiento } from "@/components/pieza/stream";
 import { Versiones, type Version } from "@/components/pieza/versiones";
 import { hipotesisEnUnaLinea } from "@/lib/dominio/hipotesis";
 import { checklistPorDefecto } from "@/lib/dominio/estados";
+import { normalizarChecklist } from "@/lib/dominio/checklist";
 import { fechaCorta, fechaHora } from "@/lib/dominio/tiempo";
 import type { Rol } from "@/lib/dominio/roles";
 
@@ -194,13 +195,4 @@ function Dato({ k, v }: { k: string; v: React.ReactNode }) {
       <dd className="font-medium">{v}</dd>
     </div>
   );
-}
-
-function normalizarChecklist(raw: unknown, porDefecto: string[]): { texto: string; hecho: boolean }[] {
-  if (Array.isArray(raw) && raw.length > 0) {
-    return raw.map((x) =>
-      typeof x === "string" ? { texto: x, hecho: false } : { texto: String((x as { texto?: unknown })?.texto ?? ""), hecho: Boolean((x as { hecho?: unknown })?.hecho) },
-    );
-  }
-  return porDefecto.map((texto) => ({ texto, hecho: false }));
 }
