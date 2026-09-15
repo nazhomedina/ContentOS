@@ -43,7 +43,7 @@ export async function comentar(piezaId: string, texto: string): Promise<Resultad
 /** La URL se captura en cuanto existe (Mariela la pega al subir). Owner y editor. */
 export async function guardarUrl(piezaId: string, url: string, plataforma?: string): Promise<Resultado> {
   const supabase = await crearClienteServidor();
-  const { error } = await supabase.rpc("guardar_url", { p_pieza_id: piezaId, p_url: url.trim(), p_plataforma: plataforma ?? null });
+  const { error } = await supabase.rpc("guardar_url", { p_pieza_id: piezaId, p_url: url.trim(), p_plataforma: plataforma ?? undefined });
   if (error) return fallo(error);
   revalidatePath(`/piezas/${piezaId}`);
   return { ok: true, mensaje: url.trim() ? "URL guardada." : "URL borrada." };

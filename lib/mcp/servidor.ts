@@ -180,7 +180,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       const { error: el } = await supabase.from("piezas").update({ hipotesis_id: h.id }).eq("id", p.id);
       if (el) return error(limpiarError(el.message));
     }
-    const { data, error: e } = await supabase.rpc("guardar_contenido", { p_pieza_id: p.id, p_contenido: contenido, p_instruccion: instruccion ?? null, p_autor: autor ?? "claude" });
+    const { data, error: e } = await supabase.rpc("guardar_contenido", { p_pieza_id: p.id, p_contenido: contenido, p_instruccion: instruccion ?? undefined, p_autor: autor ?? "claude" });
     return e ? error(limpiarError(e.message)) : json({ version: data.version, pieza_id: data.pieza_id });
   });
 

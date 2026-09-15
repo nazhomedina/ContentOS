@@ -41,7 +41,7 @@ export async function guardarContenido(piezaId: string, contenido: string, instr
   if (!contenido.trim()) return { ok: false, mensaje: "El contenido no puede ir vacío." };
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.rpc("guardar_contenido", {
-    p_pieza_id: piezaId, p_contenido: contenido, p_instruccion: instruccion ?? "editado en la app", p_autor: null,
+    p_pieza_id: piezaId, p_contenido: contenido, p_instruccion: instruccion ?? "editado en la app",
   });
   if (error) return fallo(error);
   revalidatePath(`/piezas/${piezaId}`);
@@ -60,7 +60,7 @@ export async function volverAVersion(piezaId: string, version: number): Promise<
   if (!v) return { ok: false, mensaje: `No existe la versión ${version}.` };
 
   const { data, error } = await supabase.rpc("guardar_contenido", {
-    p_pieza_id: piezaId, p_contenido: v.contenido, p_instruccion: `volver a v${version}`, p_autor: null,
+    p_pieza_id: piezaId, p_contenido: v.contenido, p_instruccion: `volver a v${version}`,
   });
   if (error) return fallo(error);
   revalidatePath(`/piezas/${piezaId}`);

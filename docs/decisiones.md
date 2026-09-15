@@ -155,3 +155,17 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Pestaña Reels como base de datos.** Vista Lista por defecto (búsqueda, etapa, serie, responsable, faltantes: sin hipótesis, sin guion, sin responsable), más Tablero, Publicados y Archivo. Cada fila muestra tarea abierta, siguiente paso del checklist, responsable y qué le falta. **Cola de Mariela en dos columnas** para escritorio: Mariela trabaja desde computadora, no desde el teléfono. El contenedor de la app pasa a 80 rem.
 
 **Pendiente de este bloque:** las 30 ideas IDE-xx importadas el 7-sep del Banco de ideas se traslapan en parte con reels ahora importados (por ejemplo IDE-06 y BRE-03). Se resuelven a mano cuando se toque cada una; no se borran solas.
+
+## 2026-09-15 · Piezas limpias (migración 011, aplicada en producción)
+
+**Nazho pidió una pieza mínima y relaciones limpias** (docs/campos.md). Queda con: `tipo` (antes `formato`: reel, carrusel, artículo…), `estado`, `fecha_objetivo`, `responsable_id`, `contenido` (antes `guion`: guion, copy, artículo o edición, editable en la app y versionado en `contenido_versiones`), `notas` (absorbe la spec visual y cualquier anotación), `etiquetas` (libres: bugs, temas, origen), `url` + `plataforma` (siempre a la vista; Mariela la captura en cuanto existe con `guardar_url`), `etapa_embudo`, `serie`, `titulo`, `id_publico`. Por el sistema se quedan `comunidad_id` (unidad raíz), `programa_aprobado` (tope de 10) y `notion_url` (idempotencia del import mientras Notion exista).
+
+**Se fueron:** `cta`, `fidelidad`, `spec_visual`, `requiere_hipotesis` (se calcula: hipótesis nula), `etapa_legado`, `idea_id`, `formato_sugerido` (→ notas), `origen` (→ etiqueta), el `checklist` de tareas y la tabla `ideas`. Respaldo en `respaldo_20260915_piezas`, `_tareas` y `_guion_versiones`; se borran al cerrar 1.0.
+
+**Hipótesis con tabla propia.** `hipotesis` (texto, campo, número, fecha, estado abierta · verdadera · falsa · sin_datos, veredicto). Varias piezas apuntan a la misma hipótesis; el mismo texto en varias piezas se fundió en una fila (99 hipótesis, 3 resolubles hoy). La regla 1 sigue en el esquema: de grabación en adelante hace falta `hipotesis_id`, salvo piezas con etiqueta `legado`. `crear_hipotesis` exige campo, número y fecha futura. El trabajo fino de hipótesis (resolver, veredicto, pantalla) es el paso 2.
+
+**Format Cards se llaman `formatos`** (la pieza apunta con `formato_id`). Sus campos propios son el paso 2.
+
+**Assets con tabla propia.** `assets` (pieza, ruta, carpeta, nombre, quién) se alimenta con un trigger sobre Storage; subir un RAW crea la tarea «editar» sin webhook. El endpoint `api/hooks/storage` se eliminó.
+
+**MCP:** `crear_pieza` y `actualizar_pieza` hablan de `tipo`, `formato` (card), `contenido`, `etiquetas`, `hipotesis` o `hipotesis_id`; `guardar_contenido` sustituye a `guardar_guion`; nueva `listar_hipotesis`. 23 tools. El skill de entrevista se actualizó. Prueba `prueba:mcp` contra producción: 21/21 en verde.

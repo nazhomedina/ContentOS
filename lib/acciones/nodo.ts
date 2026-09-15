@@ -46,7 +46,7 @@ export async function crearPieza(p: PayloadPieza): Promise<Resultado & { id?: st
   });
   if (error) return fallo(error);
   revalidarTodo();
-  return { ok: true, mensaje: `${data.id_publico} capturada.`, id: data.id, id_publico: data.id_publico };
+  return { ok: true, mensaje: `${data.id_publico} capturada.`, id: data.id, id_publico: data.id_publico ?? undefined };
 }
 
 export async function asignarTarea(v: { pieza_id?: string; historia_id?: string; tipo: string; asignado_a: string; vence: string }): Promise<Resultado> {

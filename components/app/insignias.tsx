@@ -31,6 +31,6 @@ export function ChipBuffer({ n }: { n: number }) {
   );
 }
 
-export function IdPublico({ id }: { id: string }) {
-  return <span className="font-mono text-xs font-medium tracking-wide text-muted-foreground">{id}</span>;
+export function IdPublico({ id }: { id: string | null | undefined }) {
+  return <span className="font-mono text-xs font-medium tracking-wide text-muted-foreground">{id ?? "—"}</span>;
 }

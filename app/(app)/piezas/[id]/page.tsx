@@ -109,7 +109,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
 
       {esOwner && enRedaccion && (
         <Seccion titulo="Stream de redacción">
-          <Stream piezaId={pieza.id} idPublico={pieza.id_publico} items={stream} puedeEscribir />
+          <Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir />
         </Seccion>
       )}
 
@@ -124,7 +124,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
           <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">
             Stream de redacción <span className="ml-2 font-medium normal-case tracking-normal">· {stream.length} · lo que se dijo antes de escribir</span>
           </summary>
-          <div className="border-t px-4 py-4"><Stream piezaId={pieza.id} idPublico={pieza.id_publico} items={stream} puedeEscribir={false} /></div>
+          <div className="border-t px-4 py-4"><Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir={false} /></div>
         </details>
       )}
 

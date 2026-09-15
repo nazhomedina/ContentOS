@@ -1,6 +1,6 @@
 # Los campos de una pieza — qué hay, para qué sirve y qué sobra
 
-**Fecha:** 2026-09-15 · **Estado:** foto del esquema en producción después del import de reels. Es un documento para decidir, no una decisión. Lo que se acuerde va a `decisiones.md` y a una migración.
+**Fecha:** 2026-09-15 · **Estado:** foto del esquema *antes* de la limpieza. Nazho decidió el mismo día y la migración 011 lo aplicó (ver `decisiones.md`, «Piezas limpias»). Se conserva como registro de por qué cada campo se quedó o se fue.
 
 ---
 

@@ -13,7 +13,7 @@ import { fechaCorta } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
 export type Declaracion = { id: string; texto: string; minutos: number | null; evidencia_url: string | null; created_at: string; pieza: { id: string; id_publico: string; titulo: string | null } | null };
-type PiezaOpcion = { id: string; id_publico: string; titulo: string | null };
+type PiezaOpcion = { id: string; id_publico: string | null; titulo: string | null };
 
 export function TuDia({ userId, hoy, declaraciones, piezas }: { userId: string; hoy: string; declaraciones: Declaracion[]; piezas: PiezaOpcion[] }) {
   const router = useRouter();
