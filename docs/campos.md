@@ -123,6 +123,32 @@ Hipótesis      ─ de pieza (la resuelve el multiplicador de esa pieza) y de fo
 - **¿Serie merece tabla?** Solo si se quiere contar episodios, llevar estado por serie o cerrar una serie con veredicto. Hoy la lista tiene 11 nombres y se filtra bien como texto. Recomendación: texto libre hasta que una pantalla pida algo que el texto no pueda dar.
 - **Batch / campaña de Notion** (24JULIO, Q1 2026, NUM) era un agrupador temporal. Entró a `notas`. No se reintroduce como campo; `campanas` en la base es para pauta, otra cosa.
 
+### 4b. La base de Format Cards, campo por campo
+
+Las Format Cards tienen base propia en los dos lados. En Notion son 8 propiedades más 4 rollups; en ContentOS son 8 columnas. Lo que cambió al migrar es que **cuatro campos estructurados de Notion se volvieron prosa** dentro del molde.
+
+| Notion (🧪 Format Cards) | Tipo | ContentOS (`format_cards`) | Estado hoy |
+|---|---|---|---|
+| Card (FC-01) | texto | `codigo` | igual |
+| Nombre | título | `nombre` | igual |
+| Estado (detectado · experimentando · validado-propio · firma · retirado) | select | `estado` | igual |
+| Serie propia | texto | dentro de `molde` («**Serie propia:** Criterio») | **perdió estructura** |
+| Duración | texto | dentro de `molde` | **perdió estructura** |
+| Recompensa | texto | dentro de `molde` | **perdió estructura** |
+| Cadencia | texto | dentro de `molde` | **perdió estructura** |
+| Microcontenidos | relación | `piezas.format_card_id` (al revés: la pieza apunta a la card) | igual, mejor |
+| Piezas vinculadas | rollup (count) | se calcula en la pantalla Formatos | igual |
+| Multiplicador promedio | rollup (avg) | no se calcula todavía | **falta** |
+| Follows totales | rollup (sum) | no se calcula todavía | **falta** |
+| Score promedio | rollup de una fórmula de Notion | no existe | se descarta: la fórmula era de Notion |
+| — | — | `origen` (de quién se robó el formato) | nuevo |
+| — | — | `molde` (la receta completa en markdown: tesis, beats, evidencia) | nuevo |
+| — | — | `notas` | nuevo |
+
+Lo que el molde guarda hoy como prosa y valdría tener como columna, porque las pantallas lo pueden usar: `serie_propia` (para que la pieza herede la serie al elegir card), `duracion`, `recompensa`, `cadencia`, y la **hipótesis de formato** (la que se resuelve con ocho episodios). Los rollups no se guardan: se calculan desde `piezas` y `metricas` cuando se abre la card, igual que hoy se calcula «piezas · publicadas · para validar».
+
+**Recomendación:** agregar esas cinco columnas a `format_cards`, dejar `molde` para la receta (beats, evidencia, mecánica visual) y que la pantalla Formatos calcule episodios, publicadas, multiplicador promedio y follows. Es una migración chica y no toca `piezas`.
+
 ---
 
 ## 5. ¿Artículos, newsletter, largo y corto en la misma tabla?
@@ -163,3 +189,4 @@ Con esa regla, lo que hoy falta se resuelve así:
 5. **`serie`:** texto libre. Default: texto libre.
 6. **`detalle jsonb` por formato:** se agrega cuando entre el primer newsletter. Default: sí, esta semana con CRITERIO #001.
 7. **Historias:** fusión después de la primera semana operada. Default: no antes.
+8. **Format Cards:** sacar del molde a columnas `serie_propia`, `duracion`, `recompensa`, `cadencia` e `hipotesis_formato`; calcular los rollups en pantalla. Default: sí, junto con la poda del punto 1.
