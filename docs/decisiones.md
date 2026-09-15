@@ -139,3 +139,19 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Pantalla de Redacción, primera parte (docs/redaccion.md §4).** En `/piezas/[id]`, para el owner: bloque «Stream de redacción» cuando la pieza está en borrador o redacción, con las entradas en orden (voz, texto, link, pregunta, respuesta), caja para responder debajo de cada pregunta sin contestar, y captura de texto o link. Fuera de esos estados el stream queda plegado y de solo lectura. El guion muestra su versión vigente y un historial desplegable; «Volver a esta versión» no borra: entra como versión nueva con la instrucción `volver a vN`. En Ideas, cada borrador dice cuántas entradas tiene y si hay preguntas de Claude sin contestar (ámbar).
 
 **Lo que no entra todavía:** grabador de voz en el navegador (depende del job `voz_transcribir`), cola de `solicitudes` y rutina en la nube (segunda fase, decisión del 9-sep), botón de voz en Inicio. Las escrituras humanas desde la web no dejan corrida; solo las de jobs y tools.
+
+## 2026-09-15 · Base de reels importada desde Notion
+
+**188 reels de Microcontenidos (formato Reel/Short) entraron a `piezas`** con `scripts/importar-reels.mjs`, idempotente por `notion_url`. Los guiones (cuerpo de la página) se copiaron literales para los 120 no archivados; los 68 archivados entraron solo con propiedades. Métricas de Notion → `metricas(fuente='notion')`. Notion queda intacto.
+
+**Mapa de estados:** Para grabar → `grabacion` con `programa_aprobado` (los 30 CRI) · Diseño o edición → `diseno` · Buffer → `listo` · En trial → `en_trial` · Publicada con URL → `publicada` · **Publicada sin URL → `archivada`** con nota «Publicada según Notion el …, sin URL»: la base exige URL para publicar y 14 videos viejos no la tenían. Con la URL vuelven a Publicados. Archivado → `archivada`.
+
+**Hipótesis legado.** El texto libre de Notion se guarda como `{texto, campo: multiplicador, legado: true}`, que pasa el check sin ser resoluble. Las 15 piezas en producción sin texto quedan con `requiere_hipotesis` y se pintan en rojo en la lista.
+
+**IDs.** El check de `id_publico` no admite dígitos en el prefijo, así que FC01…FC05 se traducen: FC01→BRE (Brand Reels), FC02→ROB (Róbate), FC03→RMK (Robándole el marketing), FC04→VIN (Verdades Incómodas), FC05→CHK (Checklist relámpago); los frentes `-A…-E` se conservan. Los NUM-08…11 repetidos en Notion quedaron como NUM-08b…11b (HANDOFF §6). El ID original va en `notas`.
+
+**Formato yap** para los CRI (FC-08) y los YAP-xx; el resto, reel. `serie` sale del prefijo (Criterio, NUM, Brand Reels, Róbate, Robándole el marketing, Verdades Incómodas, Checklist relámpago, Yap, Serie Fundador, Así uso Claude, Seang).
+
+**Pestaña Reels como base de datos.** Vista Lista por defecto (búsqueda, etapa, serie, responsable, faltantes: sin hipótesis, sin guion, sin responsable), más Tablero, Publicados y Archivo. Cada fila muestra tarea abierta, siguiente paso del checklist, responsable y qué le falta. **Cola de Mariela en dos columnas** para escritorio: Mariela trabaja desde computadora, no desde el teléfono. El contenedor de la app pasa a 80 rem.
+
+**Pendiente de este bloque:** las 30 ideas IDE-xx importadas el 7-sep del Banco de ideas se traslapan en parte con reels ahora importados (por ejemplo IDE-06 y BRE-03). Se resuelven a mano cuando se toque cada una; no se borran solas.

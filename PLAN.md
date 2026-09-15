@@ -165,8 +165,8 @@ Estado 2026-09-07 (tarde): bloques B y C construidos y probados de extremo a ext
 
 | # | Paso | Produce | Verificación |
 |---|---|---|---|
-| 1.12 | `scripts/importar-notion.ts` con las reglas del §6: mapa de campos, hipótesis legado, `requiere_hipotesis`, 30 CRI en `para_grabar` con `programa_aprobado=true`, renumeración `NUM-08b…` registrada en `corridas`, ideas, recursos; `app.import='on'` durante la corrida; idempotente por `id_publico` | script | corrida en local: 229 piezas, 6 FC, ~40 ideas, 4 recursos; segunda corrida no duplica |
-| 1.13 | Corrida contra el proyecto remoto | datos | conteos iguales; fila en `corridas(sistema='import_notion')` |
+| 1.12 ✅ reels (2026-09-15; carruseles, historias y el resto siguen en Notion) | `scripts/importar-notion.ts` con las reglas del §6: mapa de campos, hipótesis legado, `requiere_hipotesis`, 30 CRI en `para_grabar` con `programa_aprobado=true`, renumeración `NUM-08b…` registrada en `corridas`, ideas, recursos; `app.import='on'` durante la corrida; idempotente por `id_publico` | script | corrida en local: 229 piezas, 6 FC, ~40 ideas, 4 recursos; segunda corrida no duplica |
+| 1.13 ✅ reels | Corrida contra el proyecto remoto | datos | conteos iguales; fila en `corridas(sistema='import_notion')` |
 
 **Bloque E · Deploy y cierre**
 

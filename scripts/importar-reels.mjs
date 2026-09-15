@@ -34,6 +34,18 @@ const SERIE_POR_PREFIJO = {
   CRI: "Criterio", NUM: "NUM", FC01: "Brand Reels", FC02: "Róbate", FC03: "Robándole el marketing",
   FC04: "Verdades Incómodas", FC05: "Checklist relámpago", YAP: "Yap", FUN: "Serie Fundador", CLA: "Así uso Claude", SEA: "Seang",
 };
+// El check de piezas.id_publico es ^[A-Z]{2,5}-\d{2,3}([a-z]|-[A-E])?$: los prefijos FC01…FC05 de Notion
+// llevan dígitos y no pasan, así que se traducen a letras. El ID original queda en notas.
+const PREFIJO_ID = { FC01: "BRE", FC02: "ROB", FC03: "RMK", FC04: "VIN", FC05: "CHK" };
+const ID_VALIDO = /^[A-Z]{2,5}-\d{2,3}([a-z]|-[A-E])?$/;
+function idPublico(id) {
+  const t = (id ?? "").trim();
+  if (!t) return { id: undefined, nota: null };
+  const [pre, ...resto] = t.split("-");
+  const trad = PREFIJO_ID[pre] ? [PREFIJO_ID[pre], ...resto].join("-") : t;
+  if (ID_VALIDO.test(trad)) return { id: trad, nota: trad !== t ? `ID en Notion: ${t}` : null };
+  return { id: undefined, nota: `ID en Notion: ${t}` };
+}
 const ESTADO = { "Para grabar": "grabacion", "Diseño o edición": "diseno", "Buffer": "listo", "En trial": "en_trial", "Publicada": "publicada", "Archivado": "archivada", "Para producir": "redaccion" };
 
 const filas = readdirSync(carpeta).filter((f) => /^reels-.*\.json$/.test(f)).flatMap((f) => JSON.parse(readFileSync(join(carpeta, f), "utf8")));
@@ -43,6 +55,12 @@ const reels = [...porUrl.values()];
 console.log(`${reels.length} reels en ${carpeta}`);
 
 const lista = (s) => { try { const v = JSON.parse(s ?? "[]"); return Array.isArray(v) ? v : []; } catch { return []; } };
+// El cuerpo de Notion trae marcas vacías (<empty-block/>) y saltos de más: se limpian sin tocar el texto.
+const limpiarGuion = (g) => {
+  if (!g) return null;
+  const t = g.replace(/<empty-block\s*\/>/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  return t || null;
+};
 const idNotion = (u) => (u ?? "").replace(/-/g, "").match(/([0-9a-f]{32})/)?.[1] ?? null;
 
 function mapear(r) {
@@ -61,11 +79,13 @@ function mapear(r) {
   if (r.veredicto) notas.push(`Veredicto del trial en Notion: ${r.veredicto}.`);
   if (r.raw) notas.push(`RAW en Drive: ${r.raw}`);
   if (lista(r.marca).includes("Folklore")) notas.push("Marca: Folklore y Nazho.");
+  const idp = idPublico(r.id);
+  if (idp.nota) notas.push(idp.nota);
   const texto = (r.hipotesis ?? "").trim() || null;
   const enProduccion = !["archivada", "borrador"].includes(estado);
   return {
     comunidad_id: COMUNIDAD,
-    id_publico: (r.id ?? "").trim() || undefined,
+    id_publico: idp.id,
     titulo: (r.nombre ?? "").trim() || "(sin título)",
     formato,
     estado,
@@ -76,7 +96,7 @@ function mapear(r) {
     programa_aprobado: estado === "grabacion",
     format_card: fc,
     serie: SERIE_POR_PREFIJO[prefijo] ?? null,
-    guion: r.guion ?? null,
+    guion: limpiarGuion(r.guion),
     url: r.url_publica ?? null,
     plataforma: r.url_publica ? (r.url_publica.includes("youtu") ? "youtube" : "instagram") : null,
     publicada_en: estado === "publicada" ? (r.publicacion ? `${r.publicacion}T12:00:00-06:00` : new Date().toISOString()) : null,
@@ -85,7 +105,7 @@ function mapear(r) {
     notion_url: r.url,
     created_at: r.creado ? new Date(r.creado.replace(" ", "T")).toISOString() : undefined,
     metrica: r.views != null || r.likes != null || r.saves != null || r.follows != null
-      ? { fecha: r.publicacion ?? (r.creado ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10), views: r.views, likes: r.likes, comentarios: r.comentarios, saves: r.saves, follows: r.follows, multiplicador: r.multiplicador }
+      ? { fecha: r.publicacion ?? ((r.creado ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10)), views: r.views, likes: r.likes, comentarios: r.comentarios, saves: r.saves, follows: r.follows, multiplicador: r.multiplicador }
       : null,
   };
 }
@@ -104,11 +124,18 @@ const { data: existentes } = await admin.from("piezas").select("id, notion_url")
 const yaImportadas = new Set((existentes ?? []).map((e) => e.notion_url));
 
 let insertadas = 0, saltadas = 0, metricas = 0;
-const errores = [];
+const errores = [], renumeradas = [];
 for (const p of piezas) {
   if (yaImportadas.has(p.notion_url)) { saltadas++; continue; }
   const { metrica, format_card, ...fila } = p;
-  const { data, error } = await admin.from("piezas").insert({ ...fila, format_card_id: format_card ? fcId[format_card] ?? null : null }).select("id, id_publico").single();
+  const insertar = (f) => admin.from("piezas").insert({ ...f, format_card_id: format_card ? fcId[format_card] ?? null : null }).select("id, id_publico").single();
+  let { data, error } = await insertar(fila);
+  // IDs repetidos en Notion (NUM-08…11): la segunda ocurrencia se renumera con «b» (HANDOFF §6).
+  if (error && /piezas_id_publico_key/.test(error.message) && fila.id_publico) {
+    const nuevo = `${fila.id_publico}b`;
+    ({ data, error } = await insertar({ ...fila, id_publico: nuevo, notas: [fila.notas, `ID repetido en Notion: ${fila.id_publico} → ${nuevo}`].filter(Boolean).join("\n") }));
+    if (!error) renumeradas.push(`${fila.id_publico} → ${nuevo}`);
+  }
   if (error) { errores.push(`${p.id_publico ?? p.titulo}: ${error.message}`); continue; }
   insertadas++;
   if (metrica) {
@@ -119,7 +146,8 @@ for (const p of piezas) {
 await admin.rpc("registrar_corrida", {
   p_sistema: "import_notion", p_estado: errores.length ? "error" : "ok",
   p_resumen: `reels: ${insertadas} insertadas, ${saltadas} ya existían, ${metricas} métricas, ${errores.length} errores`,
-  p_payload: { fuente: "Microcontenidos · Reel/Short", conteo, errores },
+  p_payload: { fuente: "Microcontenidos · Reel/Short", conteo, errores, renumeradas },
 });
 console.log(`Insertadas ${insertadas} · ya existían ${saltadas} · métricas ${metricas} · errores ${errores.length}`);
+for (const r of renumeradas) console.log("  ↻", r);
 for (const e of errores) console.log("  ✗", e);
