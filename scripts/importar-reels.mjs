@@ -9,8 +9,7 @@
 //   Para grabar → grabacion (programa_aprobado) · Diseño o edición → diseno · Buffer → listo
 //   En trial → en_trial · Publicada con URL → publicada · Publicada sin URL → archivada (la base exige URL)
 //   Archivado → archivada
-//   Hipótesis de Notion es texto libre: se guarda como {texto, campo: multiplicador, legado: true}.
-//   Sin texto de hipótesis en producción → requiere_hipotesis = true (la app la pinta en rojo).
+//   Hipótesis de Notion es texto libre: una fila en `hipotesis` sin campo ni fecha; la pieza queda con etiqueta legado.
 //   Views/likes/comentarios/saves/follows → metricas(fuente='notion').
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -87,20 +86,18 @@ function mapear(r) {
     comunidad_id: COMUNIDAD,
     id_publico: idp.id,
     titulo: (r.nombre ?? "").trim() || "(sin título)",
-    formato,
+    tipo: formato,
     estado,
     etapa_embudo: "atraer",
-    etapa_legado: true,
-    hipotesis: { texto, campo: "multiplicador", numero: null, fecha: null, legado: true },
-    requiere_hipotesis: enProduccion && !texto,
+    hipotesis_texto: texto,
     programa_aprobado: estado === "grabacion",
     format_card: fc,
     serie: SERIE_POR_PREFIJO[prefijo] ?? null,
-    guion: limpiarGuion(r.guion),
+    contenido: limpiarGuion(r.guion),
     url: r.url_publica ?? null,
     plataforma: r.url_publica ? (r.url_publica.includes("youtu") ? "youtube" : "instagram") : null,
     publicada_en: estado === "publicada" ? (r.publicacion ? `${r.publicacion}T12:00:00-06:00` : new Date().toISOString()) : null,
-    origen: "legado",
+    etiquetas: ["legado"],
     notas: notas.length ? notas.join("\n") : null,
     notion_url: r.url,
     created_at: r.creado ? new Date(r.creado.replace(" ", "T")).toISOString() : undefined,
@@ -114,11 +111,11 @@ const piezas = reels.map(mapear);
 const conteo = {};
 for (const p of piezas) conteo[p.estado] = (conteo[p.estado] ?? 0) + 1;
 console.log("Plan por estado:", conteo);
-console.log("Con guion:", piezas.filter((p) => p.guion).length, "· con hipótesis:", piezas.filter((p) => p.hipotesis.texto).length, "· requieren hipótesis:", piezas.filter((p) => p.requiere_hipotesis).length, "· con métricas:", piezas.filter((p) => p.metrica).length);
+console.log("Con contenido:", piezas.filter((p) => p.contenido).length, "· con hipótesis:", piezas.filter((p) => p.hipotesis_texto).length, "· con métricas:", piezas.filter((p) => p.metrica).length);
 if (!aplicar) { console.log("Sin --aplicar no se escribe nada."); process.exit(0); }
 
 const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-const { data: fcs } = await admin.from("format_cards").select("id, codigo");
+const { data: fcs } = await admin.from("formatos").select("id, codigo");
 const fcId = Object.fromEntries((fcs ?? []).map((f) => [f.codigo, f.id]));
 const { data: existentes } = await admin.from("piezas").select("id, notion_url").not("notion_url", "is", null);
 const yaImportadas = new Set((existentes ?? []).map((e) => e.notion_url));
@@ -127,8 +124,15 @@ let insertadas = 0, saltadas = 0, metricas = 0;
 const errores = [], renumeradas = [];
 for (const p of piezas) {
   if (yaImportadas.has(p.notion_url)) { saltadas++; continue; }
-  const { metrica, format_card, ...fila } = p;
-  const insertar = (f) => admin.from("piezas").insert({ ...f, format_card_id: format_card ? fcId[format_card] ?? null : null }).select("id, id_publico").single();
+  const { metrica, format_card, hipotesis_texto, ...fila } = p;
+  // La hipótesis heredada es texto libre: una fila en `hipotesis` por texto distinto, sin campo ni fecha.
+  let hipotesis_id = null;
+  if (hipotesis_texto) {
+    const { data: hx } = await admin.from("hipotesis").select("id").eq("texto", hipotesis_texto).maybeSingle();
+    if (hx) hipotesis_id = hx.id;
+    else { const { data: hn } = await admin.from("hipotesis").insert({ texto: hipotesis_texto }).select("id").single(); hipotesis_id = hn?.id ?? null; }
+  }
+  const insertar = (f) => admin.from("piezas").insert({ ...f, hipotesis_id, formato_id: format_card ? fcId[format_card] ?? null : null }).select("id, id_publico").single();
   let { data, error } = await insertar(fila);
   // IDs repetidos en Notion (NUM-08…11): la segunda ocurrencia se renumera con «b» (HANDOFF §6).
   if (error && /piezas_id_publico_key/.test(error.message) && fila.id_publico) {

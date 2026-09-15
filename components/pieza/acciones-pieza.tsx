@@ -13,11 +13,11 @@ import type { Rol } from "@/lib/dominio/roles";
 
 const PLATAFORMAS = ["instagram", "youtube", "x", "kit", "blog", "tiktok"];
 
-export function AccionesPieza({ piezaId, estado, rol }: { piezaId: string; estado: string; rol: Rol }) {
+export function AccionesPieza({ piezaId, estado, rol, urlActual, plataformaActual }: { piezaId: string; estado: string; rol: Rol; urlActual?: string | null; plataformaActual?: string | null }) {
   const [pendiente, iniciar] = useTransition();
   const [abierto, setAbierto] = useState(false);
-  const [url, setUrl] = useState("");
-  const [plataforma, setPlataforma] = useState("instagram");
+  const [url, setUrl] = useState(urlActual ?? "");
+  const [plataforma, setPlataforma] = useState(plataformaActual ?? "instagram");
 
   if (rol === "viewer") return null;
   const motivo = motivoNoPublicable(estado);
@@ -58,7 +58,7 @@ export function AccionesPieza({ piezaId, estado, rol }: { piezaId: string; estad
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Marcar como publicada</DialogTitle>
-                <DialogDescription>La URL es obligatoria. Con ella el post-scraper captura las métricas.</DialogDescription>
+                <DialogDescription>La URL es obligatoria. Si ya la capturaste arriba, aquí aparece prellenada.</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1.5">

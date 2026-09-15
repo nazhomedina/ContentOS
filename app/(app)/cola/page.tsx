@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { bucketVencimiento, sumarDias, hoyISO } from "@/lib/dominio/tiempo";
 import { NOMBRE_ESTADO, type EstadoPieza } from "@/lib/dominio/estados";
-import { ChipBuffer, IdPublico, InsigniaEstado, InsigniaFormato } from "@/components/app/insignias";
+import { ChipBuffer, IdPublico, InsigniaEstado, InsigniaTipo } from "@/components/app/insignias";
 import { FilaTarea, type TareaEnCola } from "@/components/cola/fila-tarea";
 import { TuDia, type Declaracion } from "@/components/bitacora/tu-dia";
 import { cn } from "@/lib/utils";
@@ -33,19 +33,19 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
   const [{ data: tareas }, { count: buffer }, { data: declaraciones }, { data: enManos }] = await Promise.all([
     supabase
       .from("tareas")
-      .select("id, tipo, estado, vence, checklist, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, formato, estado, serie), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
+      .select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, tipo, estado, serie), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
       .order("vence", { ascending: true, nullsFirst: false }),
     supabase.from("piezas").select("id", { count: "exact", head: true }).in("estado", ["listo", "programada"]),
     esOwner ? Promise.resolve({ data: [] }) : supabase.from("bitacora").select("id, texto, minutos, evidencia_url, created_at, pieza:piezas(id, id_publico, titulo)").eq("perfil_id", sesion.userId).eq("fecha", hoyStr).order("created_at"),
-    supabase.from("piezas").select("id, id_publico, titulo, formato, estado, serie, fecha_objetivo").in("estado", ["grabacion", "diseno", "listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }).limit(80),
+    supabase.from("piezas").select("id, id_publico, titulo, tipo, estado, serie, fecha_objetivo").in("estado", ["grabacion", "diseno", "listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }).limit(80),
   ]);
 
   const hace7 = sumarDias(hoyISO(), -7);
   const todas = (tareas ?? []) as unknown as TareaEnCola[];
   const filtradas = todas.filter((t) => {
-    if (f === "reels") return t.pieza && ["reel", "yap", "youtube"].includes(t.pieza.formato);
-    if (f === "carruseles") return t.pieza?.formato === "carrusel";
-    if (f === "historias") return !!t.historia || t.pieza?.formato === "historia";
+    if (f === "reels") return t.pieza && ["reel", "yap", "youtube"].includes(t.pieza.tipo);
+    if (f === "carruseles") return t.pieza?.tipo === "carrusel";
+    if (f === "historias") return !!t.historia || t.pieza?.tipo === "historia";
     return true;
   });
 
@@ -127,7 +127,7 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
                       <Link href={`/piezas/${p.id}`} className={cn("flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted", conTareaMia.has(p.id) && "font-semibold")}>
                         <IdPublico id={p.id_publico} />
                         <span className="min-w-0 flex-1 truncate">{p.titulo ?? "(sin título)"}</span>
-                        <InsigniaFormato formato={p.formato ?? "reel"} />
+                        <InsigniaTipo tipo={p.tipo ?? "reel"} />
                       </Link>
                     </li>
                   ))}
@@ -153,8 +153,8 @@ function Grupo({ titulo, tareas, vacio, mostrarAsignado, rojo }: { titulo: strin
         <p className="text-sm text-muted-foreground">{vacio}</p>
       ) : (
         <ul className="divide-y rounded-lg border">
-          <li className="hidden grid-cols-[minmax(0,1fr)_16rem_7rem_auto] gap-4 bg-muted/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground md:grid">
-            <span>Pieza</span><span>Tarea · siguiente paso</span><span>Vence</span><span className="w-40" />
+          <li className="hidden grid-cols-[minmax(0,1fr)_11rem_7rem_auto] gap-4 bg-muted/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground md:grid">
+            <span>Pieza</span><span>Tarea</span><span>Vence</span><span className="w-40" />
           </li>
           {tareas.map((t) => <FilaTarea key={t.id} tarea={t} mostrarAsignado={mostrarAsignado} />)}
         </ul>

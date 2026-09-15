@@ -17,8 +17,8 @@ export default async function Formatos() {
   if (!sesion) redirect("/login");
   const supabase = await crearClienteServidor();
   const [{ data: cards }, { data: piezas }] = await Promise.all([
-    supabase.from("format_cards").select("id, codigo, nombre, estado, origen, molde, notas").order("codigo"),
-    supabase.from("piezas").select("id, id_publico, titulo, estado, format_card_id").not("format_card_id", "is", null).neq("estado", "archivada").order("created_at", { ascending: false }),
+    supabase.from("formatos").select("id, codigo, nombre, estado, origen, molde, notas").order("codigo"),
+    supabase.from("piezas").select("id, id_publico, titulo, estado, formato_id").not("formato_id", "is", null).neq("estado", "archivada").order("created_at", { ascending: false }),
   ]);
 
   return (
@@ -32,7 +32,7 @@ export default async function Formatos() {
 
       <div className="space-y-4">
         {(cards ?? []).map((c) => {
-          const propias = (piezas ?? []).filter((p) => p.format_card_id === c.id);
+          const propias = (piezas ?? []).filter((p) => p.formato_id === c.id);
           const publicadas = propias.filter((p) => p.estado === "publicada").length;
           return (
             <details key={c.id} className="group rounded-xl border">

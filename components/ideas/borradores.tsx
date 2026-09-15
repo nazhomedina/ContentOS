@@ -8,26 +8,33 @@ import { Archive, ExternalLink, MessageCircleQuestion, MessagesSquare } from "lu
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { archivarPieza, pasarARedaccion } from "@/lib/acciones/borradores";
-import { FORMATOS, NOMBRE_FORMATO, type Formato } from "@/lib/dominio/estados";
+import { NOMBRE_TIPO, type Tipo } from "@/lib/dominio/estados";
 import { cn } from "@/lib/utils";
 
 export type Borrador = {
-  id: string; id_publico: string; titulo: string | null; notas: string | null; origen: string | null;
-  formato_sugerido: string[]; notion_url: string | null; created_at: string;
+  id: string; id_publico: string; titulo: string | null; notas: string | null; etiquetas: string[];
+  notion_url: string | null; created_at: string;
   stream?: { entradas: number; sin_responder: number };
 };
 
 const ORIGEN: Record<string, string> = { radar: "radar", voz: "voz", destilado: "destilado", markie: "Markie", coyuntura: "coyuntura", audiencia: "audiencia", claude: "Claude", legado: "banco Notion", nazho: "Nazho" };
-const PRODUCIBLES: Formato[] = ["reel", "yap", "carrusel", "articulo", "newsletter", "historia", "youtube", "x", "canal_ig"];
+const PRODUCIBLES: Tipo[] = ["reel", "yap", "carrusel", "articulo", "newsletter", "historia", "youtube", "x", "canal_ig"];
+
+/** El import dejó «Formato sugerido: reel, carrusel» en notas; se toma el primero como default del select. */
+function sugerido(b: Borrador): string | null {
+  const m = /Formato sugerido:\s*([a-z_]+)/i.exec(b.notas ?? "");
+  const t = m?.[1]?.toLowerCase() ?? null;
+  return t && (PRODUCIBLES as string[]).includes(t) ? t : null;
+}
 
 export function Borradores({ borradores }: { borradores: Borrador[] }) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [sel, setSel] = useState<string | null>(null);
-  const [formato, setFormato] = useState<Record<string, string>>({});
+  const [tipo, setTipo] = useState<Record<string, string>>({});
 
   function producir(b: Borrador) {
-    const f = formato[b.id] ?? (b.formato_sugerido?.[0]?.toLowerCase() ?? "");
+    const f = tipo[b.id] ?? sugerido(b) ?? "";
     iniciar(async () => {
       const r = await pasarARedaccion(b.id, f);
       if (r.ok) { toast.success(r.mensaje); if (r.ruta) router.push(r.ruta); } else toast.error(r.mensaje);
@@ -47,7 +54,7 @@ export function Borradores({ borradores }: { borradores: Borrador[] }) {
   return (
     <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {borradores.map((b) => {
-        const f = formato[b.id] ?? (b.formato_sugerido?.[0]?.toLowerCase() && FORMATOS.includes(b.formato_sugerido[0].toLowerCase() as Formato) ? b.formato_sugerido[0].toLowerCase() : "");
+        const f = tipo[b.id] ?? sugerido(b) ?? "";
         return (
           <li
             key={b.id}
@@ -60,8 +67,7 @@ export function Borradores({ borradores }: { borradores: Borrador[] }) {
             </div>
             {b.notas && <p className="line-clamp-4 text-xs text-muted-foreground">{b.notas}</p>}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-              {b.origen && <Badge variant="outline" className="text-[10px]">{ORIGEN[b.origen] ?? b.origen}</Badge>}
-              {b.formato_sugerido?.map((x) => <Badge key={x} variant="secondary" className="text-[10px]">{x}</Badge>)}
+              {b.etiquetas?.map((x) => <Badge key={x} variant="outline" className="text-[10px]">{ORIGEN[x] ?? x}</Badge>)}
               {b.notion_url && <a href={b.notion_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground" onClick={(e) => e.stopPropagation()}><ExternalLink className="size-3" /> Notion</a>}
             </div>
             {b.stream && b.stream.entradas > 0 && (
@@ -75,10 +81,10 @@ export function Borradores({ borradores }: { borradores: Borrador[] }) {
               <select
                 className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs"
                 value={f}
-                onChange={(e) => setFormato({ ...formato, [b.id]: e.target.value })}
+                onChange={(e) => setTipo({ ...tipo, [b.id]: e.target.value })}
               >
-                <option value="">Formato…</option>
-                {PRODUCIBLES.map((x) => <option key={x} value={x}>{NOMBRE_FORMATO[x]}</option>)}
+                <option value="">Tipo…</option>
+                {PRODUCIBLES.map((x) => <option key={x} value={x}>{NOMBRE_TIPO[x]}</option>)}
               </select>
               <Button size="sm" className="h-8" disabled={pendiente || !f} onClick={() => producir(b)}>Producir</Button>
               <Button size="sm" variant="ghost" className="h-8 px-2 text-muted-foreground" disabled={pendiente} onClick={() => archivar(b.id)} aria-label="Archivar"><Archive className="size-4" /></Button>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
-import { IdPublico, InsigniaEstado, InsigniaFormato } from "@/components/app/insignias";
+import { IdPublico, InsigniaEstado, InsigniaTipo } from "@/components/app/insignias";
 import { fechaCorta, hoyISO, lunesDe, lunesDeHoy, sumarDias, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   const [{ data: piezas }, { data: historias }] = await Promise.all([
     supabase.from("piezas")
-      .select("id, id_publico, titulo, formato, estado, fecha_objetivo, publicada_en, responsable:perfiles!piezas_responsable_id_fkey(nombre)")
+      .select("id, id_publico, titulo, tipo, estado, fecha_objetivo, publicada_en, responsable:perfiles!piezas_responsable_id_fkey(nombre)")
       .neq("estado", "archivada").neq("estado", "borrador")
       .or(`and(fecha_objetivo.gte.${semana},fecha_objetivo.lt.${fin}),and(publicada_en.gte.${semana},publicada_en.lt.${fin})`),
     supabase.from("historias").select("id, dia, serie, estado").eq("semana", semana).neq("estado", "descartada").order("dia").order("orden"),
@@ -63,7 +63,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
                 {items.map((p) => (
                   <li key={p.id}>
                     <Link href={`/piezas/${p.id}`} className="block space-y-0.5 rounded-md border bg-card px-2 py-1.5 text-xs hover:bg-muted/40">
-                      <div className="flex items-center justify-between gap-1"><IdPublico id={p.id_publico} />{p.formato && <InsigniaFormato formato={p.formato} />}</div>
+                      <div className="flex items-center justify-between gap-1"><IdPublico id={p.id_publico} />{p.tipo && <InsigniaTipo tipo={p.tipo} />}</div>
                       <p className="truncate font-medium">{p.titulo ?? "(sin título)"}</p>
                       <div className="flex items-center justify-between gap-1 text-muted-foreground"><span className="truncate">{p.responsable?.nombre ?? ""}</span><InsigniaEstado estado={p.estado} /></div>
                     </Link>
@@ -74,7 +74,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground">En producción se ubica por fecha objetivo; publicado, por fecha de publicación. Los borradores no aparecen hasta que tienen formato y fecha.</p>
+      <p className="text-xs text-muted-foreground">En producción se ubica por fecha objetivo; publicado, por fecha de publicación. Los borradores no aparecen hasta que tienen tipo y fecha.</p>
     </div>
   );
 }

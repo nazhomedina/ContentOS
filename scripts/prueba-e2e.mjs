@@ -72,7 +72,7 @@ try {
   const { data: pieza } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-01").single();
   r = await get(`/piezas/${pieza.id}`);
   ok("/piezas/[id] 200", r.status === 200, String(r.status));
-  ok("detalle muestra hipótesis, guion y botón Publicada", r.html.includes("Hipótesis") && r.html.includes("La afirmación") && r.html.includes("Publicada"), "");
+  ok("detalle muestra hipótesis, guion y botón Publicada", r.html.includes("Hipótesis") && r.html.includes("Contenido") && r.html.includes("Publicada"), "");
   ok("detalle propone «Pasar a Programada» desde listo", r.html.includes("Pasar a Programada"), "");
 
   const { data: p3 } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-03").single();
@@ -145,14 +145,14 @@ try {
   ok("/piezas owner ve tope, captura y filtros", r.status === 200 && r.html.includes("en producción") && r.html.includes("Nueva idea") && r.html.includes("Borrador ·"), "");
   // acciones reales como owner: crear pieza sin fecha → error; declarar hueco → ok
   const conOwner = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${so.session.access_token}` } }, auth: { persistSession: false } });
-  const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "prueba e2e", estado: "grabacion", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
+  const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "prueba e2e", estado: "grabacion", tipo: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
   ok("owner: grabacion sin fecha → «falta hipotesis.fecha»", e6?.message?.includes("falta hipotesis.fecha"), e6?.message);
   const { data: idea, error: e6b } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "idea de prueba e2e" } });
   ok("owner: borrador con solo título → IDE-nn", !e6b && idea?.estado === "borrador" && /^IDE-\d+$/.test(idea?.id_publico ?? ""), e6b?.message ?? idea?.id_publico);
   const { error: e6c } = await conOwner.rpc("cambiar_estado_pieza", { p_pieza_id: idea.id, p_nuevo_estado: "redaccion" });
-  ok("owner: borrador → redaccion sin formato → mensaje legible", /formato/.test(e6c?.message ?? ""), e6c?.message);
-  const { data: conF } = await conOwner.from("piezas").update({ formato: "reel" }).eq("id", idea.id).select("id_publico").single();
-  ok("al dar formato, el ID pasa de IDE- a REE-", /^REE-\d+$/.test(conF?.id_publico ?? ""), conF?.id_publico);
+  ok("owner: borrador → redaccion sin tipo → mensaje legible", /tipo/.test(e6c?.message ?? ""), e6c?.message);
+  const { data: conF } = await conOwner.from("piezas").update({ tipo: "reel" }).eq("id", idea.id).select("id_publico").single();
+  ok("al dar tipo, el ID pasa de IDE- a REE-", /^REE-\d+$/.test(conF?.id_publico ?? ""), conF?.id_publico);
   await admin.from("piezas").delete().eq("id", idea.id);
   const { data: hk, error: e7 } = await conOwner.rpc("declarar_hueco", { p_semana: semanaISO(), p_sistema: "maquina_semanal", p_nodo: "review", p_nota: "prueba e2e" });
   ok("owner: declarar_hueco ok", !e7 && hk?.nota === "prueba e2e", e7?.message);

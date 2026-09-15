@@ -50,7 +50,7 @@ on conflict (nombre) do update set esperado_cada = excluded.esperado_cada, descr
 -- ---------------------------------------------------------------------------
 -- Format Cards. Estados como en Notion (2026-09-06).
 -- ---------------------------------------------------------------------------
-insert into format_cards (codigo, nombre, estado, origen, molde) values
+insert into formatos (codigo, nombre, estado, origen, molde) values
 ('FC-01', 'React-Análisis de anuncios (Brand Reels)', 'experimentando', '@brendankane', $md$# FC-01 · React-Análisis de anuncios y campañas
 
 **Estado:** experimentando (batch Julio 2026, Ep. 1-4 en Notion "Para producir")

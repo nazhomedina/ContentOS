@@ -24,12 +24,3 @@ export async function cambiarEstadoTarea(tareaId: string, estado: string, notaBl
   revalidatePath("/piezas/[id]", "page");
   return { ok: true };
 }
-
-export async function guardarChecklist(tareaId: string, checklist: { texto: string; hecho: boolean }[]): Promise<Resultado> {
-  const supabase = await crearClienteServidor();
-  const { error, count } = await supabase.from("tareas").update({ checklist }, { count: "exact" }).eq("id", tareaId);
-  if (error) return fallo(error);
-  if (count === 0) return { ok: false, mensaje: "Esa tarea no está en tu cola." };
-  revalidatePath("/piezas/[id]", "page");
-  return { ok: true };
-}

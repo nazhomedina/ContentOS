@@ -4,7 +4,7 @@ import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { fechaCorta, hoyISO, lunesDeHoy, sumarDias, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { NOMBRE_META, resumenSistema, type NodoEstado } from "@/lib/dominio/nodo";
 import { semaforoBuffer, CLASE_SEMAFORO } from "@/lib/dominio/buffer";
-import { IdPublico, InsigniaEstado, InsigniaFormato } from "@/components/app/insignias";
+import { IdPublico, InsigniaEstado, InsigniaTipo } from "@/components/app/insignias";
 import { BotonAprobarHistorias } from "@/components/hoy/aprobar-historias";
 import { Captura } from "@/components/pieza/captura";
 import { cn } from "@/lib/utils";
@@ -26,8 +26,8 @@ export default async function Inicio() {
   const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }] = await Promise.all([
     supabase.from("historias").select("id, dia, serie, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
     supabase.from("tareas").select("id, tipo, nota_bloqueo, vence, pieza:piezas(id, id_publico, titulo), asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("estado", "bloqueada").order("vence"),
-    supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, formato)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
-    supabase.from("piezas").select("id, id_publico, titulo, formato, estado, fecha_objetivo").in("estado", ["listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }),
+    supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, tipo)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
+    supabase.from("piezas").select("id, id_publico, titulo, tipo, estado, fecha_objetivo").in("estado", ["listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }),
     supabase.rpc("cuota_semana", { p_semana: semana }),
     supabase.rpc("latidos"),
     supabase.from("sistemas").select("clave, nombre").eq("activo", true).order("orden"),
@@ -49,7 +49,7 @@ export default async function Inicio() {
   }));
   const atrasados = (latidos ?? []).filter((l) => l.atrasado).length;
   const orden = ["newsletter", "reel", "carrusel", "historia_dia"];
-  const filas = (cuota ?? []).sort((a, b) => orden.indexOf(a.formato) - orden.indexOf(b.formato));
+  const filas = (cuota ?? []).sort((a, b) => orden.indexOf(a.tipo) - orden.indexOf(b.tipo));
   const meta = filas.reduce((a, f) => a + f.meta, 0), pub = filas.reduce((a, f) => a + f.publicadas, 0), camino = filas.reduce((a, f) => a + f.en_camino, 0);
   const huecos = Math.max(0, meta - pub - camino);
   const nBuffer = (buffer ?? []).length;
@@ -111,16 +111,16 @@ export default async function Inicio() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {filas.map((f) => {
             const slots = (f.piezas as Slot[]) ?? [];
-            const llenos = f.formato === "historia_dia" ? new Set(slots.map((x) => x.dia)).size : slots.length;
+            const llenos = f.tipo === "historia_dia" ? new Set(slots.map((x) => x.dia)).size : slots.length;
             const vacios = Math.max(0, f.meta - llenos);
             return (
-              <div key={f.formato} className="space-y-2 rounded-xl border p-3">
+              <div key={f.tipo} className="space-y-2 rounded-xl border p-3">
                 <div className="flex items-baseline justify-between">
-                  <p className="text-sm font-semibold">{NOMBRE_META[f.formato] ?? f.formato}</p>
+                  <p className="text-sm font-semibold">{NOMBRE_META[f.tipo] ?? f.tipo}</p>
                   <p className="text-sm"><span className={cn("text-xl font-extrabold", f.publicadas >= f.meta && "text-ok")}>{f.publicadas}</span><span className="text-muted-foreground"> / {f.meta}</span></p>
                 </div>
                 <ul className="space-y-1 text-xs">
-                  {f.formato === "historia_dia"
+                  {f.tipo === "historia_dia"
                     ? Array.from(new Set(slots.map((x) => x.dia!))).sort().map((d) => <li key={d} className="truncate rounded bg-muted/60 px-2 py-1"><Link href={`/historias?semana=${semana}`} className="hover:underline">{DIAS_SEMANA[d - 1]}</Link> · {slots.filter((x) => x.dia === d).length}</li>)
                     : slots.map((p) => <li key={p.id} className="flex items-center justify-between gap-1 rounded bg-muted/60 px-2 py-1"><Link href={`/piezas/${p.id}`} className="truncate hover:underline">{p.titulo ?? p.id_publico}</Link><InsigniaEstado estado={p.estado!} /></li>)}
                   {Array.from({ length: vacios }).map((_, i) => <li key={`v${i}`} className="rounded border border-dashed border-rojo/50 px-2 py-1 text-rojo">Hueco</li>)}
@@ -138,7 +138,7 @@ export default async function Inicio() {
             {buffer!.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">
                 <Link href={`/piezas/${p.id}`} className="flex min-w-0 items-center gap-2 hover:underline"><IdPublico id={p.id_publico} /><span className="truncate font-medium">{p.titulo}</span></Link>
-                <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">{p.formato && <InsigniaFormato formato={p.formato} />}<InsigniaEstado estado={p.estado} />{p.fecha_objetivo && fechaCorta(p.fecha_objetivo)}</span>
+                <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">{p.tipo && <InsigniaTipo tipo={p.tipo} />}<InsigniaEstado estado={p.estado} />{p.fecha_objetivo && fechaCorta(p.fecha_objetivo)}</span>
               </li>
             ))}
           </ul>

@@ -6,14 +6,14 @@ import { Borradores, type Borrador } from "@/components/ideas/borradores";
 export const metadata = { title: "Ideas" };
 export const dynamic = "force-dynamic";
 
-export default async function Ideas({ searchParams }: { searchParams: Promise<{ formato?: string }> }) {
+export default async function Ideas({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
   if (sesion.perfil.rol !== "owner") redirect("/");
-  const { formato } = await searchParams;
+  const { tipo } = await searchParams;
   const supabase = await crearClienteServidor();
-  let q = supabase.from("piezas").select("id, id_publico, titulo, notas, origen, formato_sugerido, notion_url, created_at").eq("estado", "borrador").order("created_at", { ascending: false });
-  if (formato) q = q.contains("formato_sugerido", [formato]);
+  let q = supabase.from("piezas").select("id, id_publico, titulo, notas, etiquetas, notion_url, created_at").eq("estado", "borrador").order("created_at", { ascending: false });
+  if (tipo) q = q.ilike("notas", `%Formato sugerido: %${tipo}%`);
   const { data } = await q;
 
   // Qué stream está maduro: cuántas entradas tiene cada borrador y cuántas preguntas de Claude siguen sin respuesta.
@@ -38,7 +38,7 @@ export default async function Ideas({ searchParams }: { searchParams: Promise<{ 
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Ideas</h1>
           <p className="text-sm text-muted-foreground">
-            El espacio de borrador. Se alimenta desde aquí, desde Claude o Cowork por MCP, y desde Claude Code. Elegir formato y «Producir» la manda a redacción en su pestaña.
+            El espacio de borrador. Se alimenta desde aquí, desde Claude o Cowork por MCP, y desde Claude Code. Elegir tipo y «Producir» la manda a redacción en su pestaña.
           </p>
         </div>
         <Captura />

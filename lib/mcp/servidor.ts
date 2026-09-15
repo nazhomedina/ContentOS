@@ -53,51 +53,67 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   // Piezas
   // -------------------------------------------------------------------------
   server.registerTool("crear_pieza", {
-    description: "Crea una pieza. Nace como borrador con solo un título (aparece en Ideas). Para redaccion hace falta formato; de grabacion en adelante hacen falta formato, etapa_embudo e hipótesis {texto, campo, numero, fecha}. id_publico se genera solo. Devuelve error legible si falta algo.",
+    description: "Crea una pieza. Nace como borrador con solo un título (aparece en Ideas). Para redaccion hace falta tipo; de grabacion en adelante hacen falta tipo, etapa_embudo e hipótesis {texto, campo, numero, fecha} (o hipotesis_id de una existente). id_publico se genera solo. Devuelve error legible si falta algo.",
     inputSchema: {
       titulo: z.string().min(3),
       estado: z.enum(["borrador", "redaccion", "grabacion", "diseno"]).default("borrador"),
-      formato: z.enum(["reel", "yap", "carrusel", "historia", "x", "canal_ig", "newsletter", "articulo", "youtube"]).optional(),
-      notas: z.string().optional().describe("tensión, ángulo, contexto"),
-      origen: z.enum(["radar", "voz", "destilado", "markie", "coyuntura", "audiencia", "claude", "legado", "nazho"]).default("claude"),
+      tipo: z.enum(["reel", "yap", "carrusel", "historia", "x", "canal_ig", "newsletter", "articulo", "youtube"]).optional().describe("el contenedor: reel, carrusel, artículo…"),
+      notas: z.string().optional().describe("tensión, ángulo, contexto, spec visual"),
+      etiquetas: z.array(z.string()).optional().describe("libres: origen (radar, markie, nazho…), temas, campañas"),
       id_publico: z.string().regex(/^[A-Z]{2,5}-\d{2,3}([a-z]|-[A-E])?$/).optional(),
-      serie: z.string().optional(), format_card: z.string().optional().describe("código FC-08 o uuid"),
+      serie: z.string().optional(), formato: z.string().optional().describe("Format Card: código FC-08 o uuid"),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),
-      etapa_embudo: z.enum(["atraer", "capturar", "convertir"]).optional(), cta: z.string().optional(),
-      guion: z.string().optional(), spec_visual: z.string().optional(),
-      fidelidad: z.enum(["mis_palabras", "reescribe"]).optional(), fecha_objetivo: fecha.optional(),
+      hipotesis_id: uuid.optional().describe("para que varias piezas respondan a la misma hipótesis"),
+      etapa_embudo: z.enum(["atraer", "capturar", "convertir"]).optional(),
+      contenido: z.string().optional().describe("guion, copy, artículo o edición completa, en markdown"),
+      fecha_objetivo: fecha.optional(),
       responsable: z.string().optional().describe("nombre o user_id"), programa_aprobado: z.boolean().optional(),
     },
   }, async (v) => {
     let responsable_id: string | undefined;
     if (v.responsable) responsable_id = await resolverPersona(supabase, v.responsable) ?? undefined;
-    const { data, error: e } = await supabase.rpc("crear_pieza_validada", { payload: { ...v, responsable_id, responsable: undefined } });
+    const { data, error: e } = await supabase.rpc("crear_pieza_validada", { payload: { ...v, etiquetas: v.etiquetas ?? ["claude"], responsable_id, responsable: undefined } });
     return e ? error(limpiarError(e.message)) : json(data);
   });
 
   server.registerTool("actualizar_pieza", {
-    description: "Desarrolla o actualiza una pieza (así Claude convierte un borrador en pieza en redacción o grabación): formato, hipótesis {texto, campo, numero, fecha}, etapa_embudo, format_card, guion, spec_visual, título, serie, cta, notas, fecha_objetivo, responsable, fidelidad y estado. Para publicar se usa marcar_publicada desde la app. Acepta pieza_id o id_publico.",
+    description: "Desarrolla o actualiza una pieza (así Claude convierte un borrador en pieza en redacción o grabación): tipo, hipótesis {texto, campo, numero, fecha} o hipotesis_id, etapa_embudo, formato (Format Card), contenido, título, serie, notas, etiquetas, fecha_objetivo, responsable y estado. Para publicar se usa marcar_publicada desde la app; la URL la captura Mariela. Acepta pieza_id o id_publico.",
     inputSchema: {
       pieza: z.string().describe("uuid o id_publico"),
-      titulo: z.string().optional(), notas: z.string().nullable().optional(), serie: z.string().optional(), cta: z.string().optional(),
-      formato: z.enum(["reel", "yap", "carrusel", "historia", "x", "canal_ig", "newsletter", "articulo", "youtube"]).optional(),
+      titulo: z.string().optional(), notas: z.string().nullable().optional(), serie: z.string().nullable().optional(),
+      etiquetas: z.array(z.string()).optional().describe("sustituye la lista completa"),
+      tipo: z.enum(["reel", "yap", "carrusel", "historia", "x", "canal_ig", "newsletter", "articulo", "youtube"]).optional(),
       etapa_embudo: z.enum(["atraer", "capturar", "convertir"]).optional(),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),
-      format_card: z.string().optional().describe("código FC-08 o uuid"),
-      guion: z.string().optional(), spec_visual: z.string().optional(), fecha_objetivo: fecha.nullable().optional(),
-      responsable: z.string().nullable().optional(), fidelidad: z.enum(["mis_palabras", "reescribe"]).optional(),
+      hipotesis_id: uuid.nullable().optional(),
+      formato: z.string().nullable().optional().describe("Format Card: código FC-08 o uuid; null la quita"),
+      contenido: z.string().optional().describe("guion, copy, artículo…; queda como versión nueva"),
+      fecha_objetivo: fecha.nullable().optional(),
+      responsable: z.string().nullable().optional(),
       programa_aprobado: z.boolean().optional(), estado: z.enum(["borrador", "redaccion", "grabacion", "diseno", "listo", "programada", "archivada", "en_trial"]).optional(),
     },
-  }, async ({ pieza, responsable, estado, format_card, ...campos }) => {
+  }, async ({ pieza, responsable, estado, formato, hipotesis, contenido, ...campos }) => {
     const { data: ref } = await supabase.from("piezas").select("id").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
     if (!ref) return error(`No existe la pieza ${pieza}.`);
     const pieza_id = ref.id;
     const cambios: TablesUpdate<"piezas"> = { ...campos };
     if (responsable !== undefined) cambios.responsable_id = responsable === null ? null : await resolverPersona(supabase, responsable);
-    if (format_card !== undefined) {
-      const { data: fc } = await supabase.from("format_cards").select("id").or(`codigo.eq.${format_card},id.eq.${uuidOrNil(format_card)}`).maybeSingle();
-      if (!fc) return error(`No existe la Format Card ${format_card}.`);
-      cambios.format_card_id = fc.id;
+    if (formato !== undefined) {
+      if (formato === null) cambios.formato_id = null;
+      else {
+        const { data: fc } = await supabase.from("formatos").select("id").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
+        if (!fc) return error(`No existe el formato ${formato}.`);
+        cambios.formato_id = fc.id;
+      }
+    }
+    if (hipotesis) {
+      const { data: h, error: eh } = await supabase.rpc("crear_hipotesis", { p_texto: hipotesis.texto, p_campo: hipotesis.campo, p_numero: hipotesis.numero, p_fecha: hipotesis.fecha });
+      if (eh) return error(limpiarError(eh.message));
+      cambios.hipotesis_id = h.id;
+    }
+    if (contenido !== undefined) {
+      const { error: ec } = await supabase.rpc("guardar_contenido", { p_pieza_id: pieza_id, p_contenido: contenido, p_instruccion: "actualizar_pieza", p_autor: "claude" });
+      if (ec) return error(limpiarError(ec.message));
     }
     if (Object.keys(cambios).length) {
       const { error: e } = await supabase.from("piezas").update(cambios).eq("id", pieza_id);
@@ -108,19 +124,19 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       if (e) return error(limpiarError(e.message));
     }
     const { data } = await supabase.from("piezas").select().eq("id", pieza_id).single();
-    await corrida("actualizar_pieza", `${data?.id_publico}: ${Object.keys(cambios).concat(estado ? ["estado"] : []).join(", ")}`, { pieza_id }, perfil);
+    await corrida("actualizar_pieza", `${data?.id_publico}: ${Object.keys(cambios).concat(estado ? ["estado"] : [], contenido !== undefined ? ["contenido"] : []).join(", ")}`, { pieza_id }, perfil);
     return json(data);
   });
 
   server.registerTool("stream_de", {
-    description: "El stream de una pieza (borrador o en redacción): notas de voz transcritas, textos, links, preguntas de Claude y respuestas de Nazho, en orden; más el guion vigente y sus versiones. Léelo antes de preguntar o redactar.",
+    description: "El stream de una pieza (borrador o en redacción): notas de voz transcritas, textos, links, preguntas de Claude y respuestas de Nazho, en orden; más el contenido vigente y sus versiones. Léelo antes de preguntar o redactar.",
     inputSchema: { pieza: z.string().describe("uuid o id_publico") },
   }, async ({ pieza }) => {
-    const { data: p } = await supabase.from("piezas").select("id, id_publico, titulo, estado, formato, notas, origen, guion, hipotesis, spec_visual, fidelidad, etapa_embudo, serie, format_card:format_cards(codigo, nombre)").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
+    const { data: p } = await supabase.from("piezas").select("id, id_publico, titulo, estado, tipo, notas, etiquetas, contenido, etapa_embudo, serie, formato:formatos(codigo, nombre), hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
     if (!p) return error(`No existe la pieza ${pieza}.`);
     const [{ data: pens }, { data: vers }] = await Promise.all([
       supabase.from("pensamientos").select("id, tipo, texto, transcript_crudo, transcript_pulido, audio_url, duracion_s, ronda, responde_a, created_at").eq("pieza_id", p.id).order("created_at"),
-      supabase.from("guion_versiones").select("version, fidelidad, instruccion, autor, created_at").eq("pieza_id", p.id).order("version"),
+      supabase.from("contenido_versiones").select("version, instruccion, autor, created_at").eq("pieza_id", p.id).order("version"),
     ]);
     const rondas = Math.max(0, ...(pens ?? []).filter((x) => x.tipo === "pregunta").map((x) => x.ronda ?? 1));
     const sinResponder = (pens ?? []).filter((x) => x.tipo === "pregunta" && !(pens ?? []).some((r) => r.responde_a === x.id));
@@ -148,32 +164,48 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     return json(data);
   });
 
-  server.registerTool("guardar_guion", {
-    description: "Guarda un guion como nueva versión de la pieza (y actualiza hipótesis, spec y fidelidad si vienen). Es lo que usan los guionistas al terminar. No cambia el estado: para eso, actualizar_pieza.",
+  server.registerTool("guardar_contenido", {
+    description: "Guarda el contenido (guion, copy, artículo, edición) como nueva versión de la pieza. Es lo que usan los guionistas al terminar. Si trae hipótesis, la crea y la liga a la pieza. No cambia el estado: para eso, actualizar_pieza.",
     inputSchema: {
-      pieza: z.string().describe("uuid o id_publico"), guion: z.string().min(20),
+      pieza: z.string().describe("uuid o id_publico"), contenido: z.string().min(20),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),
-      spec_visual: z.string().optional(), fidelidad: z.enum(["mis_palabras", "reescribe"]).optional(),
       instruccion: z.string().optional().describe("qué pidió Nazho: «más corto», «registro editorial»…"), autor: z.string().optional().describe("skill que lo escribió"),
     },
-  }, async ({ pieza, guion, hipotesis, spec_visual, fidelidad, instruccion, autor }) => {
+  }, async ({ pieza, contenido, hipotesis, instruccion, autor }) => {
     const { data: p } = await supabase.from("piezas").select("id").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
     if (!p) return error(`No existe la pieza ${pieza}.`);
-    const { data, error: e } = await supabase.rpc("guardar_guion", { p_pieza_id: p.id, p_guion: guion, p_hipotesis: hipotesis ?? null, p_spec_visual: spec_visual ?? null, p_fidelidad: fidelidad ?? null, p_instruccion: instruccion ?? null, p_autor: autor ?? "claude" });
+    if (hipotesis) {
+      const { data: h, error: eh } = await supabase.rpc("crear_hipotesis", { p_texto: hipotesis.texto, p_campo: hipotesis.campo, p_numero: hipotesis.numero, p_fecha: hipotesis.fecha });
+      if (eh) return error(limpiarError(eh.message));
+      const { error: el } = await supabase.from("piezas").update({ hipotesis_id: h.id }).eq("id", p.id);
+      if (el) return error(limpiarError(el.message));
+    }
+    const { data, error: e } = await supabase.rpc("guardar_contenido", { p_pieza_id: p.id, p_contenido: contenido, p_instruccion: instruccion ?? null, p_autor: autor ?? "claude" });
     return e ? error(limpiarError(e.message)) : json({ version: data.version, pieza_id: data.pieza_id });
   });
 
   server.registerTool("listar_piezas", {
-    description: "Piezas por estado (borrador · redaccion · grabacion · diseno · listo · programada · publicada · en_trial · archivada), formato o semana objetivo. Sin filtros devuelve las no archivadas más recientes, borradores incluidos.",
+    description: "Piezas por estado (borrador · redaccion · grabacion · diseno · listo · programada · publicada · en_trial · archivada), tipo, etiqueta o semana objetivo. Sin filtros devuelve las no archivadas más recientes, borradores incluidos.",
     inputSchema: {
-      estado: z.string().optional(), formato: z.string().optional(), semana: fecha.optional().describe("lunes; filtra por fecha_objetivo en esa semana"),
+      estado: z.string().optional(), tipo: z.string().optional(), etiqueta: z.string().optional(), semana: fecha.optional().describe("lunes; filtra por fecha_objetivo en esa semana"),
       limite: z.number().int().min(1).max(300).default(100),
     },
-  }, async ({ estado, formato, semana, limite }) => {
-    let q = supabase.from("piezas").select("id, id_publico, titulo, formato, serie, estado, etapa_embudo, hipotesis, notas, origen, fecha_objetivo, publicada_en, url, responsable:perfiles!piezas_responsable_id_fkey(nombre)").order("updated_at", { ascending: false }).limit(limite);
+  }, async ({ estado, tipo, etiqueta, semana, limite }) => {
+    let q = supabase.from("piezas").select("id, id_publico, titulo, tipo, serie, estado, etapa_embudo, notas, etiquetas, fecha_objetivo, publicada_en, url, responsable:perfiles!piezas_responsable_id_fkey(nombre), formato:formatos(codigo), hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").order("updated_at", { ascending: false }).limit(limite);
     if (estado) q = q.eq("estado", estado); else q = q.neq("estado", "archivada");
-    if (formato) q = q.eq("formato", formato);
+    if (tipo) q = q.eq("tipo", tipo);
+    if (etiqueta) q = q.contains("etiquetas", [etiqueta]);
     if (semana) q = q.gte("fecha_objetivo", semana).lt("fecha_objetivo", sumar(semana, 7));
+    const { data, error: e } = await q;
+    return e ? error(e.message) : json(data);
+  });
+
+  server.registerTool("listar_hipotesis", {
+    description: "Las hipótesis con sus piezas: texto, campo, número, fecha, estado (abierta · verdadera · falsa · sin_datos) y cuántas piezas responden a cada una.",
+    inputSchema: { estado: z.enum(["abierta", "verdadera", "falsa", "sin_datos"]).optional(), limite: z.number().int().min(1).max(300).default(100) },
+  }, async ({ estado, limite }) => {
+    let q = supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado, veredicto, resuelta_en, piezas:piezas(id_publico, estado, tipo)").order("created_at", { ascending: false }).limit(limite);
+    if (estado) q = q.eq("estado", estado);
     const { data, error: e } = await q;
     return e ? error(e.message) : json(data);
   });
@@ -199,10 +231,10 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("listar_formatos", {
-    description: "Las Format Cards: código, nombre, estado de validación y molde. Léelas antes de proponer o escribir una pieza.",
+    description: "Los formatos (Format Cards): código, nombre, estado de validación y molde. Léelos antes de proponer o escribir una pieza.",
     inputSchema: {},
   }, async () => {
-    const { data, error: e } = await supabase.from("format_cards").select("id, codigo, nombre, estado, origen, molde").order("codigo");
+    const { data, error: e } = await supabase.from("formatos").select("id, codigo, nombre, estado, origen, molde").order("codigo");
     return e ? error(e.message) : json(data);
   });
 
@@ -214,12 +246,11 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     inputSchema: {
       pieza_id: uuid.optional(), historia_id: uuid.optional(),
       tipo: z.enum(["grabar", "editar", "diseñar", "publicar", "capturar_metricas", "revisar"]),
-      asignado_a: z.string(), vence: fecha, checklist: z.array(z.string()).optional(),
+      asignado_a: z.string(), vence: fecha,
     },
   }, async (v) => {
     const { data, error: e } = await supabase.rpc("asignar_tarea", {
       p_tipo: v.tipo, p_asignado_a: v.asignado_a, p_vence: v.vence, p_pieza_id: v.pieza_id, p_historia_id: v.historia_id,
-      p_checklist: (v.checklist ?? []).map((texto) => ({ texto, hecho: false })),
     });
     return e ? error(limpiarError(e.message)) : json(data);
   });
@@ -228,7 +259,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     description: "Tareas de una persona por estado, con bloqueos y vencimientos. persona: nombre, user_id o 'todos'.",
     inputSchema: { persona: z.string().default("todos"), incluir_hechas: z.boolean().default(false) },
   }, async ({ persona, incluir_hechas }) => {
-    let q = supabase.from("tareas").select("id, tipo, estado, vence, nota_bloqueo, hecha_en, checklist, asignado:perfiles!tareas_asignado_a_fkey(nombre), pieza:piezas(id_publico, titulo, formato, estado), historia:historias(semana, dia, serie)").order("vence", { ascending: true, nullsFirst: false });
+    let q = supabase.from("tareas").select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado:perfiles!tareas_asignado_a_fkey(nombre), pieza:piezas(id_publico, titulo, tipo, estado), historia:historias(semana, dia, serie)").order("vence", { ascending: true, nullsFirst: false });
     if (!incluir_hechas) q = q.neq("estado", "hecha");
     if (persona !== "todos") {
       const id = await resolverPersona(supabase, persona);
@@ -310,7 +341,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   }, async ({ pieza, desde, hasta, indicadores }) => {
     const salida: Record<string, unknown> = {};
     if (pieza) {
-      const { data: p } = await supabase.from("piezas").select("id, id_publico, formato, publicada_en, url").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
+      const { data: p } = await supabase.from("piezas").select("id, id_publico, tipo, publicada_en, url").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
       if (!p) return error(`No existe la pieza ${pieza}.`);
       const [{ data: m }, { data: mult }] = await Promise.all([
         supabase.from("metricas").select("fecha, fuente, views, likes, comentarios, saves, follows, multiplicador, n_mediana").eq("pieza_id", p.id).order("fecha", { ascending: false }),
@@ -319,7 +350,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       salida.pieza = p; salida.metricas = m; salida.multiplicador = mult?.[0] ?? null;
     } else {
       const d = desde ?? sumar(lunesDeHoy(), -28), h = hasta ?? sumar(lunesDeHoy(), 7);
-      const { data: ps } = await supabase.from("piezas").select("id, id_publico, formato, publicada_en, url").eq("estado", "publicada").gte("publicada_en", d).lt("publicada_en", h).order("publicada_en", { ascending: false });
+      const { data: ps } = await supabase.from("piezas").select("id, id_publico, tipo, publicada_en, url").eq("estado", "publicada").gte("publicada_en", d).lt("publicada_en", h).order("publicada_en", { ascending: false });
       const filas = [];
       for (const p of ps ?? []) {
         const { data: mult } = await supabase.rpc("multiplicador", { p_pieza_id: p.id });

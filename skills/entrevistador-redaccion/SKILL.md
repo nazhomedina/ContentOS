@@ -1,6 +1,6 @@
 ---
 name: entrevistador-redaccion
-description: Redacción por entrevista para la marca personal de Nazho Medina, inspirada en VoicePal (Ali Abdaal), operando sobre ContentOS por MCP. Nazho habla o pega un transcript; el skill lo guarda en el stream de la pieza, le hace 2–3 preguntas de seguimiento que sacan el caso, el dato, el costo y el matiz (máximo dos rondas), y cuando el stream está maduro llama al guionista del formato para escribir guion, hipótesis resoluble y spec con las palabras de Nazho, y deja la pieza en grabación o diseño. Usar SIEMPRE que Nazho diga "entrevístame", "hazme preguntas sobre esto", "te dicto una idea", "grabé una nota de voz", "aquí va el transcript", "desarrolla la pieza IDE-XX", "conviérteme esto en un yap/reel/carrusel/artículo/newsletter", "redacta desde mi stream", "sácale jugo a esto", "no sé por dónde empezar con esta idea", "quiero escribir sobre…", o pegue un audio, transcript o idea cruda pidiendo contenido. Requiere el conector MCP de ContentOS. NO escribe guiones por su cuenta: delega en yap-scripter, guionista-reels, redactor-carruseles, criterio-writer o redactor-largo.
+description: Redacción por entrevista para la marca personal de Nazho Medina, inspirada en VoicePal (Ali Abdaal), operando sobre ContentOS por MCP. Nazho habla o pega un transcript; el skill lo guarda en el stream de la pieza, le hace 2–3 preguntas de seguimiento que sacan el caso, el dato, el costo y el matiz (máximo dos rondas), y cuando el stream está maduro llama al guionista del formato para escribir el contenido, la hipótesis resoluble y las notas de producción con las palabras de Nazho, y deja la pieza en grabación o diseño. Usar SIEMPRE que Nazho diga "entrevístame", "hazme preguntas sobre esto", "te dicto una idea", "grabé una nota de voz", "aquí va el transcript", "desarrolla la pieza IDE-XX", "conviérteme esto en un yap/reel/carrusel/artículo/newsletter", "redacta desde mi stream", "sácale jugo a esto", "no sé por dónde empezar con esta idea", "quiero escribir sobre…", o pegue un audio, transcript o idea cruda pidiendo contenido. Requiere el conector MCP de ContentOS. NO escribe guiones por su cuenta: delega en yap-scripter, guionista-reels, redactor-carruseles, criterio-writer o redactor-largo.
 ---
 
 # Entrevistador · redacción por entrevista
@@ -13,7 +13,7 @@ description: Redacción por entrevista para la marca personal de Nazho Medina, i
 
 1. Verifica que el conector **ContentOS** (MCP) esté disponible: llama `listar_comunidades`. Si no responde, detente y dile a Nazho que active el conector; sin él este skill no tiene dónde guardar.
 2. Lee `_Claude/Dominios/Contenido/VOZ-MAESTRA.md` (o `03 ÁREAS/Contenidos/_sistema/VOZ-MAESTRA.md`) si no está en contexto. Son sus registros y anti-patrones; los usarás para decidir qué preguntar y para revisar lo que entregue el guionista.
-3. Identifica la pieza: si Nazho nombra un ID (`IDE-05`, `CAR-02`), llama `stream_de(pieza)`. Si no, es una idea nueva: `crear_pieza({titulo, notas, origen: "voz"|"nazho"})` y luego `stream_de`.
+3. Identifica la pieza: si Nazho nombra un ID (`IDE-05`, `CAR-02`), llama `stream_de(pieza)`. Si no, es una idea nueva: `crear_pieza({titulo, notas, etiquetas: ["voz"] | ["nazho"]})` y luego `stream_de`.
 
 ## Modo 1 · Capturar
 
@@ -54,18 +54,18 @@ Tono de las preguntas: las haría un editor que conoce a Nazho, no un formulario
 
 Cuando el stream tiene caso, dato o costo, y criterio, o cuando se agotaron las dos rondas:
 
-1. **Formato.** Si la pieza no tiene formato, pregúntale con una sola línea o infiérelo del `formato_sugerido` y confírmalo: yap (postura, 60–90 s), reel corto, carrusel, artículo, newsletter (CRITERIO).
-2. **Guionista.** Delega según formato, pasándole el stream íntegro como materia prima y `fidelidad`:
+1. **Tipo.** Si la pieza no tiene tipo, pregúntale con una sola línea o infiérelo de las notas («Formato sugerido: …») y confírmalo: yap (postura, 60–90 s), reel corto, carrusel, artículo, newsletter (CRITERIO).
+2. **Guionista.** Delega según tipo, pasándole el stream íntegro como materia prima y la fidelidad que pidió Nazho:
    - yap → `yap-scripter` (lee su Format Card; el reto CRI usa FC-08 v2, sin CTA)
    - reel corto → `guionista-reels`
    - carrusel → `redactor-carruseles`
    - newsletter → `criterio-writer`
    - artículo → `redactor-largo` (con `minto` antes si el argumento es largo)
-3. **Fidelidad.** Por defecto `mis_palabras`: el guionista reescribe lo mínimo sobre el transcript; frases de Nazho se conservan textuales cuando funcionan. `reescribe` solo si Nazho lo pide.
-4. **Hipótesis resoluble**, obligatoria: «Si [cambio observable], entonces [campo] llegará a [número] al [fecha]». Campo típico: `multiplicador` (≥ 3 = outlier), `saves`, `follows`, `suscriptores`. Fecha: 4–8 semanas. Sin hipótesis la base no deja pasar la pieza a grabación.
+3. **Fidelidad.** Por defecto «mis palabras»: el guionista reescribe lo mínimo sobre el transcript; frases de Nazho se conservan textuales cuando funcionan. Reescribir a fondo solo si Nazho lo pide; se anota en `instruccion`.
+4. **Hipótesis resoluble**, obligatoria: «Si [cambio observable], entonces [campo] llegará a [número] al [fecha]». Campo típico: `multiplicador` (≥ 3 = outlier), `saves`, `follows`, `suscriptores`. Fecha: 4–8 semanas. Sin hipótesis la base no deja pasar la pieza a grabación. Si ya existe una hipótesis que la pieza va a responder (`listar_hipotesis`), úsala con `hipotesis_id` en vez de crear otra.
 5. **Revisión contra VOZ-MAESTRA** antes de guardar: no abre explicando, no lista de tips, no moraleja, no promete resultados, no inventa anécdotas que no estén en el stream, no empieza oración con «Y» tras punto. Si el guionista inventó un caso, quítalo.
-6. **Guardar:** `guardar_guion(pieza, guion, hipotesis, spec_visual, fidelidad, instruccion, autor: "<skill>")`. Luego `actualizar_pieza(pieza, {formato, etapa_embudo, estado})` con `estado: "grabacion"` si el formato se graba (yap, reel, youtube, historia) o `"diseno"` si no (carrusel, artículo, newsletter). Si falla por el tope de 10, dilo y deja la pieza en `redaccion`.
-7. **Muestra el guion en el chat** con la hipótesis en una línea y pregunta una sola cosa: «¿lo grabas así o lo ajusto?». Si pide ajustes («más corto», «otro cierre», «registro editorial»), vuelve a llamar al guionista con la instrucción y guarda una versión nueva; la anterior queda en `stream_de(...).versiones`.
+6. **Guardar:** `guardar_contenido(pieza, contenido, hipotesis, instruccion, autor: "<skill>")`. Lo que Mariela necesita ver (texto en pantalla, portada, láminas) va en `actualizar_pieza(pieza, {notas})`. Luego `actualizar_pieza(pieza, {tipo, formato, etapa_embudo, estado})` con `estado: "grabacion"` si el tipo se graba (yap, reel, youtube, historia) o `"diseno"` si no (carrusel, artículo, newsletter). Si falla por el tope de 10, dilo y deja la pieza en `redaccion`.
+7. **Muestra el contenido en el chat** con la hipótesis en una línea y pregunta una sola cosa: «¿lo grabas así o lo ajusto?». Si pide ajustes («más corto», «otro cierre», «registro editorial»), vuelve a llamar al guionista con la instrucción y guarda una versión nueva; la anterior queda en `stream_de(...).versiones`.
 
 ## Modo 4 · Cerrar
 

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { NOMBRE_ESTADO, NOMBRE_FORMATO, NOMBRE_TAREA, type EstadoPieza, type Formato, type TipoTarea } from "@/lib/dominio/estados";
+import { NOMBRE_ESTADO, NOMBRE_TIPO, NOMBRE_TAREA, type EstadoPieza, type Tipo, type TipoTarea } from "@/lib/dominio/estados";
 import { CLASE_SEMAFORO, semaforoBuffer } from "@/lib/dominio/buffer";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +14,8 @@ export function InsigniaEstado({ estado }: { estado: string }) {
   return <Badge variant="outline" className={cn("font-medium", clase)}>{nombre}</Badge>;
 }
 
-export function InsigniaFormato({ formato }: { formato: string }) {
-  return <Badge variant="secondary" className="font-medium">{NOMBRE_FORMATO[formato as Formato] ?? formato}</Badge>;
+export function InsigniaTipo({ tipo }: { tipo: string }) {
+  return <Badge variant="secondary" className="font-medium">{NOMBRE_TIPO[tipo as Tipo] ?? tipo}</Badge>;
 }
 
 export function InsigniaTarea({ tipo }: { tipo: string }) {

@@ -27,9 +27,9 @@ export async function aprobarHistoriasSemana(semana: string): Promise<Resultado>
 }
 
 export type PayloadPieza = {
-  titulo: string; notas?: string | null; formato?: string | null; estado?: string | null; origen?: string | null;
-  fecha_objetivo?: string | null; responsable_id?: string | null; guion?: string | null;
-  etapa_embudo?: string | null; format_card?: string | null; serie?: string | null; cta?: string | null;
+  titulo: string; notas?: string | null; tipo?: string | null; estado?: string | null; etiquetas?: string[];
+  fecha_objetivo?: string | null; responsable_id?: string | null; contenido?: string | null;
+  etapa_embudo?: string | null; formato?: string | null; serie?: string | null;
   hipotesis?: { texto: string; campo: string; numero: number; fecha: string } | null;
 };
 
@@ -42,20 +42,19 @@ export async function crearPieza(p: PayloadPieza): Promise<Resultado & { id?: st
   }
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.rpc("crear_pieza_validada", {
-    payload: { ...p, titulo: p.titulo.trim(), estado: p.estado || "borrador", origen: p.origen || "nazho" },
+    payload: { ...p, titulo: p.titulo.trim(), estado: p.estado || "borrador", etiquetas: p.etiquetas ?? [] },
   });
   if (error) return fallo(error);
   revalidarTodo();
   return { ok: true, mensaje: `${data.id_publico} capturada.`, id: data.id, id_publico: data.id_publico };
 }
 
-export async function asignarTarea(v: { pieza_id?: string; historia_id?: string; tipo: string; asignado_a: string; vence: string; checklist?: string[] }): Promise<Resultado> {
+export async function asignarTarea(v: { pieza_id?: string; historia_id?: string; tipo: string; asignado_a: string; vence: string }): Promise<Resultado> {
   if (!v.vence) return { ok: false, mensaje: "Falta la fecha de vencimiento." };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.rpc("asignar_tarea", {
     p_tipo: v.tipo, p_asignado_a: v.asignado_a, p_vence: v.vence,
     p_pieza_id: v.pieza_id, p_historia_id: v.historia_id,
-    p_checklist: (v.checklist ?? []).map((texto) => ({ texto, hecho: false })),
   });
   if (error) return fallo(error);
   revalidarTodo();
@@ -70,7 +69,7 @@ export async function moverEstado(piezaId: string, estado: string): Promise<Resu
   return { ok: true };
 }
 
-export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo?: string | null; responsable_id?: string | null; titulo?: string | null; programa_aprobado?: boolean; formato?: string | null; notas?: string | null; guion?: string | null }): Promise<Resultado> {
+export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo?: string | null; responsable_id?: string | null; titulo?: string | null; programa_aprobado?: boolean; tipo?: string | null; notas?: string | null; etiquetas?: string[]; serie?: string | null; formato_id?: string | null; etapa_embudo?: string | null }): Promise<Resultado> {
   const supabase = await crearClienteServidor();
   const { error, count } = await supabase.from("piezas").update(cambios, { count: "exact" }).eq("id", piezaId);
   if (error) return fallo(error);
@@ -92,9 +91,9 @@ export async function proponerHistoria(v: { semana: string; dia: number; serie: 
   return { ok: true, mensaje: "Historia en propuesta. Apruébala desde Hoy." };
 }
 
-export async function guardarMeta(formato: string, cantidad: number): Promise<Resultado> {
+export async function guardarMeta(tipo: string, cantidad: number): Promise<Resultado> {
   const supabase = await crearClienteServidor();
-  const { error } = await supabase.from("metas_semana").upsert({ formato, cantidad });
+  const { error } = await supabase.from("metas_semana").upsert({ tipo, cantidad });
   if (error) return fallo(error);
   revalidarTodo();
   return { ok: true };

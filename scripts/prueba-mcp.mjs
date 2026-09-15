@@ -55,14 +55,14 @@ try {
   ok("listar_comunidades devuelve Fundadores con criterio", Array.isArray(com) && com.some((c) => c.nombre === "Fundadores con criterio"), `status ${r.status} · ${r.text.slice(0, 400)}`);
   if (!com[0]) { console.log("RAW listar_comunidades:", r.status, r.text.slice(0, 600)); throw new Error("sin comunidades; abortando"); }
 
-  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp", estado: "grabacion", formato: "reel", etapa_embudo: "atraer", hipotesis: { texto: "prueba de fecha pasada", campo: "views", numero: 100, fecha: "2020-01-01" } } }, 4);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp", estado: "grabacion", tipo: "reel", etapa_embudo: "atraer", hipotesis: { texto: "prueba de fecha pasada", campo: "views", numero: 100, fecha: "2020-01-01" } } }, 4);
   ok("crear_pieza con fecha pasada → error legible", r.json?.result?.isError && /futuro/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "idea desde mcp" } }, 41);
   const creada = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("crear_pieza solo con título → borrador IDE-", creada?.estado === "borrador" && /^IDE-/.test(creada?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 120));
-  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, formato: "yap", etapa_embudo: "atraer", format_card: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, guion: "## Beats", estado: "grabacion" } }, 42);
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, tipo: "yap", etapa_embudo: "atraer", formato: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, contenido: "## Beats", estado: "grabacion" } }, 42);
   const dev = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
-  ok("actualizar_pieza desarrolla el borrador → YAP- en grabacion", dev?.estado === "grabacion" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.format_card_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
+  ok("actualizar_pieza desarrolla el borrador → YAP- en grabacion", dev?.estado === "grabacion" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.formato_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (creada?.id) await admin.from("piezas").delete().eq("id", creada.id);
   // stream de redacción
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "stream de prueba", origen: "voz" } }, 50);
@@ -77,13 +77,13 @@ try {
   r = await rpc(key, "tools/call", { name: "stream_de", arguments: { pieza: st.id_publico } }, 54);
   const stream = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("stream_de devuelve 3 pensamientos, 1 ronda, 0 sin responder", stream?.stream?.length === 3 && stream?.rondas_de_preguntas === 1 && stream?.preguntas_sin_responder?.length === 0, JSON.stringify({ n: stream?.stream?.length, r: stream?.rondas_de_preguntas, s: stream?.preguntas_sin_responder }));
-  r = await rpc(key, "tools/call", { name: "guardar_guion", arguments: { pieza: st.id_publico, guion: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer.", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, fidelidad: "mis_palabras", autor: "yap-scripter" } }, 55);
-  ok("guardar_guion versión 1", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 1, r.json?.result?.content?.[0]?.text?.slice(0, 120));
-  r = await rpc(key, "tools/call", { name: "guardar_guion", arguments: { pieza: st.id_publico, guion: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer. (v2 más corta)", instruccion: "más corto", autor: "yap-scripter" } }, 56);
-  ok("guardar_guion versión 2 conserva hipótesis", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 2, r.json?.result?.content?.[0]?.text?.slice(0, 120));
-  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: st.id_publico, formato: "yap", etapa_embudo: "atraer", estado: "grabacion" } }, 57);
+  r = await rpc(key, "tools/call", { name: "guardar_contenido", arguments: { pieza: st.id_publico, contenido: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer.", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, autor: "yap-scripter" } }, 55);
+  ok("guardar_contenido versión 1", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 1, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "guardar_contenido", arguments: { pieza: st.id_publico, contenido: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer. (v2 más corta)", instruccion: "más corto", autor: "yap-scripter" } }, 56);
+  ok("guardar_contenido versión 2 conserva hipótesis", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 2, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: st.id_publico, tipo: "yap", etapa_embudo: "atraer", estado: "grabacion" } }, 57);
   const fin = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
-  ok("la pieza pasa a grabación con guion e hipótesis del stream", fin?.estado === "grabacion" && /^YAP-/.test(fin?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 160));
+  ok("la pieza pasa a grabación con contenido e hipótesis del stream", fin?.estado === "grabacion" && /^YAP-/.test(fin?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (st?.id) await admin.from("piezas").delete().eq("id", st.id);
 
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: {} }, 43);

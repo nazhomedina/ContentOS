@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-07 (proyecto gnzsaafoxphmkwvvfmoy).
+// Generado con el conector de Supabase el 2026-09-07 (proyecto gnzsaafoxphmkwvvfmoy); ajustado a mano para la migración 011.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -35,7 +35,7 @@ export type Database = {
         Update: { estado?: string | null; fin?: string | null; id?: never; inicio?: string; payload?: Json | null; resumen?: string | null; sistema?: string }
         Relationships: []
       }
-      format_cards: {
+      formatos: {
         Row: { codigo: string; created_at: string; estado: string; id: string; molde: string | null; nombre: string; notas: string | null; origen: string | null }
         Insert: { codigo: string; created_at?: string; estado: string; id?: string; molde?: string | null; nombre: string; notas?: string | null; origen?: string | null }
         Update: { codigo?: string; created_at?: string; estado?: string; id?: string; molde?: string | null; nombre?: string; notas?: string | null; origen?: string | null }
@@ -50,15 +50,6 @@ export type Database = {
           { foreignKeyName: "historias_metricas_por_fkey"; columns: ["metricas_por"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
           { foreignKeyName: "historias_pieza_amplificada_id_fkey"; columns: ["pieza_amplificada_id"]; isOneToOne: false; referencedRelation: "piezas"; referencedColumns: ["id"] },
           { foreignKeyName: "historias_recurso_id_fkey"; columns: ["recurso_id"]; isOneToOne: false; referencedRelation: "recursos"; referencedColumns: ["id"] },
-        ]
-      }
-      ideas: {
-        Row: { comunidad_id: string; creado_por: string | null; created_at: string; estado: string; etapa_embudo: string | null; id: string; notas: string | null; origen: string | null; titulo: string; updated_at: string; video_origen_id: string | null; notion_url: string | null; formato_sugerido: string[] }
-        Insert: { comunidad_id: string; creado_por?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; id?: string; notas?: string | null; origen?: string | null; titulo: string; updated_at?: string; video_origen_id?: string | null; notion_url?: string | null; formato_sugerido?: string[] }
-        Update: { comunidad_id?: string; creado_por?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; id?: string; notas?: string | null; origen?: string | null; titulo?: string; updated_at?: string; video_origen_id?: string | null; notion_url?: string | null; formato_sugerido?: string[] }
-        Relationships: [
-          { foreignKeyName: "ideas_comunidad_id_fkey"; columns: ["comunidad_id"]; isOneToOne: false; referencedRelation: "comunidades"; referencedColumns: ["id"] },
-          { foreignKeyName: "ideas_creado_por_fkey"; columns: ["creado_por"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
         ]
       }
       indicadores_semana: {
@@ -77,12 +68,11 @@ export type Database = {
         ]
       }
       pensamientos: {
-        Row: { audio_url: string | null; autor: string | null; created_at: string; id: string; idea_id: string | null; pieza_id: string | null; duracion_s: number | null; ronda: number | null; responde_a: string | null; texto: string | null; tipo: string; transcript_crudo: string | null; transcript_pulido: string | null }
-        Insert: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; idea_id?: string | null; pieza_id?: string | null; duracion_s?: number | null; ronda?: number | null; responde_a?: string | null; texto?: string | null; tipo: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
-        Update: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; idea_id?: string | null; pieza_id?: string | null; duracion_s?: number | null; ronda?: number | null; responde_a?: string | null; texto?: string | null; tipo?: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
+        Row: { audio_url: string | null; autor: string | null; created_at: string; id: string; pieza_id: string; duracion_s: number | null; ronda: number | null; responde_a: string | null; texto: string | null; tipo: string; transcript_crudo: string | null; transcript_pulido: string | null }
+        Insert: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; pieza_id?: string | null; duracion_s?: number | null; ronda?: number | null; responde_a?: string | null; texto?: string | null; tipo: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
+        Update: { audio_url?: string | null; autor?: string | null; created_at?: string; id?: string; pieza_id?: string | null; duracion_s?: number | null; ronda?: number | null; responde_a?: string | null; texto?: string | null; tipo?: string; transcript_crudo?: string | null; transcript_pulido?: string | null }
         Relationships: [
           { foreignKeyName: "pensamientos_autor_fkey"; columns: ["autor"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
-          { foreignKeyName: "pensamientos_idea_id_fkey"; columns: ["idea_id"]; isOneToOne: false; referencedRelation: "ideas"; referencedColumns: ["id"] },
           { foreignKeyName: "pensamientos_responde_a_fkey"; columns: ["responde_a"]; isOneToOne: false; referencedRelation: "pensamientos"; referencedColumns: ["id"] },
         ]
       }
@@ -99,13 +89,13 @@ export type Database = {
         Relationships: []
       }
       piezas: {
-        Row: { comunidad_id: string; created_at: string; cta: string | null; estado: string; etapa_embudo: string | null; etapa_legado: boolean; fecha_objetivo: string | null; fidelidad: string; format_card_id: string | null; formato: string | null; guion: string | null; hipotesis: Json | null; id: string; id_publico: string; idea_id: string | null; plataforma: string | null; programa_aprobado: boolean; publicada_en: string | null; requiere_hipotesis: boolean; responsable_id: string | null; serie: string | null; spec_visual: string | null; titulo: string | null; updated_at: string; url: string | null; origen: string | null; notas: string | null; notion_url: string | null; formato_sugerido: string[] }
-        Insert: { comunidad_id?: string; created_at?: string; cta?: string | null; estado?: string; etapa_embudo?: string | null; etapa_legado?: boolean; fecha_objetivo?: string | null; fidelidad?: string; format_card_id?: string | null; formato?: string | null; guion?: string | null; hipotesis?: Json | null; id?: string; id_publico?: string; idea_id?: string | null; plataforma?: string | null; programa_aprobado?: boolean; publicada_en?: string | null; requiere_hipotesis?: boolean; responsable_id?: string | null; serie?: string | null; spec_visual?: string | null; titulo?: string | null; updated_at?: string; url?: string | null; origen?: string | null; notas?: string | null; notion_url?: string | null; formato_sugerido?: string[] }
-        Update: { comunidad_id?: string; created_at?: string; cta?: string | null; estado?: string; etapa_embudo?: string | null; etapa_legado?: boolean; fecha_objetivo?: string | null; fidelidad?: string; format_card_id?: string | null; formato?: string | null; guion?: string | null; hipotesis?: Json | null; id?: string; id_publico?: string; idea_id?: string | null; plataforma?: string | null; programa_aprobado?: boolean; publicada_en?: string | null; requiere_hipotesis?: boolean; responsable_id?: string | null; serie?: string | null; spec_visual?: string | null; titulo?: string | null; updated_at?: string; url?: string | null; origen?: string | null; notas?: string | null; notion_url?: string | null; formato_sugerido?: string[] }
+        Row: { comunidad_id: string; contenido: string | null; created_at: string; estado: string; etapa_embudo: string | null; etiquetas: string[]; fecha_objetivo: string | null; formato_id: string | null; hipotesis_id: string | null; id: string; id_publico: string; notas: string | null; notion_url: string | null; plataforma: string | null; programa_aprobado: boolean; publicada_en: string | null; responsable_id: string | null; serie: string | null; tipo: string | null; titulo: string | null; updated_at: string; url: string | null }
+        Insert: { comunidad_id?: string; contenido?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; etiquetas?: string[]; fecha_objetivo?: string | null; formato_id?: string | null; hipotesis_id?: string | null; id?: string; id_publico?: string; notas?: string | null; notion_url?: string | null; plataforma?: string | null; programa_aprobado?: boolean; publicada_en?: string | null; responsable_id?: string | null; serie?: string | null; tipo?: string | null; titulo?: string | null; updated_at?: string; url?: string | null }
+        Update: { comunidad_id?: string; contenido?: string | null; created_at?: string; estado?: string; etapa_embudo?: string | null; etiquetas?: string[]; fecha_objetivo?: string | null; formato_id?: string | null; hipotesis_id?: string | null; id?: string; id_publico?: string; notas?: string | null; notion_url?: string | null; plataforma?: string | null; programa_aprobado?: boolean; publicada_en?: string | null; responsable_id?: string | null; serie?: string | null; tipo?: string | null; titulo?: string | null; updated_at?: string; url?: string | null }
         Relationships: [
           { foreignKeyName: "piezas_comunidad_id_fkey"; columns: ["comunidad_id"]; isOneToOne: false; referencedRelation: "comunidades"; referencedColumns: ["id"] },
-          { foreignKeyName: "piezas_format_card_id_fkey"; columns: ["format_card_id"]; isOneToOne: false; referencedRelation: "format_cards"; referencedColumns: ["id"] },
-          { foreignKeyName: "piezas_idea_id_fkey"; columns: ["idea_id"]; isOneToOne: false; referencedRelation: "ideas"; referencedColumns: ["id"] },
+          { foreignKeyName: "piezas_format_card_id_fkey"; columns: ["formato_id"]; isOneToOne: false; referencedRelation: "formatos"; referencedColumns: ["id"] },
+          { foreignKeyName: "piezas_hipotesis_id_fkey"; columns: ["hipotesis_id"]; isOneToOne: false; referencedRelation: "hipotesis"; referencedColumns: ["id"] },
           { foreignKeyName: "piezas_responsable_id_fkey"; columns: ["responsable_id"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
         ]
       }
@@ -130,9 +120,9 @@ export type Database = {
         Relationships: []
       }
       metas_semana: {
-        Row: { cantidad: number; desde: string; formato: string }
-        Insert: { cantidad: number; desde?: string; formato: string }
-        Update: { cantidad?: number; desde?: string; formato?: string }
+        Row: { cantidad: number; desde: string; tipo: string }
+        Insert: { cantidad: number; desde?: string; tipo: string }
+        Update: { cantidad?: number; desde?: string; tipo?: string }
         Relationships: []
       }
       campanas: {
@@ -157,11 +147,26 @@ export type Database = {
         Update: { activa?: boolean; comunidad_id?: string | null; created_at?: string; format_card_sugerida?: string | null; handle?: string; id?: string; nota?: string | null; plataforma?: string; ultimo_scrape?: string | null }
         Relationships: []
       }
-      guion_versiones: {
-        Row: { autor: string | null; created_at: string; fidelidad: string | null; guion: string; hipotesis: Json | null; id: string; instruccion: string | null; pieza_id: string; spec_visual: string | null; version: number }
-        Insert: { autor?: string | null; created_at?: string; fidelidad?: string | null; guion: string; hipotesis?: Json | null; id?: string; instruccion?: string | null; pieza_id: string; spec_visual?: string | null; version: number }
-        Update: { autor?: string | null; created_at?: string; fidelidad?: string | null; guion?: string; hipotesis?: Json | null; id?: string; instruccion?: string | null; pieza_id?: string; spec_visual?: string | null; version?: number }
+      contenido_versiones: {
+        Row: { autor: string | null; contenido: string; created_at: string; id: string; instruccion: string | null; pieza_id: string; version: number }
+        Insert: { autor?: string | null; contenido: string; created_at?: string; id?: string; instruccion?: string | null; pieza_id: string; version: number }
+        Update: { autor?: string | null; contenido?: string; created_at?: string; id?: string; instruccion?: string | null; pieza_id?: string; version?: number }
         Relationships: []
+      }
+      hipotesis: {
+        Row: { campo: string | null; created_at: string; estado: string; fecha: string | null; id: string; numero: number | null; resuelta_en: string | null; texto: string; updated_at: string; veredicto: string | null }
+        Insert: { campo?: string | null; created_at?: string; estado?: string; fecha?: string | null; id?: string; numero?: number | null; resuelta_en?: string | null; texto: string; updated_at?: string; veredicto?: string | null }
+        Update: { campo?: string | null; created_at?: string; estado?: string; fecha?: string | null; id?: string; numero?: number | null; resuelta_en?: string | null; texto?: string; updated_at?: string; veredicto?: string | null }
+        Relationships: []
+      }
+      assets: {
+        Row: { carpeta: string; created_at: string; id: string; nombre: string; pieza_id: string; ruta: string; subido_por: string | null }
+        Insert: { carpeta: string; created_at?: string; id?: string; nombre: string; pieza_id: string; ruta: string; subido_por?: string | null }
+        Update: { carpeta?: string; created_at?: string; id?: string; nombre?: string; pieza_id?: string; ruta?: string; subido_por?: string | null }
+        Relationships: [
+          { foreignKeyName: "assets_pieza_id_fkey"; columns: ["pieza_id"]; isOneToOne: false; referencedRelation: "piezas"; referencedColumns: ["id"] },
+          { foreignKeyName: "assets_subido_por_fkey"; columns: ["subido_por"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
+        ]
       }
       hooks: {
         Row: { categoria: string | null; created_at: string; favorito: boolean; formato: string | null; id: string; pieza_id: string | null; texto: string }
@@ -176,9 +181,9 @@ export type Database = {
         Relationships: []
       }
       tareas: {
-        Row: { asignado_a: string | null; checklist: Json; created_at: string; estado: string; hecha_en: string | null; historia_id: string | null; id: string; nota_bloqueo: string | null; pieza_id: string | null; tipo: string; vence: string | null }
-        Insert: { asignado_a?: string | null; checklist?: Json; created_at?: string; estado?: string; hecha_en?: string | null; historia_id?: string | null; id?: string; nota_bloqueo?: string | null; pieza_id?: string | null; tipo: string; vence?: string | null }
-        Update: { asignado_a?: string | null; checklist?: Json; created_at?: string; estado?: string; hecha_en?: string | null; historia_id?: string | null; id?: string; nota_bloqueo?: string | null; pieza_id?: string | null; tipo?: string; vence?: string | null }
+        Row: { asignado_a: string | null; created_at: string; estado: string; hecha_en: string | null; historia_id: string | null; id: string; nota_bloqueo: string | null; pieza_id: string | null; tipo: string; vence: string | null }
+        Insert: { asignado_a?: string | null; created_at?: string; estado?: string; hecha_en?: string | null; historia_id?: string | null; id?: string; nota_bloqueo?: string | null; pieza_id?: string | null; tipo: string; vence?: string | null }
+        Update: { asignado_a?: string | null; created_at?: string; estado?: string; hecha_en?: string | null; historia_id?: string | null; id?: string; nota_bloqueo?: string | null; pieza_id?: string | null; tipo?: string; vence?: string | null }
         Relationships: [
           { foreignKeyName: "tareas_asignado_a_fkey"; columns: ["asignado_a"]; isOneToOne: false; referencedRelation: "perfiles"; referencedColumns: ["user_id"] },
           { foreignKeyName: "tareas_historia_id_fkey"; columns: ["historia_id"]; isOneToOne: false; referencedRelation: "historias"; referencedColumns: ["id"] },
@@ -190,7 +195,7 @@ export type Database = {
     Functions: {
       aprobar_historias: { Args: { p_editor?: string; p_semana: string }; Returns: number }
       asignar_tarea: {
-        Args: { p_asignado_a: string; p_checklist?: Json; p_historia_id?: string; p_pieza_id?: string; p_tipo: string; p_vence: string }
+        Args: { p_asignado_a: string; p_historia_id?: string; p_pieza_id?: string; p_tipo: string; p_vence: string }
         Returns: Database["public"]["Tables"]["tareas"]["Row"]
         SetofOptions: { from: "*"; to: "tareas"; isOneToOne: true; isSetofReturn: false }
       }
@@ -204,10 +209,20 @@ export type Database = {
         Returns: Database["public"]["Tables"]["piezas"]["Row"]
         SetofOptions: { from: "*"; to: "piezas"; isOneToOne: true; isSetofReturn: false }
       }
-      guardar_guion: {
-        Args: { p_pieza_id: string; p_guion: string; p_hipotesis?: Json | null; p_spec_visual?: string | null; p_fidelidad?: string | null; p_instruccion?: string | null; p_autor?: string | null }
-        Returns: Database["public"]["Tables"]["guion_versiones"]["Row"]
-        SetofOptions: { from: "*"; to: "guion_versiones"; isOneToOne: true; isSetofReturn: false }
+      guardar_contenido: {
+        Args: { p_pieza_id: string; p_contenido: string; p_instruccion?: string | null; p_autor?: string | null }
+        Returns: Database["public"]["Tables"]["contenido_versiones"]["Row"]
+        SetofOptions: { from: "*"; to: "contenido_versiones"; isOneToOne: true; isSetofReturn: false }
+      }
+      guardar_url: {
+        Args: { p_pieza_id: string; p_url: string; p_plataforma?: string | null }
+        Returns: Database["public"]["Tables"]["piezas"]["Row"]
+        SetofOptions: { from: "*"; to: "piezas"; isOneToOne: true; isSetofReturn: false }
+      }
+      crear_hipotesis: {
+        Args: { p_texto: string; p_campo: string; p_numero: number; p_fecha: string }
+        Returns: Database["public"]["Tables"]["hipotesis"]["Row"]
+        SetofOptions: { from: "*"; to: "hipotesis"; isOneToOne: true; isSetofReturn: false }
       }
       evidencia_dia: { Args: { p_perfil: string; p_fecha: string }; Returns: Json }
       resumen_semana_persona: {
@@ -220,7 +235,7 @@ export type Database = {
       }
       cuota_semana: {
         Args: { p_semana: string }
-        Returns: { formato: string; meta: number; publicadas: number; en_camino: number; piezas: Json }[]
+        Returns: { tipo: string; meta: number; publicadas: number; en_camino: number; piezas: Json }[]
       }
       declarar_hueco: {
         Args: { p_semana: string; p_sistema: string; p_nodo: string; p_nota: string }
@@ -233,7 +248,6 @@ export type Database = {
         SetofOptions: { from: "*"; to: "sistemas"; isOneToOne: true; isSetofReturn: false }
       }
       exigir_rol: { Args: { roles: string[] }; Returns: undefined }
-      hipotesis_valida: { Args: { h: Json }; Returns: boolean }
       latidos: {
         Args: never
         Returns: { atrasado: boolean; esperado_cada: string; sistema: string; ultima_corrida: string; ultimo_estado: string; ultimo_resumen: string }[]
@@ -271,7 +285,9 @@ export type Pieza = Tables<"piezas">
 export type Tarea = Tables<"tareas">
 export type Historia = Tables<"historias">
 export type Perfil = Tables<"perfiles">
-export type FormatCard = Tables<"format_cards">
+export type FormatoCard = Tables<"formatos">
+export type Hipotesis = Tables<"hipotesis">
+export type Asset = Tables<"assets">
 export type Comentario = Tables<"comentarios">
 export type Recurso = Tables<"recursos">
 export type Sistema = Tables<"sistemas">
