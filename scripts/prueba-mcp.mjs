@@ -86,8 +86,20 @@ try {
   ok("la pieza pasa a grabación con contenido e hipótesis del stream", fin?.estado === "grabacion" && /^YAP-/.test(fin?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (st?.id) await admin.from("piezas").delete().eq("id", st.id);
 
-  r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: {} }, 43);
-  ok("listar_formatos devuelve 6 cards", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).length === 6, "");
+  r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: { con_molde: false } }, 43);
+  const fcs = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
+  ok("listar_formatos devuelve 6 cards con ficha y resumen", fcs.length === 6 && fcs.every((f) => f.serie_propia && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} ${fcs[0].serie_propia} · ${fcs[0].resumen?.episodios} episodios` : "");
+
+  // hipótesis: la del stream quedó creada; se lista con evidencia, se resuelve con veredicto y se limpia
+  r = await rpc(key, "tools/call", { name: "listar_hipotesis", arguments: { estado: "abierta", limite: 300 } }, 44);
+  const hs = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
+  const hMia = hs.find((h) => h.texto === "si abro con la postura");
+  ok("listar_hipotesis trae la hipótesis creada por guardar_contenido", Boolean(hMia) && Array.isArray(hMia.evidencia), hMia ? `${hMia.campo} ≥ ${hMia.numero} · vencida=${hMia.vencida}` : "no está");
+  r = await rpc(key, "tools/call", { name: "resolver_hipotesis", arguments: { hipotesis_id: hMia?.id ?? "00000000-0000-0000-0000-000000000000", estado: "falsa" } }, 45);
+  ok("resolver_hipotesis sin veredicto → error legible", r.json?.result?.isError && /veredicto/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  r = await rpc(key, "tools/call", { name: "resolver_hipotesis", arguments: { hipotesis_id: hMia?.id ?? "00000000-0000-0000-0000-000000000000", estado: "sin_datos", veredicto: "prueba" } }, 46);
+  ok("resolver_hipotesis sin_datos cierra", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).estado === "sin_datos", r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  if (hMia?.id) await admin.from("hipotesis").delete().eq("id", hMia.id);
 
   r = await rpc(key, "tools/call", { name: "estado_semana", arguments: {} }, 5);
   const es = JSON.parse(r.json?.result?.content?.[0]?.text ?? "{}");
