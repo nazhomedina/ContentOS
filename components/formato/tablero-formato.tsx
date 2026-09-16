@@ -26,7 +26,7 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
   const [{ data }, { data: perfiles }] = await Promise.all([
     supabase
       .from("piezas")
-      .select("id, id_publico, titulo, tipo, estado, fecha_objetivo, publicada_en, url, serie, notas, contenido, etiquetas, responsable_id, hipotesis_id, responsable:perfiles!piezas_responsable_id_fkey(nombre), formato:formatos(codigo), hipotesis:hipotesis(texto, campo, numero, fecha, estado)")
+      .select("id, id_publico, titulo, tipo, estado, fecha_objetivo, publicada_en, url, series, notas, contenido, etiquetas, responsable_id, hipotesis_id, responsable:perfiles!piezas_responsable_id_fkey(nombre), formato:formatos(codigo), hipotesis:hipotesis(texto, campo, numero, fecha, estado)")
       .in("tipo", tipos)
       .order("fecha_objetivo", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false }),
@@ -53,15 +53,15 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
   const archivadas = todas.filter((p) => p.estado === "archivada");
   const borradores = todas.filter((p) => p.estado === "borrador").length;
   const buffer = produccion.filter((p) => p.estado === "listo" || p.estado === "programada").length;
-  const series = [...new Set(todas.map((p) => p.serie).filter((s): s is string => Boolean(s)))].sort();
+  const series = [...new Set(todas.flatMap((p) => p.series ?? []))].sort();
   const etiquetas = [...new Set(todas.flatMap((p) => p.etiquetas ?? []))].sort();
 
   const q = (filtros.q ?? "").trim().toLowerCase();
   const filtrar = <T extends (typeof todas)[number]>(xs: T[]) =>
     xs.filter((p) => {
-      if (q && !`${p.id_publico} ${p.titulo ?? ""} ${p.serie ?? ""} ${p.notas ?? ""} ${(p.etiquetas ?? []).join(" ")}`.toLowerCase().includes(q)) return false;
+      if (q && !`${p.id_publico} ${p.titulo ?? ""} ${(p.series ?? []).join(" ")} ${p.notas ?? ""} ${(p.etiquetas ?? []).join(" ")}`.toLowerCase().includes(q)) return false;
       if (filtros.estado && !(filtros.estado === "listo" ? ["listo", "programada"].includes(p.estado) : p.estado === filtros.estado)) return false;
-      if (filtros.serie && p.serie !== filtros.serie) return false;
+      if (filtros.serie && !(p.series ?? []).includes(filtros.serie)) return false;
       if (filtros.responsable && p.responsable_id !== filtros.responsable) return false;
       if (filtros.etiqueta && !(p.etiquetas ?? []).includes(filtros.etiqueta)) return false;
       if (filtros.sin === "hipotesis" && p.hipotesis_id) return false;
@@ -173,7 +173,7 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
                   {(p.etiquetas ?? []).length > 0 && <span className="mt-0.5 block text-[10px] text-muted-foreground">{p.etiquetas.join(" · ")}</span>}
                 </td>
                 <td className="px-3 py-2"><InsigniaEstado estado={p.estado} /></td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">{p.serie ?? "—"}{p.formato?.codigo && <span className="block text-[10px]">{p.formato.codigo}</span>}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{(p.series ?? []).join(", ") || "—"}{p.formato?.codigo && <span className="block text-[10px]">{p.formato.codigo}</span>}</td>
                 <td className="px-3 py-2 text-xs">{p.responsable?.nombre ?? <span className="text-muted-foreground">—</span>}</td>
                 <td className="px-3 py-2"><CeldaTarea t={tareaDe.get(p.id)} /></td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{p.fecha_objetivo ? fechaCorta(p.fecha_objetivo) : "—"}</td>
@@ -206,7 +206,7 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
                             </div>
                             <p className="font-medium leading-snug">{p.titulo ?? "(sin título)"}</p>
                             <p className="text-xs text-muted-foreground">
-                              {p.serie && <span>{p.serie} · </span>}
+                              {(p.series ?? []).length > 0 && <span>{p.series.join(", ")} · </span>}
                               {p.fecha_objetivo ? fechaCorta(p.fecha_objetivo) : "sin fecha"}
                               {p.responsable?.nombre && ` · ${p.responsable.nombre}`}
                             </p>
@@ -246,7 +246,7 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
                     <Link href={`/piezas/${p.id}`} className="flex items-center gap-2 hover:underline"><IdPublico id={p.id_publico} /><span className="line-clamp-2 font-medium">{p.titulo}</span></Link>
                     {p.estado === "en_trial" && <span className="text-[10px] uppercase text-muted-foreground">trial</span>}
                   </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">{p.serie ?? "—"}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{(p.series ?? []).join(", ") || "—"}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{p.publicada_en ? fechaCorta(p.publicada_en.slice(0, 10)) : "—"}{p.url && <> · <a href={p.url} target="_blank" rel="noreferrer" className="underline">ver</a></>}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{m?.views ?? <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{m?.likes ?? <span className="text-muted-foreground">—</span>}</td>
@@ -274,7 +274,7 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
             {listaArchivo.map((p) => (
               <tr key={p.id} className="hover:bg-muted/30">
                 <td className="max-w-[26rem] px-3 py-2"><Link href={`/piezas/${p.id}`} className="flex items-center gap-2 hover:underline"><IdPublico id={p.id_publico} /><span className="line-clamp-2 font-medium">{p.titulo}</span></Link></td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">{p.serie ?? "—"}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{(p.series ?? []).join(", ") || "—"}</td>
                 <td className="max-w-[24rem] truncate px-3 py-2 text-xs text-muted-foreground">{p.notas?.split("\n")[0] ?? "—"}</td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">{p.tiene_contenido ? "sí" : "—"}</td>
               </tr>

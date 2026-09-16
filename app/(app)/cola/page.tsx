@@ -33,11 +33,11 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
   const [{ data: tareas }, { count: buffer }, { data: declaraciones }, { data: enManos }] = await Promise.all([
     supabase
       .from("tareas")
-      .select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, tipo, estado, serie), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
+      .select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, tipo, estado, series), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
       .order("vence", { ascending: true, nullsFirst: false }),
     supabase.from("piezas").select("id", { count: "exact", head: true }).in("estado", ["listo", "programada"]),
     esOwner ? Promise.resolve({ data: [] }) : supabase.from("bitacora").select("id, texto, minutos, evidencia_url, created_at, pieza:piezas(id, id_publico, titulo)").eq("perfil_id", sesion.userId).eq("fecha", hoyStr).order("created_at"),
-    supabase.from("piezas").select("id, id_publico, titulo, tipo, estado, serie, fecha_objetivo").in("estado", ["grabacion", "diseno", "listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }).limit(80),
+    supabase.from("piezas").select("id, id_publico, titulo, tipo, estado, series, fecha_objetivo").in("estado", ["grabacion", "diseno", "listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }).limit(80),
   ]);
 
   const hace7 = sumarDias(hoyISO(), -7);

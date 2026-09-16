@@ -92,7 +92,7 @@ function mapear(r) {
     hipotesis_texto: texto,
     programa_aprobado: estado === "grabacion",
     format_card: fc,
-    serie: SERIE_POR_PREFIJO[prefijo] ?? null,
+    series: SERIE_POR_PREFIJO[prefijo] ? [SERIE_POR_PREFIJO[prefijo]] : [],
     contenido: limpiarGuion(r.guion),
     url: r.url_publica ?? null,
     plataforma: r.url_publica ? (r.url_publica.includes("youtu") ? "youtube" : "instagram") : null,

@@ -10,6 +10,7 @@ import { Contenido } from "@/components/pieza/contenido";
 import { Etiquetas } from "@/components/pieza/etiquetas";
 import { FichaPieza } from "@/components/pieza/ficha-pieza";
 import { HipotesisPieza } from "@/components/pieza/hipotesis-pieza";
+import { SeriesPieza } from "@/components/pieza/series-pieza";
 import { Stream, type Pensamiento } from "@/components/pieza/stream";
 import { UrlPieza } from "@/components/pieza/url-pieza";
 import { Versiones, type Version } from "@/components/pieza/versiones";
@@ -52,6 +53,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
       : Promise.resolve({ data: [] as never[] }),
     supabase.from("contenido_versiones").select("version, contenido, instruccion, autor, created_at").eq("pieza_id", id).order("version"),
   ]);
+  const { data: seriesActivas } = await supabase.from("series").select("nombre").eq("activa", true).order("nombre");
   const { data: abiertas } = esOwner
     ? await supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado").eq("estado", "abierta").order("created_at", { ascending: false }).limit(150)
     : { data: [] as { id: string; texto: string; campo: string | null; numero: number | null; fecha: string | null; estado: string }[] };
@@ -83,10 +85,12 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
             {pieza.tipo && <InsigniaTipo tipo={pieza.tipo} />}
             <InsigniaEstado estado={pieza.estado} />
             {pieza.formato && <span className="text-xs text-muted-foreground">{pieza.formato.codigo} · {pieza.formato.nombre}</span>}
-            {pieza.serie && <span className="text-xs text-muted-foreground">· serie {pieza.serie}</span>}
           </div>
           <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-balance">{pieza.titulo ?? pieza.id_publico}</h1>
-          <Etiquetas piezaId={pieza.id} etiquetas={pieza.etiquetas ?? []} puedeEditar={esOwner} />
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <SeriesPieza piezaId={pieza.id} series={pieza.series ?? []} activas={(seriesActivas ?? []).map((s) => s.nombre)} puedeEditar={esOwner} />
+            <Etiquetas piezaId={pieza.id} etiquetas={pieza.etiquetas ?? []} puedeEditar={esOwner} />
+          </div>
         </div>
         <div className="shrink-0 pt-1">
           <AccionesPieza piezaId={pieza.id} estado={pieza.estado} rol={rol} urlActual={pieza.url} plataformaActual={pieza.plataforma} />
@@ -148,13 +152,12 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
         <aside className="space-y-4 xl:sticky xl:top-8">
           <Tarjeta titulo="Ficha">
             {esOwner ? (
-              <FichaPieza piezaId={pieza.id} estado={pieza.estado} tipo={pieza.tipo} fechaObjetivo={pieza.fecha_objetivo} responsableId={pieza.responsable_id} serie={pieza.serie} formatoId={pieza.formato_id} etapa={pieza.etapa_embudo} perfiles={perfiles ?? []} formatos={formatos ?? []} />
+              <FichaPieza piezaId={pieza.id} estado={pieza.estado} tipo={pieza.tipo} fechaObjetivo={pieza.fecha_objetivo} responsableId={pieza.responsable_id} formatoId={pieza.formato_id} etapa={pieza.etapa_embudo} perfiles={perfiles ?? []} formatos={formatos ?? []} />
             ) : (
               <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
                 <Dato k="Fecha objetivo" v={fechaCorta(pieza.fecha_objetivo)} />
                 <Dato k="Responsable" v={pieza.responsable?.nombre ?? "—"} />
                 <Dato k="Etapa" v={pieza.etapa_embudo ?? "—"} />
-                <Dato k="Serie" v={pieza.serie ?? "—"} />
               </dl>
             )}
           </Tarjeta>

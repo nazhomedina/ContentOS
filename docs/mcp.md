@@ -42,15 +42,16 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (27)
+## 5. Herramientas (29)
 
 | Tool | Para qué | Latido |
 |---|---|---|
 | `listar_comunidades` · `listar_formatos` · `latidos` | contexto: ICP, formatos con ficha y rollups, última corrida por sistema | — |
 | `actualizar_formato` | ficha de un formato: estado, serie propia, duración, recompensa, cadencia, hipótesis de formato | `actualizar_formato` |
+| `listar_series` · `guardar_serie` | las series declaradas con descripción, activas y piezas; prenderlas, apagarlas, renombrarlas | `guardar_serie` |
 | `crear_pieza` | una pieza nace con solo título (borrador). Con tipo → redacción. Con tipo + etapa + hipótesis → grabación | `crear_pieza` |
 | `actualizar_pieza` | **así Claude desarrolla una idea**: tipo, hipótesis (o hipotesis_id), etapa, formato (card), contenido, notas, etiquetas, estado. Acepta id_publico | `actualizar_pieza` |
-| `listar_piezas` | por estado (borradores incluidos), tipo, etiqueta o semana objetivo | — |
+| `listar_piezas` | por estado (borradores incluidos), tipo, serie, etiqueta o semana objetivo | — |
 | `stream_de` · `agregar_pensamiento` · `guardar_contenido` | el stream de redacción (voz, texto, link, preguntas, respuestas) y las versiones del contenido; los usa el skill `entrevistador-redaccion` | `agregar_pensamiento`, `guardar_contenido` |
 | `listar_hipotesis` · `resolver_hipotesis` · `actualizar_hipotesis` | las hipótesis con piezas y evidencia; cerrarlas con veredicto; completar las heredadas | `resolver_hipotesis` |
 | `listar_cuentas` · `seguir_cuenta` | la watchlist | `seguir_cuenta` |

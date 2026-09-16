@@ -29,7 +29,7 @@ export async function aprobarHistoriasSemana(semana: string): Promise<Resultado>
 export type PayloadPieza = {
   titulo: string; notas?: string | null; tipo?: string | null; estado?: string | null; etiquetas?: string[];
   fecha_objetivo?: string | null; responsable_id?: string | null; contenido?: string | null;
-  etapa_embudo?: string | null; formato?: string | null; serie?: string | null;
+  etapa_embudo?: string | null; formato?: string | null; series?: string[];
   hipotesis?: { texto: string; campo: string; numero: number; fecha: string } | null;
 };
 
@@ -69,7 +69,7 @@ export async function moverEstado(piezaId: string, estado: string): Promise<Resu
   return { ok: true };
 }
 
-export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo?: string | null; responsable_id?: string | null; titulo?: string | null; programa_aprobado?: boolean; tipo?: string | null; notas?: string | null; etiquetas?: string[]; serie?: string | null; formato_id?: string | null; etapa_embudo?: string | null }): Promise<Resultado> {
+export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo?: string | null; responsable_id?: string | null; titulo?: string | null; programa_aprobado?: boolean; tipo?: string | null; notas?: string | null; etiquetas?: string[]; series?: string[]; formato_id?: string | null; etapa_embudo?: string | null }): Promise<Resultado> {
   const supabase = await crearClienteServidor();
   const { error, count } = await supabase.from("piezas").update(cambios, { count: "exact" }).eq("id", piezaId);
   if (error) return fallo(error);

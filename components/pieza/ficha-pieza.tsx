@@ -10,9 +10,9 @@ type Perfil = { user_id: string; nombre: string; rol: string };
 type FormatoOpcion = { id: string; codigo: string; nombre: string };
 
 /** La ficha de la pieza en la columna derecha: cada campo se cambia en su renglón. Solo owner. */
-export function FichaPieza({ piezaId, estado, tipo, fechaObjetivo, responsableId, serie, formatoId, etapa, perfiles, formatos }: {
+export function FichaPieza({ piezaId, estado, tipo, fechaObjetivo, responsableId, formatoId, etapa, perfiles, formatos }: {
   piezaId: string; estado: string; tipo: string | null; fechaObjetivo: string | null; responsableId: string | null;
-  serie: string | null; formatoId: string | null; etapa: string | null; perfiles: Perfil[]; formatos: FormatoOpcion[];
+  formatoId: string | null; etapa: string | null; perfiles: Perfil[]; formatos: FormatoOpcion[];
 }) {
   const [pendiente, iniciar] = useTransition();
 
@@ -50,9 +50,6 @@ export function FichaPieza({ piezaId, estado, tipo, fechaObjetivo, responsableId
           <option value="">Sin formato</option>
           {formatos.map((f) => <option key={f.id} value={f.id}>{f.codigo} · {f.nombre}</option>)}
         </select>
-      </Renglon>
-      <Renglon k="Serie">
-        <Input className="h-8 text-xs" defaultValue={serie ?? ""} placeholder="Criterio, Róbate…" onBlur={(e) => e.target.value.trim() !== (serie ?? "") && guardar({ serie: e.target.value.trim() || null })} />
       </Renglon>
       <Renglon k="Etapa">
         <select className={sel} value={etapa ?? ""} disabled={pendiente} onChange={(e) => guardar({ etapa_embudo: e.target.value || null })}>

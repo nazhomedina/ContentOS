@@ -19,7 +19,7 @@ export type TareaEnCola = {
   hecha_en: string | null;
   nota_bloqueo: string | null;
   asignado_a: string | null;
-  pieza: { id: string; id_publico: string; titulo: string | null; tipo: string; estado: string; serie: string | null } | null;
+  pieza: { id: string; id_publico: string; titulo: string | null; tipo: string; estado: string; series: string[] } | null;
   historia: { id: string; serie: string; dia: number; semana: string; copy: string | null } | null;
   asignado: { nombre: string } | null;
 };
@@ -63,7 +63,7 @@ export function FilaTarea({ tarea, mostrarAsignado }: { tarea: TareaEnCola; most
           {tarea.pieza && <InsigniaTipo tipo={tarea.pieza.tipo} />}
           {tarea.pieza && <InsigniaEstado estado={tarea.pieza.estado} />}
           {tarea.historia && <InsigniaTipo tipo="historia" />}
-          {tarea.pieza?.serie && <span>{tarea.pieza.serie}</span>}
+          {(tarea.pieza?.series ?? []).length > 0 && <span>{tarea.pieza!.series.join(", ")}</span>}
           {mostrarAsignado && <span>· {tarea.asignado?.nombre ?? "sin asignar"}</span>}
         </div>
         {tarea.estado === "bloqueada" && tarea.nota_bloqueo && <p className="text-xs text-rojo">Bloqueada: {tarea.nota_bloqueo}</p>}

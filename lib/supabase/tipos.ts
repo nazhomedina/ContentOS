@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 012.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 013.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -904,7 +904,7 @@ export type Database = {
           programa_aprobado: boolean
           publicada_en: string | null
           responsable_id: string | null
-          serie: string | null
+          series: string[]
           tipo: string | null
           titulo: string | null
           updated_at: string
@@ -928,7 +928,7 @@ export type Database = {
           programa_aprobado?: boolean
           publicada_en?: string | null
           responsable_id?: string | null
-          serie?: string | null
+          series?: string[]
           tipo?: string | null
           titulo?: string | null
           updated_at?: string
@@ -952,7 +952,7 @@ export type Database = {
           programa_aprobado?: boolean
           publicada_en?: string | null
           responsable_id?: string | null
-          serie?: string | null
+          series?: string[]
           tipo?: string | null
           titulo?: string | null
           updated_at?: string
@@ -1213,6 +1213,33 @@ export type Database = {
         }
         Relationships: []
       }
+      series: {
+        Row: {
+          activa: boolean
+          created_at: string
+          descripcion: string | null
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sistemas: {
         Row: {
           activo: boolean
@@ -1420,7 +1447,7 @@ export type Database = {
           programa_aprobado: boolean
           publicada_en: string | null
           responsable_id: string | null
-          serie: string | null
+          series: string[]
           tipo: string | null
           titulo: string | null
           updated_at: string
@@ -1479,7 +1506,7 @@ export type Database = {
           programa_aprobado: boolean
           publicada_en: string | null
           responsable_id: string | null
-          serie: string | null
+          series: string[]
           tipo: string | null
           titulo: string | null
           updated_at: string
@@ -1613,6 +1640,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      guardar_serie: {
+        Args: {
+          p_activa?: boolean
+          p_descripcion?: string
+          p_nombre: string
+          p_nuevo_nombre?: string
+        }
+        Returns: {
+          activa: boolean
+          created_at: string
+          descripcion: string | null
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "series"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       guardar_url: {
         Args: { p_pieza_id: string; p_plataforma?: string; p_url: string }
         Returns: {
@@ -1633,7 +1682,7 @@ export type Database = {
           programa_aprobado: boolean
           publicada_en: string | null
           responsable_id: string | null
-          serie: string | null
+          series: string[]
           tipo: string | null
           titulo: string | null
           updated_at: string
@@ -1677,7 +1726,7 @@ export type Database = {
           programa_aprobado: boolean
           publicada_en: string | null
           responsable_id: string | null
-          serie: string | null
+          series: string[]
           tipo: string | null
           titulo: string | null
           updated_at: string
@@ -1710,7 +1759,7 @@ export type Database = {
           programa_aprobado: boolean
           publicada_en: string | null
           responsable_id: string | null
-          serie: string | null
+          series: string[]
           tipo: string | null
           titulo: string | null
           updated_at: string
@@ -1802,6 +1851,15 @@ export type Database = {
           tareas_hechas: number
         }[]
       }
+      resumen_serie: {
+        Args: { p_nombre: string }
+        Returns: {
+          en_produccion: number
+          piezas: number
+          publicadas: number
+          ultima_publicada: string
+        }[]
+      }
       rol_actual: { Args: never; Returns: string }
       siguiente_id_publico: { Args: { p_prefijo: string }; Returns: string }
       transicion_permitida: {
@@ -1838,6 +1896,7 @@ export type Tarea = Tables<"tareas">
 export type Historia = Tables<"historias">
 export type Perfil = Tables<"perfiles">
 export type FormatoCard = Tables<"formatos">
+export type Serie = Tables<"series">
 export type Hipotesis = Tables<"hipotesis">
 export type Asset = Tables<"assets">
 export type Comentario = Tables<"comentarios">
