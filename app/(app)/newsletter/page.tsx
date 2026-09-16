@@ -1,11 +1,9 @@
-import { TableroTipo, type FiltrosTipo } from "@/components/formato/tablero-formato";
-import { PESTANAS_TIPO } from "@/lib/dominio/estados";
+import { TableroNewsletter } from "@/components/newsletter/tablero-newsletter";
 
 export const metadata = { title: "Newsletter" };
 export const dynamic = "force-dynamic";
 
-export default async function Pagina({ searchParams }: { searchParams: Promise<FiltrosTipo> }) {
-  const filtros = await searchParams;
-  const p = PESTANAS_TIPO.find((x) => x.ruta === "/newsletter")!;
-  return <TableroTipo ruta={p.ruta} etiqueta={p.etiqueta} tipos={p.tipos} filtros={filtros} meta={p.meta} />;
+export default async function Pagina({ searchParams }: { searchParams: Promise<{ vista?: string }> }) {
+  const { vista } = await searchParams;
+  return <TableroNewsletter vista={vista} />;
 }

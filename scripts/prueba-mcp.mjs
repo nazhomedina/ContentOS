@@ -126,7 +126,7 @@ try {
 
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp newsletter", tipo: "newsletter", estado: "redaccion" } }, 74);
   const nl = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
-  ok("crear_pieza newsletter: título numerado, serie Criterio y viernes por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).includes("Criterio") && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && new Date(nl.fecha_objetivo + "T12:00:00Z").getUTCDay() === 5, `${nl?.titulo} · ${nl?.fecha_objetivo}`);
+  ok("crear_pieza newsletter: título numerado, serie Criterio y siguiente envío por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).includes("Criterio") && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && nl.fecha_objetivo > new Date().toISOString().slice(0, 10), `${nl?.titulo} · ${nl?.fecha_objetivo}`);
   if (nl?.id) await admin.from("piezas").delete().eq("id", nl.id);
 
   // editor por MCP no puede crear ideas (RLS vía impersonación)

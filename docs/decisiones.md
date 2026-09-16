@@ -214,4 +214,12 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 
 **Puente con Kit sin regreso** (docs/newsletter.md): el contenido vive aquí versionado; Claude crea el borrador en Kit por su conector; Nazho programa en la interfaz de Kit; al enviarse, publicada con URL. Estados del newsletter: redacción → diseño (en Kit) → listo (programada) → publicada.
 
-**Datos:** NEW-01 «Criterio #001 — Marca da dirección. Marketing da tracción.» registrada en listo para el viernes 18 con su contenido (versión 1), el id del borrador de Kit en notas y una hipótesis propuesta por Claude que Nazho puede cambiar: ≥ 5 respuestas al correo al 25-sep (`replies`). NEW-02 «Si tienes que explicar tu diferencia, no eres diferente.» en redacción con tres preguntas de entrevista en el stream (ronda 1).
+**Datos:** NEW-01 «Criterio #001 — Marca da dirección. Marketing da tracción.» registrada para el viernes 18 (en diseño = cargada en Kit, pasa a listo al programarse) con su contenido (versión 1), el id del borrador de Kit en notas y una hipótesis propuesta por Claude que Nazho puede cambiar: ≥ 5 respuestas al correo al 25-sep (`replies`). NEW-02 «Si tienes que explicar tu diferencia, no eres diferente.» en redacción con tres preguntas de entrevista en el stream (ronda 1).
+
+## 2026-09-16 · Newsletter: pantalla propia y día de envío (migración 016, aplicada en producción)
+
+**La pestaña Newsletter deja los carriles de producción.** Nazho: «un newsletter no requiere producción; la redacción sucede en Claude con el skill. Aquí hay que ver los que tenemos en borrador y listos para publicar, y una vista de calendario para agendar hacia adelante». Se eligió la Opción A del canvas (https://claude.ai/artifact/4wQCYiekYC59M3mXKU8Euu): izquierda, las ediciones por lo que les falta; derecha, los próximos ocho envíos con hueco para agendar. Sin calendario mensual: el newsletter es semanal y seis de siete columnas quedarían vacías.
+
+**El día de envío no está fijo en viernes.** Vive en `formatos.dia_envio` (FC-09 = 5 hoy; Nazho contempla martes) y se cambia desde la pantalla o con `actualizar_formato`. `siguiente_envio(formato)` sustituye a `viernes_siguiente()`; `crear_pieza` lo usa como fecha por defecto. Cambiar el día recorre los próximos envíos y las ediciones nuevas; las agendadas conservan su fecha.
+
+**Estados del newsletter, ahora honestos:** redacción → diseño («En Kit», cargada como borrador) → listo (programada en Kit) → publicada. NEW-01 pasó de listo a diseño porque está en Kit sin programar; la pantalla lo señala en ámbar. «Agendar» crea la edición como borrador con el siguiente número en esa fecha (`agendarEdicion`).

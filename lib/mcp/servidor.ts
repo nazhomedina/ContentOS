@@ -290,7 +290,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     description: "Los formatos (Format Cards): código, nombre, estado de validación, serie propia, duración, recompensa, cadencia, hipótesis de formato, molde y rollups (episodios, publicadas, multiplicador promedio, views, follows). Léelos antes de proponer o escribir una pieza.",
     inputSchema: { con_molde: z.boolean().default(true) },
   }, async ({ con_molde }) => {
-    const { data, error: e } = await supabase.from("formatos").select("id, codigo, nombre, estado, origen, serie_propia, duracion, recompensa, cadencia, hipotesis_formato, molde, notas").order("codigo");
+    const { data, error: e } = await supabase.from("formatos").select("id, codigo, nombre, estado, origen, serie_propia, duracion, recompensa, cadencia, hipotesis_formato, dia_envio, molde, notas").order("codigo");
     if (e) return error(e.message);
     const salida = [];
     for (const f of data ?? []) {
@@ -301,17 +301,18 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("actualizar_formato", {
-    description: "Edita la ficha de un formato (Format Card) por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), serie_propia, duracion, recompensa, cadencia, hipotesis_formato, notas, molde.",
+    description: "Edita la ficha de un formato (Format Card) por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), serie_propia, duracion, recompensa, cadencia, hipotesis_formato, notas, molde, dia_envio (newsletter: 1 = lunes … 7 = domingo).",
     inputSchema: {
       formato: z.string().describe("código FC-08 o uuid"), nombre: z.string().optional(),
       estado: z.enum(["detectado", "experimentando", "validado_propio", "firma", "retirado"]).optional(),
       serie_propia: z.string().nullable().optional(), duracion: z.string().nullable().optional(), recompensa: z.string().nullable().optional(),
       cadencia: z.string().nullable().optional(), hipotesis_formato: z.string().nullable().optional(), notas: z.string().nullable().optional(), molde: z.string().optional(),
+      dia_envio: z.number().int().min(1).max(7).nullable().optional().describe("día de envío del newsletter; cambia la fecha por defecto de las ediciones nuevas"),
     },
   }, async ({ formato, ...cambios }) => {
     const { data: f } = await supabase.from("formatos").select("id").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
     if (!f) return error(`No existe el formato ${formato}.`);
-    const { data, error: e } = await supabase.from("formatos").update(cambios).eq("id", f.id).select("id, codigo, nombre, estado, serie_propia, duracion, recompensa, cadencia, hipotesis_formato").single();
+    const { data, error: e } = await supabase.from("formatos").update(cambios).eq("id", f.id).select("id, codigo, nombre, estado, serie_propia, duracion, recompensa, cadencia, hipotesis_formato, dia_envio").single();
     if (e) return error(limpiarError(e.message));
     await corrida("actualizar_formato", `${data.codigo}: ${Object.keys(cambios).join(", ")}`, { formato_id: f.id }, perfil);
     return json(data);
