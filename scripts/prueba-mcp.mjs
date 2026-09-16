@@ -88,7 +88,7 @@ try {
 
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: { con_molde: false } }, 43);
   const fcs = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
-  ok("listar_formatos devuelve 6 cards con ficha y resumen", fcs.length === 6 && fcs.every((f) => f.serie_propia && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} ${fcs[0].serie_propia} · ${fcs[0].resumen?.episodios} episodios` : "");
+  ok("listar_formatos devuelve 7 formatos con ficha y resumen (FC-09 incluido)", fcs.length === 7 && fcs.some((f) => f.codigo === "FC-09") && fcs.every((f) => f.serie_propia && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} ${fcs[0].serie_propia} · ${fcs[0].resumen?.episodios} episodios` : "");
 
   // hipótesis: la del stream quedó creada; se lista con evidencia, se resuelve con veredicto y se limpia
   r = await rpc(key, "tools/call", { name: "listar_hipotesis", arguments: { estado: "abierta", limite: 300 } }, 44);
