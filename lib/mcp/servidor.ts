@@ -201,13 +201,42 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("listar_hipotesis", {
-    description: "Las hipótesis con sus piezas: texto, campo, número, fecha, estado (abierta · verdadera · falsa · sin_datos) y cuántas piezas responden a cada una.",
-    inputSchema: { estado: z.enum(["abierta", "verdadera", "falsa", "sin_datos"]).optional(), limite: z.number().int().min(1).max(300).default(100) },
-  }, async ({ estado, limite }) => {
-    let q = supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado, veredicto, resuelta_en, piezas:piezas(id_publico, estado, tipo)").order("created_at", { ascending: false }).limit(limite);
+    description: "Las hipótesis con sus piezas y evidencia: texto, campo, número, fecha, estado (abierta · verdadera · falsa · sin_datos), veredicto, y por pieza el valor alcanzado en el campo. por_resolver=true trae solo las abiertas vencidas; incompletas=true, las que no tienen campo/número/fecha.",
+    inputSchema: { estado: z.enum(["abierta", "verdadera", "falsa", "sin_datos"]).optional(), por_resolver: z.boolean().default(false), incompletas: z.boolean().default(false), limite: z.number().int().min(1).max(300).default(100) },
+  }, async ({ estado, por_resolver, incompletas, limite }) => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    let q = supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado, veredicto, resuelta_en, piezas:piezas(id, id_publico, estado, tipo)").order("fecha", { ascending: true, nullsFirst: false }).limit(limite);
     if (estado) q = q.eq("estado", estado);
+    if (por_resolver) q = q.eq("estado", "abierta").not("fecha", "is", null).lte("fecha", hoy);
+    if (incompletas) q = q.eq("estado", "abierta").is("campo", null);
     const { data, error: e } = await q;
-    return e ? error(e.message) : json(data);
+    if (e) return error(e.message);
+    const salida = [];
+    for (const h of data ?? []) {
+      let evidencia: unknown[] = [];
+      if (h.campo && (h.piezas ?? []).length) {
+        const { data: ev } = await supabase.rpc("evidencia_hipotesis", { p_hipotesis_id: h.id });
+        evidencia = (ev ?? []).map((x) => ({ pieza: x.id_publico, estado: x.estado, valor: x.valor, fecha: x.fecha, fuente: x.fuente }));
+      }
+      salida.push({ ...h, vencida: Boolean(h.fecha && h.fecha <= hoy && h.estado === "abierta"), evidencia });
+    }
+    return json(salida);
+  });
+
+  server.registerTool("resolver_hipotesis", {
+    description: "Cierra una hipótesis con los datos: verdadera · falsa (veredicto obligatorio: qué se aprendió) · sin_datos. estado abierta la reabre.",
+    inputSchema: { hipotesis_id: uuid, estado: z.enum(["abierta", "verdadera", "falsa", "sin_datos"]), veredicto: z.string().optional() },
+  }, async ({ hipotesis_id, estado, veredicto }) => {
+    const { data, error: e } = await supabase.rpc("resolver_hipotesis", { p_hipotesis_id: hipotesis_id, p_estado: estado, p_veredicto: veredicto });
+    return e ? error(limpiarError(e.message)) : json(data);
+  });
+
+  server.registerTool("actualizar_hipotesis", {
+    description: "Completa o corrige una hipótesis: texto, campo, número, fecha. Para las heredadas de Notion sin número ni fecha.",
+    inputSchema: { hipotesis_id: uuid, texto: z.string().optional(), campo: z.string().optional(), numero: z.number().optional(), fecha: fecha.optional() },
+  }, async ({ hipotesis_id, texto, campo, numero, fecha: f }) => {
+    const { data, error: e } = await supabase.rpc("actualizar_hipotesis", { p_hipotesis_id: hipotesis_id, p_texto: texto, p_campo: campo, p_numero: numero, p_fecha: f });
+    return e ? error(limpiarError(e.message)) : json(data);
   });
 
   server.registerTool("listar_cuentas", {
@@ -231,11 +260,34 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("listar_formatos", {
-    description: "Los formatos (Format Cards): código, nombre, estado de validación y molde. Léelos antes de proponer o escribir una pieza.",
-    inputSchema: {},
-  }, async () => {
-    const { data, error: e } = await supabase.from("formatos").select("id, codigo, nombre, estado, origen, molde").order("codigo");
-    return e ? error(e.message) : json(data);
+    description: "Los formatos (Format Cards): código, nombre, estado de validación, serie propia, duración, recompensa, cadencia, hipótesis de formato, molde y rollups (episodios, publicadas, multiplicador promedio, views, follows). Léelos antes de proponer o escribir una pieza.",
+    inputSchema: { con_molde: z.boolean().default(true) },
+  }, async ({ con_molde }) => {
+    const { data, error: e } = await supabase.from("formatos").select("id, codigo, nombre, estado, origen, serie_propia, duracion, recompensa, cadencia, hipotesis_formato, molde, notas").order("codigo");
+    if (e) return error(e.message);
+    const salida = [];
+    for (const f of data ?? []) {
+      const { data: r } = await supabase.rpc("resumen_formato", { p_formato_id: f.id });
+      salida.push({ ...f, molde: con_molde ? f.molde : undefined, resumen: r?.[0] ?? null });
+    }
+    return json(salida);
+  });
+
+  server.registerTool("actualizar_formato", {
+    description: "Edita la ficha de un formato (Format Card) por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), serie_propia, duracion, recompensa, cadencia, hipotesis_formato, notas, molde.",
+    inputSchema: {
+      formato: z.string().describe("código FC-08 o uuid"), nombre: z.string().optional(),
+      estado: z.enum(["detectado", "experimentando", "validado_propio", "firma", "retirado"]).optional(),
+      serie_propia: z.string().nullable().optional(), duracion: z.string().nullable().optional(), recompensa: z.string().nullable().optional(),
+      cadencia: z.string().nullable().optional(), hipotesis_formato: z.string().nullable().optional(), notas: z.string().nullable().optional(), molde: z.string().optional(),
+    },
+  }, async ({ formato, ...cambios }) => {
+    const { data: f } = await supabase.from("formatos").select("id").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
+    if (!f) return error(`No existe el formato ${formato}.`);
+    const { data, error: e } = await supabase.from("formatos").update(cambios).eq("id", f.id).select("id, codigo, nombre, estado, serie_propia, duracion, recompensa, cadencia, hipotesis_formato").single();
+    if (e) return error(limpiarError(e.message));
+    await corrida("actualizar_formato", `${data.codigo}: ${Object.keys(cambios).join(", ")}`, { formato_id: f.id }, perfil);
+    return json(data);
   });
 
   // -------------------------------------------------------------------------

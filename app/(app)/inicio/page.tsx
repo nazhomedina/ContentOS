@@ -53,6 +53,7 @@ export default async function Inicio() {
   const meta = filas.reduce((a, f) => a + f.meta, 0), pub = filas.reduce((a, f) => a + f.publicadas, 0), camino = filas.reduce((a, f) => a + f.en_camino, 0);
   const huecos = Math.max(0, meta - pub - camino);
   const nBuffer = (buffer ?? []).length;
+  const { data: porResolver } = await supabase.from("hipotesis").select("id, texto, campo, numero, fecha").eq("estado", "abierta").not("fecha", "is", null).lte("fecha", hoy).order("fecha").limit(5);
   const sem = semaforoBuffer(nBuffer);
   const pendientes = (propuestas ?? []).length + (bloqueadas ?? []).length;
   const esLaboral = new Date(hoy + "T12:00:00").getDay() % 6 !== 0;
@@ -91,6 +92,19 @@ export default async function Inicio() {
                   <span className="text-xs text-muted-foreground">{t.asignado?.nombre} · {t.tipo} · vence {fechaCorta(t.vence)}</span>
                 </div>
                 <p className="text-sm text-rojo">{t.nota_bloqueo}</p>
+              </li>
+            ))}
+          </ul>
+        </Bloque>
+      )}
+
+      {(porResolver ?? []).length > 0 && (
+        <Bloque titulo="Hipótesis por resolver" extra={<Link href="/hipotesis" className="underline">ver todas</Link>}>
+          <ul className="divide-y rounded-lg border border-ambar/40 text-sm">
+            {porResolver!.map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <span className="min-w-0 flex-1 truncate">{x.texto}</span>
+                <span className="text-xs text-ambar">{x.campo} ≥ {x.numero} · venció {fechaCorta(x.fecha)}</span>
               </li>
             ))}
           </ul>

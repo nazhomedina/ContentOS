@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-15 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 011.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 012.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -372,34 +372,49 @@ export type Database = {
       }
       formatos: {
         Row: {
+          cadencia: string | null
           codigo: string
           created_at: string
+          duracion: string | null
           estado: string
+          hipotesis_formato: string | null
           id: string
           molde: string | null
           nombre: string
           notas: string | null
           origen: string | null
+          recompensa: string | null
+          serie_propia: string | null
         }
         Insert: {
+          cadencia?: string | null
           codigo: string
           created_at?: string
+          duracion?: string | null
           estado: string
+          hipotesis_formato?: string | null
           id?: string
           molde?: string | null
           nombre: string
           notas?: string | null
           origen?: string | null
+          recompensa?: string | null
+          serie_propia?: string | null
         }
         Update: {
+          cadencia?: string | null
           codigo?: string
           created_at?: string
+          duracion?: string | null
           estado?: string
+          hipotesis_formato?: string | null
           id?: string
           molde?: string | null
           nombre?: string
           notas?: string | null
           origen?: string | null
+          recompensa?: string | null
+          serie_propia?: string | null
         }
         Relationships: []
       }
@@ -1327,6 +1342,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      actualizar_hipotesis: {
+        Args: {
+          p_campo?: string
+          p_fecha?: string
+          p_hipotesis_id: string
+          p_numero?: number
+          p_texto?: string
+        }
+        Returns: {
+          campo: string | null
+          created_at: string
+          estado: string
+          fecha: string | null
+          id: string
+          numero: number | null
+          resuelta_en: string | null
+          texto: string
+          updated_at: string
+          veredicto: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hipotesis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       aprobar_historias: {
         Args: { p_editor?: string; p_semana: string }
         Returns: number
@@ -1525,6 +1567,20 @@ export type Database = {
         Args: { p_fecha: string; p_perfil: string }
         Returns: Json
       }
+      evidencia_hipotesis: {
+        Args: { p_hipotesis_id: string }
+        Returns: {
+          estado: string
+          fecha: string
+          fuente: string
+          id_publico: string
+          pieza_id: string
+          publicada_en: string
+          tipo: string
+          titulo: string
+          valor: number
+        }[]
+      }
       evidencia_nodo: {
         Args: { ev: Json; p_semana: string }
         Returns: {
@@ -1601,6 +1657,39 @@ export type Database = {
           ultimo_resumen: string
         }[]
       }
+      ligar_hipotesis: {
+        Args: { p_hipotesis_id: string; p_pieza_id: string }
+        Returns: {
+          comunidad_id: string
+          contenido: string | null
+          created_at: string
+          estado: string
+          etapa_embudo: string | null
+          etiquetas: string[]
+          fecha_objetivo: string | null
+          formato_id: string | null
+          hipotesis_id: string | null
+          id: string
+          id_publico: string | null
+          notas: string | null
+          notion_url: string | null
+          plataforma: string | null
+          programa_aprobado: boolean
+          publicada_en: string | null
+          responsable_id: string | null
+          serie: string | null
+          tipo: string | null
+          titulo: string | null
+          updated_at: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "piezas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       marcar_publicada: {
         Args: { p_pieza_id: string; p_plataforma: string; p_url: string }
         Returns: {
@@ -1671,6 +1760,37 @@ export type Database = {
           p_sistema: string
         }
         Returns: number
+      }
+      resolver_hipotesis: {
+        Args: { p_estado: string; p_hipotesis_id: string; p_veredicto?: string }
+        Returns: {
+          campo: string | null
+          created_at: string
+          estado: string
+          fecha: string | null
+          id: string
+          numero: number | null
+          resuelta_en: string | null
+          texto: string
+          updated_at: string
+          veredicto: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hipotesis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resumen_formato: {
+        Args: { p_formato_id: string }
+        Returns: {
+          episodios: number
+          follows_totales: number
+          multiplicador_promedio: number
+          publicadas: number
+          views_totales: number
+        }[]
       }
       resumen_semana_persona: {
         Args: { p_perfil: string; p_semana: string }

@@ -11,6 +11,9 @@ export type HipotesisNueva = z.infer<typeof esquemaHipotesis>;
 
 export type HipotesisResumen = { texto: string; campo: string | null; numero: number | null; fecha: string | null; estado: string } | null | undefined;
 
+/** Campos con sensor hoy: los cinco primeros salen de `metricas`; los demás se capturan a mano o esperan un job. */
+export const CAMPOS_HIPOTESIS = ["multiplicador", "views", "saves", "follows", "comentarios", "likes", "retencion_3s", "suscriptores", "leads", "replies", "dms"] as const;
+
 export const NOMBRE_ESTADO_HIPOTESIS: Record<string, string> = {
   abierta: "Abierta", verdadera: "Verdadera", falsa: "Falsa", sin_datos: "Sin datos",
 };

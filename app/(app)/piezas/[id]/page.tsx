@@ -7,10 +7,10 @@ import { Assets } from "@/components/pieza/assets";
 import { Comentarios } from "@/components/pieza/comentarios";
 import { Contenido } from "@/components/pieza/contenido";
 import { Etiquetas } from "@/components/pieza/etiquetas";
+import { HipotesisPieza } from "@/components/pieza/hipotesis-pieza";
 import { Stream, type Pensamiento } from "@/components/pieza/stream";
 import { UrlPieza } from "@/components/pieza/url-pieza";
 import { Versiones, type Version } from "@/components/pieza/versiones";
-import { NOMBRE_ESTADO_HIPOTESIS, hipotesisEnUnaLinea, hipotesisResoluble } from "@/lib/dominio/hipotesis";
 import { fechaCorta, fechaHora } from "@/lib/dominio/tiempo";
 import type { Rol } from "@/lib/dominio/roles";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,9 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
       : Promise.resolve({ data: [] as never[] }),
     supabase.from("contenido_versiones").select("version, contenido, instruccion, autor, created_at").eq("pieza_id", id).order("version"),
   ]);
+  const { data: abiertas } = esOwner
+    ? await supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado").eq("estado", "abierta").order("created_at", { ascending: false }).limit(150)
+    : { data: [] as { id: string; texto: string; campo: string | null; numero: number | null; fecha: string | null; estado: string }[] };
 
   const stream: Pensamiento[] = (pensamientos ?? []).map((p) => ({
     id: p.id, tipo: p.tipo, texto: p.texto, transcript: p.transcript_crudo, transcript_pulido: p.transcript_pulido,
@@ -92,19 +95,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
       {pieza.estado !== "borrador" && <UrlPieza piezaId={pieza.id} url={pieza.url} plataforma={pieza.plataforma} puedeEditar={puedeEditar} />}
 
       <Seccion titulo="Hipótesis">
-        {h ? (
-          <div className={cn("rounded-xl border px-4 py-3 text-sm", hipotesisResoluble(h) ? "" : "border-ambar/50 bg-ambar/5")}>
-            <p className="font-medium">{h.texto}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {hipotesisResoluble(h) ? `${h.campo} ≥ ${h.numero} al ${h.fecha}` : "Sin número ni fecha que la cierren. Claude la completa en redacción."}
-              {" · "}{NOMBRE_ESTADO_HIPOTESIS[h.estado] ?? h.estado}
-            </p>
-          </div>
-        ) : (
-          <p className={cn("rounded-xl border border-dashed px-4 py-3 text-sm", esLegado ? "text-muted-foreground" : "border-rojo/50 text-rojo")}>
-            {hipotesisEnUnaLinea(null)}{esLegado && " Heredada de Notion sin hipótesis; puede seguir en producción, pero no se mide."}
-          </p>
-        )}
+        <HipotesisPieza piezaId={pieza.id} actual={h} abiertas={abiertas ?? []} esLegado={esLegado} puedeEditar={esOwner} />
       </Seccion>
 
       {esOwner && enRedaccion && (
