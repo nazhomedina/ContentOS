@@ -203,3 +203,15 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Los leads se anotan a mano** con número y fecha de corte (`registrar_leads`, fuente `manual`, quién lo anotó) hasta que corra `go_leads` en n8n, que escribirá fuente `job`. Sin dato se dice «sin dato», no cero.
 
 **Datos:** RORY, 90 y BEAST cargados desde la colección «Recursos de historias» de Notion, con los tags de Kit verificados contra la cuenta (22364040 · 22364041 · 22364042 = go/rory-sutherland · go/marca-personal-90-dias · go/mrbeast-negocios). El cuarto registro de Notion («If you aren't selling these 4 things») entra como idea sin liga.
+
+## 2026-09-16 · Newsletter CRITERIO (migración 015, aplicada en producción)
+
+**La edición es una pieza `newsletter` con formato FC-09.** FC-09 «CRITERIO (newsletter semanal)» entra a `formatos` con la spec canónica (6 secciones, checklist de 8 puntos, reglas editoriales, puente con Kit) como molde: Claude lo lee con `listar_formatos(con_molde)` antes de redactar. La serie Criterio se hereda del formato, igual que en los yaps de FC-08: CRITERIO es una sola serie con dos contenedores.
+
+**El número de edición vive en el título** («Criterio #002 — …») y en el `id_publico` (NEW-02); no hay columna nueva. `crear_pieza` con tipo newsletter antepone la siguiente edición si el título no la trae (`siguiente_edicion_criterio`, leída de los títulos), pone FC-09 y el viernes siguiente como fecha objetivo (`viernes_siguiente`). La pestaña Newsletter muestra esa fecha junto al título en los carriles.
+
+**El checklist de 8 puntos no es una tarea:** se corre antes de pasar a diseño y vive en el molde del formato. Los checklists por tarea se eliminaron el 15-sep y no vuelven.
+
+**Puente con Kit sin regreso** (docs/newsletter.md): el contenido vive aquí versionado; Claude crea el borrador en Kit por su conector; Nazho programa en la interfaz de Kit; al enviarse, publicada con URL. Estados del newsletter: redacción → diseño (en Kit) → listo (programada) → publicada.
+
+**Datos:** NEW-01 «Criterio #001 — Marca da dirección. Marketing da tracción.» registrada en listo para el viernes 18 con su contenido (versión 1), el id del borrador de Kit en notas y una hipótesis propuesta por Claude que Nazho puede cambiar: ≥ 5 respuestas al correo al 25-sep (`replies`). NEW-02 «Si tienes que explicar tu diferencia, no eres diferente.» en redacción con tres preguntas de entrevista en el stream (ronda 1).

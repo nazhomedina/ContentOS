@@ -211,9 +211,10 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros, meta }: { ru
           <Carriles
             columnas={columnas}
             ruta={ruta}
+            mostrarFecha={tipos.includes("newsletter")}
             piezas={listaProd.map((p) => {
               const t = tareaDe.get(p.id);
-              return { id: p.id, id_publico: p.id_publico, titulo: p.titulo, estado: p.estado, series: p.series ?? [], hipotesis_id: p.hipotesis_id, etiquetas: p.etiquetas ?? [], tarea: t ? { estado: t.estado, vence: t.vence } : null, raw: conRaw.has(p.id) };
+              return { id: p.id, id_publico: p.id_publico, titulo: p.titulo, estado: p.estado, series: p.series ?? [], hipotesis_id: p.hipotesis_id, etiquetas: p.etiquetas ?? [], tarea: t ? { estado: t.estado, vence: t.vence } : null, raw: conRaw.has(p.id), fecha_objetivo: p.fecha_objetivo };
             })}
           />
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">

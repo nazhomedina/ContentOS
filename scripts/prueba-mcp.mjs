@@ -124,6 +124,11 @@ try {
   ok("guardar_recurso con fecha de corte futura → error legible", r.json?.result?.isError && /futura/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100));
   await admin.from("recursos").delete().eq("slug_go", "prueba-mcp");
 
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp newsletter", tipo: "newsletter", estado: "redaccion" } }, 74);
+  const nl = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("crear_pieza newsletter: título numerado, serie Criterio y viernes por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).includes("Criterio") && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && new Date(nl.fecha_objetivo + "T12:00:00Z").getUTCDay() === 5, `${nl?.titulo} · ${nl?.fecha_objetivo}`);
+  if (nl?.id) await admin.from("piezas").delete().eq("id", nl.id);
+
   // editor por MCP no puede crear ideas (RLS vía impersonación)
   const emailE = `prueba-mcp-editor-${Date.now()}@contentos.local`;
   await admin.from("perfiles_permitidos").insert({ email: emailE, nombre: "MCP Editor", rol: "editor" });

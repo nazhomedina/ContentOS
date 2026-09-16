@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { NOMBRE_ESTADO, type EstadoPieza } from "@/lib/dominio/estados";
-import { bucketVencimiento } from "@/lib/dominio/tiempo";
+import { bucketVencimiento, fechaCorta } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
 export type PiezaCarril = {
@@ -8,6 +8,7 @@ export type PiezaCarril = {
   hipotesis_id: string | null; etiquetas: string[];
   tarea?: { estado: string; vence: string | null } | null;
   raw?: boolean;
+  fecha_objetivo?: string | null;
 };
 
 type Fila = { id: string; href: string; titulo: string; sub?: string; señal?: "rojo" | "ambar" | "azul"; nota?: string };
@@ -20,13 +21,14 @@ const UMBRAL_SERIE = 8;
  * Los carriles de producción: un carril por etapa, el conteo y solo el título por fila.
  * Una señal de color únicamente cuando algo pide atención. Los frentes A–E se cuentan bajo su
  * pieza madre; una serie con muchas piezas en el mismo carril se agrupa y muestra las siguientes.
+ * Con `mostrarFecha` (newsletter) cada fila dice su fecha objetivo: el viernes de envío.
  */
-export function Carriles({ columnas, piezas, ruta }: { columnas: EstadoPieza[]; piezas: PiezaCarril[]; ruta: string }) {
+export function Carriles({ columnas, piezas, ruta, mostrarFecha = false }: { columnas: EstadoPieza[]; piezas: PiezaCarril[]; ruta: string; mostrarFecha?: boolean }) {
   return (
     <div className={cn("grid gap-3 md:grid-cols-2", columnas.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3")}>
       {columnas.map((e) => {
         const enColumna = piezas.filter((p) => (e === "listo" ? ["listo", "programada"].includes(p.estado) : p.estado === e));
-        const { sueltas, grupos, totalPiezas, totalFrentes } = organizar(enColumna, ruta, e);
+        const { sueltas, grupos, totalPiezas, totalFrentes } = organizar(enColumna, ruta, e, mostrarFecha);
         return (
           <section key={e} className="min-w-0 rounded-xl border bg-muted/20 p-3">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 px-2 pb-1">
@@ -84,7 +86,7 @@ function señalDe(p: PiezaCarril): { señal?: Fila["señal"]; nota?: string } {
 }
 
 /** Frentes A–E bajo su pieza madre; series grandes agrupadas con las primeras N por ID. */
-function organizar(piezas: PiezaCarril[], ruta: string, estado: EstadoPieza) {
+function organizar(piezas: PiezaCarril[], ruta: string, estado: EstadoPieza, mostrarFecha = false) {
   const madre = (p: PiezaCarril) => /^(.+)-[A-E]$/.exec(p.id_publico ?? "")?.[1] ?? null;
   const porMadre = new Map<string, PiezaCarril[]>();
   const simples: PiezaCarril[] = [];
@@ -122,6 +124,7 @@ function organizar(piezas: PiezaCarril[], ruta: string, estado: EstadoPieza) {
 
   function fila(u: (typeof unidades)[number]): Fila {
     const { señal, nota } = señalDe(u.p);
-    return { id: u.p.id, href: u.href, titulo: u.titulo, sub: u.frentes > 1 ? `${u.frentes} frentes` : undefined, señal, nota };
+    const sub = u.frentes > 1 ? `${u.frentes} frentes` : mostrarFecha && u.p.fecha_objetivo ? fechaCorta(u.p.fecha_objetivo) : undefined;
+    return { id: u.p.id, href: u.href, titulo: u.titulo, sub, señal, nota };
   }
 }

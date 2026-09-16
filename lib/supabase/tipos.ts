@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 014.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 015.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -1951,6 +1951,7 @@ export type Database = {
         }[]
       }
       rol_actual: { Args: never; Returns: string }
+      siguiente_edicion_criterio: { Args: never; Returns: number }
       siguiente_id_publico: { Args: { p_prefijo: string }; Returns: string }
       transicion_permitida: {
         Args: { p_a: string; p_de: string; p_rol: string }
@@ -1966,6 +1967,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      viernes_siguiente: { Args: never; Returns: string }
       views_recientes: { Args: { p_pieza_id: string }; Returns: number }
     }
     Enums: {
