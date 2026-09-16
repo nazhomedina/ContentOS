@@ -185,3 +185,11 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 ## 2026-09-16 · Series declaradas (migración 013)
 
 **Nazho pidió que la serie deje de ser texto libre.** Ahora hay tabla `series` (nombre único, descripción, activa) con pantalla propia junto a Formatos e Hipótesis: se declaran, se describen, se prenden y se apagan, y se ve cuántas piezas lleva cada una. En la pieza, `series` es una lista (text[]) que se elige como etiquetas entre las series activas; una pieza puede pertenecer a varias. Si una serie se escribe en una pieza y no existía, se declara sola. Renombrar una serie la renombra en todas las piezas y en el formato que la declara como serie propia. Al elegir formato, la pieza suma la serie propia del formato si no la trae. Las 11 series que había en piezas y formatos quedaron declaradas y activas. MCP: `listar_series`, `guardar_serie`; `crear_pieza` y `actualizar_pieza` hablan de `series`; `listar_piezas` filtra por serie. 29 tools.
+
+## 2026-09-16 · Reels: carriles limpios
+
+**La pestaña de un tipo abre en Producción**, cuatro carriles por etapa (Redacción · Grabación · Diseño · Listo, o tres si el tipo no se graba) con el conteo en la cabecera y **solo el título por fila**. Nazho lo pidió así: «lo único relevante es saber en dónde estamos; con el título y la cantidad de piezas por columna es más que suficiente». Arriba, una sola línea dice cómo va la semana contra `metas_semana` (publicadas de la meta · listas para programar · en producción) y una fila de chips filtra por serie. Nada más.
+
+**Una señal, no seis columnas.** Cada fila lleva a lo sumo un punto de color: rojo si la tarea está bloqueada o vencida o la pieza no tiene hipótesis (salvo `legado`), ámbar si vence esta semana, azul si está en curso o tiene RAW. Sin punto, va bien. El detalle (responsable, tarea, faltantes, fechas) vive en la vista Lista, que conserva la tabla y los filtros.
+
+**Frentes y series se agrupan.** Los frentes `-A…-E` cuentan bajo su pieza madre («3 frentes», con enlace a la lista filtrada); una serie con ocho o más piezas en el mismo carril se muestra como grupo con las primeras cinco y «y N más». Así 104 filas se leen como unos veinte renglones sin ocultar nada. Diseño en `components/formato/carriles.tsx`; canvas: https://claude.ai/artifact/TiVXb9nvu8LEn1rFGdQPLg.

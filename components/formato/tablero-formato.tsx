@@ -2,26 +2,28 @@ import Link from "next/link";
 import { AlertTriangle, FileText, Link2, Search } from "lucide-react";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { IdPublico, InsigniaEstado, InsigniaTarea } from "@/components/app/insignias";
+import { Carriles } from "@/components/formato/carriles";
 import { hipotesisEnUnaLinea } from "@/lib/dominio/hipotesis";
-import { NOMBRE_ESTADO, NOMBRE_TIPO, PRODUCCION, subetapas, type EstadoPieza, type Tipo } from "@/lib/dominio/estados";
-import { bucketVencimiento, fechaCorta } from "@/lib/dominio/tiempo";
+import { NOMBRE_ESTADO, NOMBRE_TIPO, PRODUCCION, subetapas, type Tipo } from "@/lib/dominio/estados";
+import { bucketVencimiento, fechaCorta, lunesDeHoy } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
 export type FiltrosTipo = { vista?: string; q?: string; estado?: string; serie?: string; responsable?: string; sin?: string; etiqueta?: string };
-type Vista = "lista" | "tablero" | "publicados" | "archivo";
+type Vista = "produccion" | "lista" | "publicados" | "archivo";
 
 type TareaAbierta = { tipo: string; estado: string; vence: string | null; asignado: string | null };
 
 /**
- * Pestaña de un tipo de pieza, pensada para escritorio: Lista (la base con filtros), Tablero
- * (columnas Redacción · Grabación · Diseño · Listo), Publicados (con métricas) y Archivo.
- * Cada fila dice quién la tiene, qué tarea está abierta y qué le falta.
+ * Pestaña de un tipo de pieza (docs/decisiones.md 2026-09-16): Producción son carriles limpios por
+ * etapa con el conteo y solo el título por fila, bajo una línea que dice dónde vamos contra la meta.
+ * Lista es la base con filtros; Publicados trae métricas; Archivo, el banco.
  */
-export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: string; etiqueta: string; tipos: Tipo[]; filtros: FiltrosTipo }) {
+export async function TableroTipo({ ruta, etiqueta, tipos, filtros, meta }: { ruta: string; etiqueta: string; tipos: Tipo[]; filtros: FiltrosTipo; meta?: string }) {
   const sesion = await sesionActual();
   const supabase = await crearClienteServidor();
   const esOwner = sesion?.perfil.rol === "owner";
-  const vista: Vista = (["lista", "tablero", "publicados", "archivo"] as const).find((v) => v === filtros.vista) ?? "lista";
+  const vista: Vista = (["produccion", "lista", "publicados", "archivo"] as const).find((v) => v === filtros.vista) ?? "produccion";
+  const lunes = lunesDeHoy();
 
   const [{ data }, { data: perfiles }] = await Promise.all([
     supabase
@@ -53,6 +55,11 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
   const archivadas = todas.filter((p) => p.estado === "archivada");
   const borradores = todas.filter((p) => p.estado === "borrador").length;
   const buffer = produccion.filter((p) => p.estado === "listo" || p.estado === "programada").length;
+  const publicadasSemana = publicadas.filter((p) => p.estado === "publicada" && (p.publicada_en ?? "") >= lunes).length;
+  const { data: metaFila } = meta ? await supabase.from("metas_semana").select("cantidad").eq("tipo", meta).maybeSingle() : { data: null };
+  const metaSemana = metaFila?.cantidad ?? null;
+  const { data: raws } = ids.length ? await supabase.from("assets").select("pieza_id").eq("carpeta", "raw").in("pieza_id", ids) : { data: [] as { pieza_id: string }[] };
+  const conRaw = new Set((raws ?? []).map((r) => r.pieza_id));
   const series = [...new Set(todas.flatMap((p) => p.series ?? []))].sort();
   const etiquetas = [...new Set(todas.flatMap((p) => p.etiquetas ?? []))].sort();
 
@@ -76,7 +83,6 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
   const hayFiltro = Boolean(q || filtros.estado || filtros.serie || filtros.responsable || filtros.sin || filtros.etiqueta);
 
   const columnas = PRODUCCION.filter((e) => tipos.some((t) => subetapas(t).includes(e)));
-  const enColumna = (e: EstadoPieza) => listaProd.filter((p) => (e === "listo" ? ["listo", "programada"].includes(p.estado) : p.estado === e));
 
   let metricas: Record<string, { views: number | null; likes: number | null; saves: number | null; multiplicador: number | null; fecha: string; fuente: string }> = {};
   if (vista === "publicados" && listaPub.length) {
@@ -84,10 +90,11 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
     for (const r of m ?? []) if (!metricas[r.pieza_id]) metricas = { ...metricas, [r.pieza_id]: r };
   }
 
-  const href = (v: Vista) => {
+  const href = (v: Vista, extra?: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
-    if (v !== "lista") sp.set("vista", v);
-    for (const k of ["q", "estado", "serie", "responsable", "sin", "etiqueta"] as const) if (filtros[k]) sp.set(k, filtros[k]!);
+    if (v !== "produccion") sp.set("vista", v);
+    if (extra) for (const [k, val] of Object.entries(extra)) if (val) sp.set(k, val);
+    for (const k of ["q", "estado", "serie", "responsable", "sin", "etiqueta"] as const) if (filtros[k] && !(extra && k in extra)) sp.set(k, filtros[k]!);
     const s = sp.toString();
     return s ? `${ruta}?${s}` : ruta;
   };
@@ -98,20 +105,35 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">{etiqueta}</h1>
-          <p className="text-sm text-muted-foreground">
-            {produccion.length} en producción · buffer {buffer} · {publicadas.length} publicadas · {archivadas.length} en archivo
-            {borradores > 0 && esOwner && <> · <Link href={`/ideas?tipo=${tipos[0]}`} className="underline">{borradores} en borrador</Link></>}
+          <p className="text-sm">
+            {metaSemana != null
+              ? <><span className={cn("font-semibold", publicadasSemana >= metaSemana ? "text-ok" : publicadasSemana > 0 ? "text-ambar" : "text-rojo")}>{publicadasSemana} de {metaSemana}</span> <span className="text-muted-foreground">publicadas esta semana</span></>
+              : <><span className="font-semibold">{publicadasSemana}</span> <span className="text-muted-foreground">publicadas esta semana</span></>}
+            <span className="text-muted-foreground"> · </span><span className="font-semibold">{buffer}</span> <span className="text-muted-foreground">listas para programar</span>
+            <span className="text-muted-foreground"> · {produccion.length} en producción</span>
+            {borradores > 0 && esOwner && <span className="text-muted-foreground"> · <Link href={`/ideas?tipo=${tipos[0]}`} className="underline">{borradores} en borrador</Link></span>}
           </p>
         </div>
         <nav className="flex gap-1 rounded-full border p-0.5 text-xs font-medium">
-          {([["lista", "Lista"], ["tablero", "Tablero"], ["publicados", "Publicados"], ["archivo", "Archivo"]] as const).map(([v, n]) => (
+          {([["produccion", "Producción"], ["lista", "Lista"], ["publicados", `Publicados · ${publicadas.length}`], ["archivo", `Archivo · ${archivadas.length}`]] as const).map(([v, n]) => (
             <Link key={v} href={href(v)} className={cn("rounded-full px-3 py-1", vista === v ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{n}</Link>
           ))}
         </nav>
       </header>
 
-      <form method="get" action={ruta} className="flex flex-wrap items-center gap-2 text-xs">
-        {vista !== "lista" && <input type="hidden" name="vista" value={vista} />}
+      {vista === "produccion" && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link href={href("produccion", { serie: undefined })} className={cn("rounded-full border px-3 py-1 text-xs font-medium", !filtros.serie ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>Todas las series</Link>
+          {series.map((sx) => {
+            const n = produccion.filter((p) => (p.series ?? []).includes(sx)).length;
+            if (n === 0) return null;
+            return <Link key={sx} href={href("produccion", { serie: sx })} className={cn("rounded-full border px-3 py-1 text-xs font-medium", filtros.serie === sx ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>{sx} <span className="opacity-70">{n}</span></Link>;
+          })}
+        </div>
+      )}
+
+      {vista !== "produccion" && <form method="get" action={ruta} className="flex flex-wrap items-center gap-2 text-xs">
+        <input type="hidden" name="vista" value={vista} />
         <label className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input name="q" defaultValue={filtros.q ?? ""} placeholder="Buscar por ID, título, serie, nota o etiqueta" className="h-8 w-72 rounded-md border border-input bg-background pl-7 pr-2 text-xs" />
@@ -147,7 +169,7 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
         </select>
         <button type="submit" className="h-8 rounded-md bg-foreground px-3 text-xs font-semibold text-background">Filtrar</button>
         {hayFiltro && <Link href={href(vista)} className="text-muted-foreground underline">quitar filtros</Link>}
-      </form>
+      </form>}
 
       {vista === "lista" && (
         <Tabla vacio={hayFiltro ? "Nada coincide con esos filtros." : `Nada en producción en ${etiqueta.toLowerCase()}.`} filas={listaProd.length}>
@@ -184,43 +206,23 @@ export async function TableroTipo({ ruta, etiqueta, tipos, filtros }: { ruta: st
         </Tabla>
       )}
 
-      {vista === "tablero" && (
-        <div className={cn("grid gap-3", columnas.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3", "md:grid-cols-2")}>
-          {columnas.map((e) => {
-            const items = enColumna(e);
-            return (
-              <section key={e} className="space-y-2 rounded-xl border bg-muted/20 p-3">
-                <h2 className="flex items-baseline justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {e === "listo" ? "Listo · buffer" : NOMBRE_ESTADO[e]} <span className="font-medium">{items.length}</span>
-                </h2>
-                {items.length === 0 ? <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Vacío</p> : (
-                  <ul className="space-y-2">
-                    {items.map((p) => {
-                      const t = tareaDe.get(p.id);
-                      return (
-                        <li key={p.id}>
-                          <Link href={`/piezas/${p.id}`} className="block space-y-1.5 rounded-lg border bg-card p-3 text-sm hover:bg-muted/40">
-                            <div className="flex items-center justify-between gap-2">
-                              <IdPublico id={p.id_publico} />
-                              <span className="flex items-center gap-1.5">{p.estado === "programada" && <InsigniaEstado estado="programada" />}<Faltantes sinHipotesis={!p.hipotesis_id} sinContenido={!p.tiene_contenido} sinUrl={false} compacto /></span>
-                            </div>
-                            <p className="font-medium leading-snug">{p.titulo ?? "(sin título)"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {(p.series ?? []).length > 0 && <span>{p.series.join(", ")} · </span>}
-                              {p.fecha_objetivo ? fechaCorta(p.fecha_objetivo) : "sin fecha"}
-                              {p.responsable?.nombre && ` · ${p.responsable.nombre}`}
-                            </p>
-                            {t && <CeldaTarea t={t} />}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
-        </div>
+      {vista === "produccion" && (
+        <>
+          <Carriles
+            columnas={columnas}
+            ruta={ruta}
+            piezas={listaProd.map((p) => {
+              const t = tareaDe.get(p.id);
+              return { id: p.id, id_publico: p.id_publico, titulo: p.titulo, estado: p.estado, series: p.series ?? [], hipotesis_id: p.hipotesis_id, etiquetas: p.etiquetas ?? [], tarea: t ? { estado: t.estado, vence: t.vence } : null, raw: conRaw.has(p.id) };
+            })}
+          />
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5"><span className="size-[7px] rounded-full bg-rojo" /> sin hipótesis, bloqueada o vencida</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-[7px] rounded-full bg-ambar" /> vence esta semana</span>
+            <span className="inline-flex items-center gap-1.5"><span className="size-[7px] rounded-full bg-primary" /> en curso o con RAW</span>
+            <span>Los frentes A–E se cuentan bajo su pieza; una serie con muchas piezas se agrupa.</span>
+          </p>
+        </>
       )}
 
       {vista === "publicados" && (
