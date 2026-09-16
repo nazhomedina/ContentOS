@@ -40,8 +40,8 @@ export function AccionesPieza({ piezaId, estado, rol, urlActual, plataformaActua
   }
 
   return (
-    <footer className="sticky bottom-16 z-10 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur md:bottom-0">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="contents">
         {puedeAvanzar && siguiente && (
           <Button variant="outline" disabled={pendiente} onClick={() => avanzar(siguiente)}>
             {listoEs ? "Marcar como lista" : `Pasar a ${NOMBRE_ESTADO[siguiente]}`}
@@ -81,6 +81,6 @@ export function AccionesPieza({ piezaId, estado, rol, urlActual, plataformaActua
           </Dialog>
         )}
       </div>
-    </footer>
+    </div>
   );
 }

@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Link2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { guardarUrl } from "@/lib/acciones/piezas";
 
 const PLATAFORMAS = ["instagram", "youtube", "tiktok", "x", "kit", "blog", "linkedin"];
 
-/** La URL de la pieza, siempre a la vista: todo lo que Mariela sube lo captura aquí, antes o después de publicar. */
+/** La URL de la pieza en la ficha: se captura en cuanto existe, antes o después de publicar. */
 export function UrlPieza({ piezaId, url, plataforma, puedeEditar }: { piezaId: string; url: string | null; plataforma: string | null; puedeEditar: boolean }) {
   const [valor, setValor] = useState(url ?? "");
   const [plat, setPlat] = useState(plataforma ?? "instagram");
@@ -23,30 +23,31 @@ export function UrlPieza({ piezaId, url, plataforma, puedeEditar }: { piezaId: s
     });
   }
 
+  if (!puedeEditar) {
+    return url
+      ? <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 break-all text-sm text-primary underline"><ExternalLink className="size-3.5 shrink-0" />{url}</a>
+      : <p className="text-sm text-muted-foreground">Sin URL todavía.</p>;
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
-      <Link2 className="size-4 shrink-0 text-muted-foreground" />
-      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">URL</span>
-      {puedeEditar ? (
-        <>
-          <Input
-            inputMode="url"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && cambio) { e.preventDefault(); guardar(); } }}
-            placeholder="https://www.instagram.com/reel/…  (pégala en cuanto exista)"
-            className="h-8 min-w-[16rem] flex-1 text-xs"
-            disabled={pendiente}
-          />
-          <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={plat} onChange={(e) => setPlat(e.target.value)} disabled={pendiente}>
-            {PLATAFORMAS.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <Button size="sm" disabled={pendiente || !cambio} onClick={guardar}>Guardar</Button>
-        </>
-      ) : (
-        <span className="text-sm">{url ?? <span className="text-muted-foreground">sin URL todavía</span>}</span>
-      )}
-      {url && <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary underline"><ExternalLink className="size-3.5" /> abrir</a>}
+    <div className="space-y-2">
+      <Input
+        inputMode="url"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && cambio) { e.preventDefault(); guardar(); } }}
+        placeholder="https://www.instagram.com/reel/…"
+        className="h-8 text-xs"
+        disabled={pendiente}
+      />
+      <div className="flex items-center gap-1.5">
+        <select className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs" value={plat} onChange={(e) => setPlat(e.target.value)} disabled={pendiente}>
+          {PLATAFORMAS.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <Button size="sm" variant={cambio ? "default" : "outline"} disabled={pendiente || !cambio} onClick={guardar}>Guardar</Button>
+        {url && <a href={url} target="_blank" rel="noreferrer" className="inline-flex size-7 items-center justify-center rounded-md text-primary hover:bg-muted" aria-label="Abrir"><ExternalLink className="size-3.5" /></a>}
+      </div>
+      <p className="text-[11px] text-muted-foreground">{url ? "Guardada. Es la que habilita «Publicada»." : "Pégala en cuanto exista. Es la que habilita «Publicada»."}</p>
     </div>
   );
 }

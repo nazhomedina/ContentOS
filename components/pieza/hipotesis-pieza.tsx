@@ -36,8 +36,8 @@ export function HipotesisPieza({ piezaId, actual, abiertas, esLegado, puedeEdita
   return (
     <div className="space-y-2">
       {actual ? (
-        <div className={cn("rounded-xl border px-4 py-3 text-sm", hipotesisResoluble(actual) ? "" : "border-ambar/50 bg-ambar/5")}>
-          <p className="font-medium">{actual.texto}</p>
+        <div className={cn("rounded-lg px-3 py-2 text-sm", hipotesisResoluble(actual) ? "bg-muted/60" : "border border-ambar/50 bg-ambar/5")}>
+          <p className="text-[13px] font-medium leading-snug">{actual.texto}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {hipotesisResoluble(actual) ? `${actual.campo} ≥ ${actual.numero} al ${fechaCorta(actual.fecha)}` : "Sin número ni fecha que la cierren."}
             {" · "}{NOMBRE_ESTADO_HIPOTESIS[actual.estado] ?? actual.estado}
@@ -45,7 +45,7 @@ export function HipotesisPieza({ piezaId, actual, abiertas, esLegado, puedeEdita
           </p>
         </div>
       ) : (
-        <p className={cn("rounded-xl border border-dashed px-4 py-3 text-sm", esLegado ? "text-muted-foreground" : "border-rojo/50 text-rojo")}>
+        <p className={cn("rounded-lg border border-dashed px-3 py-2 text-sm", esLegado ? "text-muted-foreground" : "border-rojo/50 text-rojo")}>
           Sin hipótesis todavía.{esLegado ? " Heredada de Notion; puede seguir en producción, pero no se mide." : " Sin ella la pieza no pasa a grabación."}
         </p>
       )}
@@ -60,7 +60,7 @@ export function HipotesisPieza({ piezaId, actual, abiertas, esLegado, puedeEdita
 
       {modo === "elegir" && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3 text-xs">
-          <select className="h-8 min-w-[20rem] flex-1 rounded-md border border-input bg-background px-2 text-xs" value={sel} onChange={(e) => setSel(e.target.value)}>
+          <select className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs" value={sel} onChange={(e) => setSel(e.target.value)}>
             <option value="">Elige una hipótesis abierta…</option>
             {abiertas.map((h) => <option key={h.id} value={h.id}>{h.texto.slice(0, 90)}{h.campo ? ` · ${h.campo} ≥ ${h.numero}` : ""}</option>)}
           </select>

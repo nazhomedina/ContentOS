@@ -2,21 +2,28 @@ import { notFound, redirect } from "next/navigation";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { IdPublico, InsigniaEstado, InsigniaTipo, InsigniaTarea } from "@/components/app/insignias";
 import { AccionesPieza } from "@/components/pieza/acciones-pieza";
-import { AccionesOwner } from "@/components/pieza/acciones-owner";
+import { AsignarTarea } from "@/components/pieza/asignar-tarea";
 import { Assets } from "@/components/pieza/assets";
+import { Camino } from "@/components/pieza/camino";
 import { Comentarios } from "@/components/pieza/comentarios";
 import { Contenido } from "@/components/pieza/contenido";
 import { Etiquetas } from "@/components/pieza/etiquetas";
+import { FichaPieza } from "@/components/pieza/ficha-pieza";
 import { HipotesisPieza } from "@/components/pieza/hipotesis-pieza";
 import { Stream, type Pensamiento } from "@/components/pieza/stream";
 import { UrlPieza } from "@/components/pieza/url-pieza";
 import { Versiones, type Version } from "@/components/pieza/versiones";
-import { fechaCorta, fechaHora } from "@/lib/dominio/tiempo";
+import { NOMBRE_TAREA, type TipoTarea } from "@/lib/dominio/estados";
+import { bucketVencimiento, fechaCorta, fechaHora } from "@/lib/dominio/tiempo";
 import type { Rol } from "@/lib/dominio/roles";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * La pieza abierta (docs/decisiones.md 2026-09-16): el camino de estados arriba, el contenido como
+ * documento a la izquierda y la ficha fija a la derecha con todo lo que describe la pieza.
+ */
 export default async function DetallePieza({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sesion = await sesionActual();
@@ -56,102 +63,141 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
   const historial: Version[] = (versiones ?? []).map((v) => ({ version: v.version, contenido: v.contenido, instruccion: v.instruccion, autor: v.autor, cuando: fechaHora(v.created_at) }));
   const vigente = historial.length > 0 ? historial[historial.length - 1] : null;
   const enRedaccion = pieza.estado === "borrador" || pieza.estado === "redaccion";
-  const h = pieza.hipotesis;
   const esLegado = (pieza.etiquetas ?? []).includes("legado");
 
+  // Qué sigue: la primera tarea abierta, o la fecha objetivo.
+  const abiertasT = (tareas ?? []).filter((t) => t.estado !== "hecha");
+  const proxima = abiertasT.find((t) => t.estado === "en_curso") ?? abiertasT[0];
+  const siguiente = pieza.estado === "publicada" && pieza.publicada_en
+    ? `Publicada ${fechaHora(pieza.publicada_en)} en ${pieza.plataforma}`
+    : proxima
+      ? `Sigue: ${NOMBRE_TAREA[proxima.tipo as TipoTarea]?.toLowerCase() ?? proxima.tipo} · ${proxima.asignado?.nombre ?? "sin asignar"}${proxima.vence ? ` · vence ${fechaCorta(proxima.vence)}` : ""}`
+      : pieza.fecha_objetivo ? `Fecha objetivo ${fechaCorta(pieza.fecha_objetivo)}` : "Sin tarea abierta ni fecha objetivo";
+
   return (
-    <article className="space-y-8">
-      <header className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <IdPublico id={pieza.id_publico} />
-          {pieza.tipo && <InsigniaTipo tipo={pieza.tipo} />}
-          <InsigniaEstado estado={pieza.estado} />
-          {pieza.formato && <span className="text-xs text-muted-foreground">{pieza.formato.codigo} · {pieza.formato.nombre}</span>}
-          {pieza.serie && <span className="text-xs text-muted-foreground">· serie {pieza.serie}</span>}
+    <article className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <IdPublico id={pieza.id_publico} />
+            {pieza.tipo && <InsigniaTipo tipo={pieza.tipo} />}
+            <InsigniaEstado estado={pieza.estado} />
+            {pieza.formato && <span className="text-xs text-muted-foreground">{pieza.formato.codigo} · {pieza.formato.nombre}</span>}
+            {pieza.serie && <span className="text-xs text-muted-foreground">· serie {pieza.serie}</span>}
+          </div>
+          <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-balance">{pieza.titulo ?? pieza.id_publico}</h1>
+          <Etiquetas piezaId={pieza.id} etiquetas={pieza.etiquetas ?? []} puedeEditar={esOwner} />
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight">{pieza.titulo ?? pieza.id_publico}</h1>
-        <Etiquetas piezaId={pieza.id} etiquetas={pieza.etiquetas ?? []} puedeEditar={esOwner} />
-        {!esOwner && (
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
-            <Dato k="Fecha objetivo" v={fechaCorta(pieza.fecha_objetivo)} />
-            <Dato k="Responsable" v={pieza.responsable?.nombre ?? "—"} />
-            <Dato k="Etapa del embudo" v={pieza.etapa_embudo ?? "—"} />
-          </dl>
-        )}
-        {pieza.estado === "borrador" && (
-          <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-            Es un borrador. Habla aquí abajo en el stream, contesta lo que Claude pregunte y, cuando tenga tipo, «Producir» la manda a redacción. Desde Claude: «entrevístame sobre {pieza.id_publico}».
-          </p>
-        )}
-        {pieza.estado === "publicada" && pieza.publicada_en && (
-          <p className="text-sm">Publicada {fechaHora(pieza.publicada_en)} en {pieza.plataforma}.</p>
-        )}
+        <div className="shrink-0 pt-1">
+          <AccionesPieza piezaId={pieza.id} estado={pieza.estado} rol={rol} urlActual={pieza.url} plataformaActual={pieza.plataforma} />
+        </div>
       </header>
 
-      {esOwner && (
-        <AccionesOwner piezaId={pieza.id} estado={pieza.estado} tipo={pieza.tipo} fechaObjetivo={pieza.fecha_objetivo} responsableId={pieza.responsable_id} serie={pieza.serie} formatoId={pieza.formato_id} etapa={pieza.etapa_embudo} perfiles={perfiles ?? []} formatos={formatos ?? []} />
+      <Camino tipo={pieza.tipo} estado={pieza.estado} siguiente={siguiente} />
+
+      {pieza.estado === "borrador" && (
+        <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          Es un borrador. Habla en el stream, contesta lo que Claude pregunte y, cuando tenga tipo, «Producir» la manda a redacción. Desde Claude: «entrevístame sobre {pieza.id_publico}».
+        </p>
       )}
 
-      {pieza.estado !== "borrador" && <UrlPieza piezaId={pieza.id} url={pieza.url} plataforma={pieza.plataforma} puedeEditar={puedeEditar} />}
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
+        <section className="min-w-0 space-y-6">
+          {esOwner && enRedaccion && (
+            <Bloque titulo="Stream de redacción">
+              <Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir />
+            </Bloque>
+          )}
 
-      <Seccion titulo="Hipótesis">
-        <HipotesisPieza piezaId={pieza.id} actual={h} abiertas={abiertas ?? []} esLegado={esLegado} puedeEditar={esOwner} />
-      </Seccion>
+          <div className="rounded-xl border px-5 py-5 sm:px-7">
+            <div className="mb-3 flex flex-wrap items-baseline gap-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{vigente ? `Contenido · v${vigente.version}` : "Contenido"}</span>
+              {vigente && <span className="text-xs text-muted-foreground">{vigente.autor ?? "claude"} · {vigente.cuando}{vigente.instruccion && ` · «${vigente.instruccion}»`}</span>}
+            </div>
+            <div className="max-w-[68ch]">
+              <Contenido piezaId={pieza.id} contenido={pieza.contenido} puedeEditar={puedeEditar} vacio={pieza.estado === "borrador" ? "Todavía no hay contenido. Sale de la entrevista con Claude o se escribe aquí." : "Sin contenido. Escríbelo aquí o pídeselo a Claude."} />
+            </div>
+            {historial.length > 1 && <div className="mt-4"><Versiones piezaId={pieza.id} versiones={historial} puedeVolver={puedeEditar} /></div>}
+          </div>
 
-      {esOwner && enRedaccion && (
-        <Seccion titulo="Stream de redacción">
-          <Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir />
-        </Seccion>
-      )}
+          <details className="group rounded-xl border" open={Boolean(pieza.notas)}>
+            <summary className="flex cursor-pointer flex-wrap items-baseline gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notas</span>
+              <span className="text-xs text-muted-foreground">spec visual, contexto, avisos: lo que rodea al contenido</span>
+            </summary>
+            <div className="border-t px-4 py-3">
+              {pieza.notas ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{pieza.notas}</p> : <p className="text-sm text-muted-foreground">Sin notas.</p>}
+            </div>
+          </details>
 
-      <Seccion titulo={vigente ? `Contenido · v${vigente.version}` : "Contenido"}>
-        {vigente && <p className="text-xs text-muted-foreground">{vigente.autor ?? "claude"} · {vigente.cuando}{vigente.instruccion && ` · «${vigente.instruccion}»`}</p>}
-        <Contenido piezaId={pieza.id} contenido={pieza.contenido} puedeEditar={puedeEditar} vacio={pieza.estado === "borrador" ? "Todavía no hay contenido. Sale de la entrevista con Claude o se escribe aquí." : "Sin contenido. Escríbelo aquí o pídeselo a Claude."} />
-        {historial.length > 1 && <Versiones piezaId={pieza.id} versiones={historial} puedeVolver={puedeEditar} />}
-      </Seccion>
+          {esOwner && !enRedaccion && stream.length > 0 && (
+            <details className="group rounded-xl border">
+              <summary className="flex cursor-pointer flex-wrap items-baseline gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Stream de redacción</span>
+                <span className="text-xs text-muted-foreground">· {stream.length} · lo que se dijo antes de escribir</span>
+              </summary>
+              <div className="border-t px-4 py-4"><Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir={false} /></div>
+            </details>
+          )}
 
-      {esOwner && !enRedaccion && stream.length > 0 && (
-        <details className="group rounded-xl border">
-          <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">
-            Stream de redacción <span className="ml-2 font-medium normal-case tracking-normal">· {stream.length} · lo que se dijo antes de escribir</span>
-          </summary>
-          <div className="border-t px-4 py-4"><Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir={false} /></div>
-        </details>
-      )}
+          <Bloque titulo="Comentarios">
+            <Comentarios piezaId={pieza.id} comentarios={(comentarios ?? []).map((c) => ({ id: c.id, texto: c.texto, cuando: fechaHora(c.created_at), autor: c.autor?.nombre ?? "?" }))} />
+          </Bloque>
+        </section>
 
-      <Seccion titulo="Notas">
-        {pieza.notas ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{pieza.notas}</p> : <p className="text-sm text-muted-foreground">Sin notas. Aquí van spec visual, contexto, avisos: lo que rodea al contenido.</p>}
-      </Seccion>
+        <aside className="space-y-4 xl:sticky xl:top-8">
+          <Tarjeta titulo="Ficha">
+            {esOwner ? (
+              <FichaPieza piezaId={pieza.id} estado={pieza.estado} tipo={pieza.tipo} fechaObjetivo={pieza.fecha_objetivo} responsableId={pieza.responsable_id} serie={pieza.serie} formatoId={pieza.formato_id} etapa={pieza.etapa_embudo} perfiles={perfiles ?? []} formatos={formatos ?? []} />
+            ) : (
+              <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
+                <Dato k="Fecha objetivo" v={fechaCorta(pieza.fecha_objetivo)} />
+                <Dato k="Responsable" v={pieza.responsable?.nombre ?? "—"} />
+                <Dato k="Etapa" v={pieza.etapa_embudo ?? "—"} />
+                <Dato k="Serie" v={pieza.serie ?? "—"} />
+              </dl>
+            )}
+          </Tarjeta>
 
-      <Seccion titulo="Assets">
-        <Assets piezaId={pieza.id} assets={(assets ?? []).map((a) => ({ ruta: a.ruta, nombre: a.nombre, carpeta: a.carpeta === "otro" ? "" : a.carpeta }))} puedeSubir={puedeEditar} />
-      </Seccion>
+          <Tarjeta titulo="Hipótesis">
+            <HipotesisPieza piezaId={pieza.id} actual={pieza.hipotesis} abiertas={abiertas ?? []} esLegado={esLegado} puedeEditar={esOwner} />
+          </Tarjeta>
 
-      <Seccion titulo="Tareas">
-        {(tareas ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Sin tareas asignadas.</p> : (
-          <ul className="divide-y rounded-lg border text-sm">
-            {(tareas ?? []).map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
-                <InsigniaTarea tipo={t.tipo} />
-                <span className={cn("font-semibold", t.estado === "bloqueada" ? "text-rojo" : t.estado === "en_curso" ? "text-primary" : t.estado === "hecha" ? "text-ok" : "text-muted-foreground")}>{t.estado.replace("_", " ")}</span>
-                <span className="text-muted-foreground">· {t.asignado?.nombre ?? "sin asignar"} · {t.estado === "hecha" ? `hecha ${fechaCorta(t.hecha_en?.slice(0, 10))}` : `vence ${fechaCorta(t.vence)}`}</span>
-                {t.estado === "bloqueada" && <span className="text-rojo">{t.nota_bloqueo}</span>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Seccion>
+          {pieza.estado !== "borrador" && (
+            <Tarjeta titulo="URL">
+              <UrlPieza piezaId={pieza.id} url={pieza.url} plataforma={pieza.plataforma} puedeEditar={puedeEditar} />
+            </Tarjeta>
+          )}
 
-      <Seccion titulo="Comentarios">
-        <Comentarios piezaId={pieza.id} comentarios={(comentarios ?? []).map((c) => ({ id: c.id, texto: c.texto, cuando: fechaHora(c.created_at), autor: c.autor?.nombre ?? "?" }))} />
-      </Seccion>
+          <Tarjeta titulo="Tareas" accion={esOwner && pieza.estado !== "borrador" ? <AsignarTarea piezaId={pieza.id} tipo={pieza.tipo} perfiles={perfiles ?? []} /> : undefined}>
+            {(tareas ?? []).length === 0 ? <p className="text-xs text-muted-foreground">Sin tareas asignadas.</p> : (
+              <ul className="space-y-1.5">
+                {(tareas ?? []).map((t) => {
+                  const vencida = t.estado !== "hecha" && bucketVencimiento(t.vence) === "vencida";
+                  return (
+                    <li key={t.id} className="space-y-0.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5"><InsigniaTarea tipo={t.tipo} /><span className={cn("font-medium", t.estado === "bloqueada" ? "text-rojo" : t.estado === "en_curso" ? "text-primary" : t.estado === "hecha" ? "text-ok" : "text-muted-foreground")}>{t.estado.replace("_", " ")}</span></span>
+                        <span className={cn("shrink-0", vencida ? "font-medium text-rojo" : "text-muted-foreground")}>{t.estado === "hecha" ? `hecha ${fechaCorta(t.hecha_en?.slice(0, 10))}` : `${vencida ? "venció" : "vence"} ${fechaCorta(t.vence)}`}</span>
+                      </div>
+                      <p className="text-muted-foreground">{t.asignado?.nombre ?? "sin asignar"}{t.estado === "bloqueada" && t.nota_bloqueo && <span className="text-rojo"> · {t.nota_bloqueo}</span>}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Tarjeta>
 
-      <AccionesPieza piezaId={pieza.id} estado={pieza.estado} rol={rol} urlActual={pieza.url} plataformaActual={pieza.plataforma} />
+          <Tarjeta titulo="Assets">
+            <Assets piezaId={pieza.id} assets={(assets ?? []).map((a) => ({ ruta: a.ruta, nombre: a.nombre, carpeta: a.carpeta === "otro" ? "" : a.carpeta }))} puedeSubir={puedeEditar} />
+          </Tarjeta>
+        </aside>
+      </div>
     </article>
   );
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
       <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{titulo}</h2>
@@ -160,11 +206,23 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   );
 }
 
+function Tarjeta({ titulo, accion, children }: { titulo: string; accion?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-xl border px-4 py-3.5">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{titulo}</h2>
+        {accion}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function Dato({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{k}</dt>
+    <>
+      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{k}</dt>
       <dd className="font-medium">{v}</dd>
-    </div>
+    </>
   );
 }
