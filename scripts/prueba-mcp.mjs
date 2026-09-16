@@ -114,6 +114,16 @@ try {
   ok("dejó latido en corridas", (corr ?? 0) >= 1, String(corr));
   await admin.from("historias").delete().eq("copy", "prueba mcp");
 
+  r = await rpc(key, "tools/call", { name: "listar_recursos", arguments: {} }, 71);
+  const recs = JSON.parse(r.json?.result?.content?.[0]?.text ?? "[]");
+  ok("listar_recursos trae RORY, 90 y BEAST con url y resumen", ["RORY", "90", "BEAST"].every((k) => recs.some((x) => x.keyword === k && x.url && x.resumen)), recs.map((x) => x.keyword).join(","));
+  r = await rpc(key, "tools/call", { name: "guardar_recurso", arguments: { nombre: "prueba mcp recurso", slug_go: "prueba-mcp", keyword: "prueba", leads: 5, fecha_corte: "2026-09-15" } }, 72);
+  const rec = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("guardar_recurso crea, sube la keyword y anota 5 leads a mano", rec?.leads === 5 && rec?.leads_fuente === "manual" && rec?.keyword === "PRUEBA", r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "guardar_recurso", arguments: { nombre: "prueba mcp recurso", slug_go: "prueba-mcp", leads: 3, fecha_corte: "2030-01-01" } }, 73);
+  ok("guardar_recurso con fecha de corte futura → error legible", r.json?.result?.isError && /futura/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  await admin.from("recursos").delete().eq("slug_go", "prueba-mcp");
+
   // editor por MCP no puede crear ideas (RLS vía impersonación)
   const emailE = `prueba-mcp-editor-${Date.now()}@contentos.local`;
   await admin.from("perfiles_permitidos").insert({ email: emailE, nombre: "MCP Editor", rol: "editor" });

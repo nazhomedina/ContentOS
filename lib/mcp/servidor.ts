@@ -412,6 +412,50 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   // -------------------------------------------------------------------------
+  // Lead magnets (recursos)
+  // -------------------------------------------------------------------------
+
+  server.registerTool("listar_recursos", {
+    description: "Los lead magnets (recursos de go.folklore.mx): nombre, slug y url, keyword del DM, tag de Kit, estado, leads con fecha de corte y fuente, y el resumen de las historias que los empujaron (views, replies, DMs sumados).",
+    inputSchema: { estado: z.enum(["idea", "produccion", "publicado", "contado", "retirado"]).optional() },
+  }, async ({ estado }) => {
+    let q = supabase.from("recursos").select("id, nombre, slug_go, keyword, kit_tag_id, estado, tipo, descripcion, leads, leads_actualizado_en, leads_fuente, created_at").order("created_at");
+    if (estado) q = q.eq("estado", estado);
+    const { data, error: e } = await q;
+    if (e) return error(e.message);
+    const salida = [];
+    for (const r of data ?? []) {
+      const { data: x } = await supabase.rpc("resumen_recurso", { p_id: r.id });
+      salida.push({ ...r, url: r.slug_go ? `https://go.folklore.mx/${r.slug_go}` : null, resumen: x?.[0] ?? null });
+    }
+    return json(salida);
+  });
+
+  server.registerTool("guardar_recurso", {
+    description: "Alta o edición de un lead magnet por slug_go (o id). Los campos que no se mandan se conservan. Con leads (y fecha_corte, hoy por defecto) anota los leads a mano como fuente manual, mientras no corra go_leads.",
+    inputSchema: {
+      nombre: z.string().min(1), slug_go: z.string().optional(), id: z.string().uuid().optional(),
+      keyword: z.string().optional().describe("Keyword del DM: RORY, 90, BEAST"), kit_tag_id: z.string().optional(),
+      estado: z.enum(["idea", "produccion", "publicado", "contado", "retirado"]).optional(),
+      tipo: z.enum(["resumen_video", "resumen_articulo", "megaprompt", "mini_app", "libreria", "plantilla", "otro"]).optional(),
+      descripcion: z.string().optional(), leads: z.number().int().min(0).optional(), fecha_corte: fecha.optional(),
+    },
+  }, async (a) => {
+    const { data, error: e } = await supabase.rpc("guardar_recurso", {
+      p_nombre: a.nombre, p_slug_go: a.slug_go, p_keyword: a.keyword, p_kit_tag_id: a.kit_tag_id, p_estado: a.estado, p_tipo: a.tipo, p_descripcion: a.descripcion, p_id: a.id,
+    });
+    if (e) return error(limpiarError(e.message));
+    let r = data;
+    if (a.leads != null) {
+      const { data: r2, error: e2 } = await supabase.rpc("registrar_leads", { p_recurso: data.id, p_leads: a.leads, p_fecha: a.fecha_corte });
+      if (e2) return error(limpiarError(e2.message));
+      r = r2;
+    }
+    await corrida("guardar_recurso", `${r.nombre} (${r.estado})${a.leads != null ? ` · ${a.leads} leads` : ""}`, { id: r.id, slug_go: r.slug_go }, perfil);
+    return json({ ...r, url: r.slug_go ? `https://go.folklore.mx/${r.slug_go}` : null });
+  });
+
+  // -------------------------------------------------------------------------
   // Métricas
   // -------------------------------------------------------------------------
   server.registerTool("leer_metricas", {

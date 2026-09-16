@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 013.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 014.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -993,38 +993,50 @@ export type Database = {
         Row: {
           comunidad_id: string | null
           created_at: string
+          descripcion: string | null
           estado: string
           id: string
           keyword: string | null
           kit_tag_id: string | null
           leads: number | null
           leads_actualizado_en: string | null
+          leads_fuente: string | null
+          leads_por: string | null
           nombre: string
           slug_go: string | null
+          tipo: string | null
         }
         Insert: {
           comunidad_id?: string | null
           created_at?: string
+          descripcion?: string | null
           estado?: string
           id?: string
           keyword?: string | null
           kit_tag_id?: string | null
           leads?: number | null
           leads_actualizado_en?: string | null
+          leads_fuente?: string | null
+          leads_por?: string | null
           nombre: string
           slug_go?: string | null
+          tipo?: string | null
         }
         Update: {
           comunidad_id?: string | null
           created_at?: string
+          descripcion?: string | null
           estado?: string
           id?: string
           keyword?: string | null
           kit_tag_id?: string | null
           leads?: number | null
           leads_actualizado_en?: string | null
+          leads_fuente?: string | null
+          leads_por?: string | null
           nombre?: string
           slug_go?: string | null
+          tipo?: string | null
         }
         Relationships: [
           {
@@ -1033,6 +1045,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "comunidades"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recursos_leads_por_fkey"
+            columns: ["leads_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1640,6 +1659,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      guardar_recurso: {
+        Args: {
+          p_descripcion?: string
+          p_estado?: string
+          p_id?: string
+          p_keyword?: string
+          p_kit_tag_id?: string
+          p_nombre: string
+          p_slug_go?: string
+          p_tipo?: string
+        }
+        Returns: {
+          comunidad_id: string | null
+          created_at: string
+          descripcion: string | null
+          estado: string
+          id: string
+          keyword: string | null
+          kit_tag_id: string | null
+          leads: number | null
+          leads_actualizado_en: string | null
+          leads_fuente: string | null
+          leads_por: string | null
+          nombre: string
+          slug_go: string | null
+          tipo: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "recursos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       guardar_serie: {
         Args: {
           p_activa?: boolean
@@ -1810,6 +1863,31 @@ export type Database = {
         }
         Returns: number
       }
+      registrar_leads: {
+        Args: { p_fecha?: string; p_leads: number; p_recurso: string }
+        Returns: {
+          comunidad_id: string | null
+          created_at: string
+          descripcion: string | null
+          estado: string
+          id: string
+          keyword: string | null
+          kit_tag_id: string | null
+          leads: number | null
+          leads_actualizado_en: string | null
+          leads_fuente: string | null
+          leads_por: string | null
+          nombre: string
+          slug_go: string | null
+          tipo: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "recursos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resolver_hipotesis: {
         Args: { p_estado: string; p_hipotesis_id: string; p_veredicto?: string }
         Returns: {
@@ -1839,6 +1917,18 @@ export type Database = {
           multiplicador_promedio: number
           publicadas: number
           views_totales: number
+        }[]
+      }
+      resumen_recurso: {
+        Args: { p_id: string }
+        Returns: {
+          dms: number
+          historias: number
+          publicadas: number
+          replies: number
+          ultima_publicada: string
+          ultima_semana: string
+          views: number
         }[]
       }
       resumen_semana_persona: {
@@ -1887,9 +1977,128 @@ export type Database = {
   }
 }
 
-export type Tables<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"]
-export type TablesInsert<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Insert"]
-export type TablesUpdate<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Update"]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
 
 export type Pieza = Tables<"piezas">
 export type Tarea = Tables<"tareas">

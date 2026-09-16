@@ -11,18 +11,14 @@ import { metricasHistoria, programarHistoria, publicarHistoria } from "@/lib/acc
 import { urlFirmada } from "@/lib/acciones/piezas";
 import { fechaHora } from "@/lib/dominio/tiempo";
 import type { Rol } from "@/lib/dominio/roles";
+import { NOMBRE_SERIE_HISTORIA } from "@/lib/dominio/historias";
 
 export type HistoriaCard = {
   id: string; dia: number; orden: number; serie: string; registro: string; copy: string | null; asset_url: string | null;
   keyword: string | null; estado: string; programada_para: string | null; publicada_en: string | null;
   views: number | null; replies: number | null; dms: number | null;
   pieza: { id: string; id_publico: string; titulo: string | null } | null;
-  recurso: { nombre: string; slug_go: string | null } | null;
-};
-
-const SERIE: Record<string, string> = {
-  te_lo_resumo: "📚 Te lo resumo", archivo_folklore: "🗄️ Archivo Folklore", criterio_viernes: "🧭 Criterio del viernes",
-  amplificacion: "Amplificación", espontanea: "Espontánea",
+  recurso: { id: string; nombre: string; slug_go: string | null; keyword: string | null } | null;
 };
 
 export function TarjetaHistoria({ historia: h, rol }: { historia: HistoriaCard; rol: Rol }) {
@@ -65,14 +61,14 @@ export function TarjetaHistoria({ historia: h, rol }: { historia: HistoriaCard; 
   return (
     <div className="space-y-2 rounded-lg border p-3 text-sm">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="font-semibold">{SERIE[h.serie] ?? h.serie}</span>
+        <span className="font-semibold">{NOMBRE_SERIE_HISTORIA[h.serie] ?? h.serie}</span>
         <Badge variant="outline">{h.registro}</Badge>
         <Badge variant={h.estado === "publicada" ? "default" : "secondary"}>{h.estado}</Badge>
       </div>
       {h.copy && <p className="whitespace-pre-wrap rounded bg-muted/60 p-2 text-xs">{h.copy}</p>}
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
         {h.keyword && <span>keyword <span className="font-mono font-semibold text-foreground">{h.keyword}</span></span>}
-        {h.recurso && <span>recurso {h.recurso.nombre}</span>}
+        {h.recurso && <Link href={`/recursos#${h.recurso.id}`} className="text-primary underline">recurso {h.recurso.keyword ?? h.recurso.nombre}</Link>}
         {h.pieza && <Link href={`/piezas/${h.pieza.id}`} className="text-primary underline">amplifica {h.pieza.id_publico}</Link>}
         {h.programada_para && <span>programada {fechaHora(h.programada_para)}</span>}
         {h.publicada_en && <span>publicada {fechaHora(h.publicada_en)}</span>}

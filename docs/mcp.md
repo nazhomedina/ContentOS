@@ -42,7 +42,7 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (29)
+## 5. Herramientas (31)
 
 | Tool | Para qué | Latido |
 |---|---|---|
@@ -57,6 +57,7 @@ Sin key responde 401.
 | `listar_cuentas` · `seguir_cuenta` | la watchlist | `seguir_cuenta` |
 | `asignar_tarea` · `cola_de` | la cola de Mariela o de Nazho | `asignar_tarea` |
 | `proponer_historias` · `aprobar_historias` | paquete semanal | ambas |
+| `listar_recursos` · `guardar_recurso` | los lead magnets con keyword, liga en Go, tag de Kit, leads (a mano con fecha de corte) y las historias que los empujaron | `guardar_recurso` |
 | `leer_metricas` · `registrar_metrica_manual` | métricas y multiplicador | `registrar_metrica_manual` |
 | `listar_sistemas` · `definir_sistema` | los grafos del Nodo | `definir_sistema` |
 | `estado_semana` · `declarar_hueco` | cuota y estado por nodo; huecos | `declarar_hueco` |

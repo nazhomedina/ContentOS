@@ -193,3 +193,13 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Una señal, no seis columnas.** Cada fila lleva a lo sumo un punto de color: rojo si la tarea está bloqueada o vencida o la pieza no tiene hipótesis (salvo `legado`), ámbar si vence esta semana, azul si está en curso o tiene RAW. Sin punto, va bien. El detalle (responsable, tarea, faltantes, fechas) vive en la vista Lista, que conserva la tabla y los filtros.
 
 **Frentes y series se agrupan.** Los frentes `-A…-E` cuentan bajo su pieza madre («3 frentes», con enlace a la lista filtrada); una serie con ocho o más piezas en el mismo carril se muestra como grupo con las primeras cinco y «y N más». Así 104 filas se leen como unos veinte renglones sin ocultar nada. Diseño en `components/formato/carriles.tsx`; canvas: https://claude.ai/artifact/TiVXb9nvu8LEn1rFGdQPLg.
+
+## 2026-09-16 · Lead magnets (migración 014, aplicada en producción)
+
+**Los recursos tienen pantalla y tools.** `/recursos` en el menú, debajo de Historias, para los tres roles: Mariela y los viewers leen, Nazho edita. Cada lead magnet muestra su keyword del DM, la liga en go.folklore.mx, el tag de Kit, el estado (idea · en producción · publicado en Go · contado en historia · retirado), los leads con fecha de corte y las historias que lo han empujado con views, replies y DMs sumados (`resumen_recurso`, calculado, no guardado). La tarjeta de historia enlaza al recurso. MCP: `listar_recursos` y `guardar_recurso` (31 tools).
+
+**La URL pública no se guarda:** es `https://go.folklore.mx/<slug_go>`, se deriva. Se agregan `tipo` (resumen de video, megaprompt, mini app…) y `descripcion`; nada más.
+
+**Los leads se anotan a mano** con número y fecha de corte (`registrar_leads`, fuente `manual`, quién lo anotó) hasta que corra `go_leads` en n8n, que escribirá fuente `job`. Sin dato se dice «sin dato», no cero.
+
+**Datos:** RORY, 90 y BEAST cargados desde la colección «Recursos de historias» de Notion, con los tags de Kit verificados contra la cuenta (22364040 · 22364041 · 22364042 = go/rory-sutherland · go/marca-personal-90-dias · go/mrbeast-negocios). El cuarto registro de Notion («If you aren't selling these 4 things») entra como idea sin liga.

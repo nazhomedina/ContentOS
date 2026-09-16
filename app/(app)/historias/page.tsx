@@ -18,7 +18,7 @@ export default async function Historias({ searchParams }: { searchParams: Promis
 
   const { data } = await supabase
     .from("historias")
-    .select("id, dia, orden, serie, registro, copy, asset_url, keyword, estado, programada_para, publicada_en, views, replies, dms, pieza:piezas!historias_pieza_amplificada_id_fkey(id, id_publico, titulo), recurso:recursos(nombre, slug_go)")
+    .select("id, dia, orden, serie, registro, copy, asset_url, keyword, estado, programada_para, publicada_en, views, replies, dms, pieza:piezas!historias_pieza_amplificada_id_fkey(id, id_publico, titulo), recurso:recursos(id, nombre, slug_go, keyword)")
     .eq("semana", semana)
     .neq("estado", "descartada")
     .order("dia").order("orden");
