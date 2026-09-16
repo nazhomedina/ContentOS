@@ -22,8 +22,8 @@ export default async function Recursos() {
     .order("created_at");
   const ids = (recursos ?? []).map((r) => r.id);
   const { data: historias } = ids.length
-    ? await supabase.from("historias").select("id, recurso_id, semana, dia, serie, estado, views, replies, dms").in("recurso_id", ids).neq("estado", "descartada").order("semana", { ascending: false }).order("dia")
-    : { data: [] as { id: string; recurso_id: string | null; semana: string; dia: number; serie: string; estado: string; views: number | null; replies: number | null; dms: number | null }[] };
+    ? await supabase.from("historias").select("id, recurso_id, semana, dia, tipo, estado, views, replies, dms").in("recurso_id", ids).neq("estado", "descartada").order("semana", { ascending: false }).order("dia")
+    : { data: [] as { id: string; recurso_id: string | null; semana: string | null; dia: number | null; tipo: string; estado: string; views: number | null; replies: number | null; dms: number | null }[] };
   const resumenes = new Map<string, RecursoFila["resumen"]>();
   await Promise.all(ids.map(async (id) => {
     const { data } = await supabase.rpc("resumen_recurso", { p_id: id });

@@ -33,7 +33,7 @@ export default async function MiCola({ searchParams }: { searchParams: Promise<{
   const [{ data: tareas }, { count: buffer }, { data: declaraciones }, { data: enManos }] = await Promise.all([
     supabase
       .from("tareas")
-      .select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, tipo, estado, series), historia:historias(id, serie, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
+      .select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado_a, pieza:piezas(id, id_publico, titulo, tipo, estado, series), historia:historias(id, tipo, dia, semana, copy), asignado:perfiles!tareas_asignado_a_fkey(nombre)")
       .order("vence", { ascending: true, nullsFirst: false }),
     supabase.from("piezas").select("id", { count: "exact", head: true }).in("estado", ["listo", "programada"]),
     esOwner ? Promise.resolve({ data: [] }) : supabase.from("bitacora").select("id, texto, minutos, evidencia_url, created_at, pieza:piezas(id, id_publico, titulo)").eq("perfil_id", sesion.userId).eq("fecha", hoyStr).order("created_at"),

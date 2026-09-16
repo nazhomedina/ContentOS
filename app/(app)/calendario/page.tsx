@@ -23,7 +23,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       .select("id, id_publico, titulo, tipo, estado, fecha_objetivo, publicada_en, responsable:perfiles!piezas_responsable_id_fkey(nombre)")
       .neq("estado", "archivada").neq("estado", "borrador")
       .or(`and(fecha_objetivo.gte.${semana},fecha_objetivo.lt.${fin}),and(publicada_en.gte.${semana},publicada_en.lt.${fin})`),
-    supabase.from("historias").select("id, dia, serie, estado").eq("semana", semana).neq("estado", "descartada").order("dia").order("orden"),
+    supabase.from("historias").select("id, dia, tipo, estado").eq("semana", semana).neq("estado", "descartada").order("dia").order("orden"),
   ]);
 
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(semana, i));

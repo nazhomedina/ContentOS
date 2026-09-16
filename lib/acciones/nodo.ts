@@ -78,19 +78,6 @@ export async function actualizarPieza(piezaId: string, cambios: { fecha_objetivo
   return { ok: true };
 }
 
-export async function proponerHistoria(v: { semana: string; dia: number; serie: string; registro: string; copy?: string; keyword?: string; pieza_amplificada_id?: string | null }): Promise<Resultado> {
-  const supabase = await crearClienteServidor();
-  const { error } = await supabase.from("historias").insert({
-    comunidad_id: "11111111-0000-4000-8000-000000000001",
-    semana: v.semana, dia: v.dia, serie: v.serie, registro: v.registro,
-    copy: v.copy || null, keyword: v.keyword || null, pieza_amplificada_id: v.pieza_amplificada_id || null,
-    estado: "propuesta",
-  });
-  if (error) return fallo(error);
-  revalidarTodo();
-  return { ok: true, mensaje: "Historia en propuesta. Apruébala desde Hoy." };
-}
-
 export async function guardarMeta(tipo: string, cantidad: number): Promise<Resultado> {
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from("metas_semana").upsert({ tipo, cantidad });

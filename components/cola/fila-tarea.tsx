@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Textarea } from "@/components/ui/textarea";
 import { IdPublico, InsigniaEstado, InsigniaTipo, InsigniaTarea } from "@/components/app/insignias";
 import { cambiarEstadoTarea } from "@/lib/acciones/tareas";
+import { NOMBRE_TIPO_HISTORIA } from "@/lib/dominio/historias";
 import { bucketVencimiento, fechaCorta, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
@@ -20,13 +21,8 @@ export type TareaEnCola = {
   nota_bloqueo: string | null;
   asignado_a: string | null;
   pieza: { id: string; id_publico: string; titulo: string | null; tipo: string; estado: string; series: string[] } | null;
-  historia: { id: string; serie: string; dia: number; semana: string; copy: string | null } | null;
+  historia: { id: string; tipo: string; dia: number | null; semana: string | null; copy: string | null } | null;
   asignado: { nombre: string } | null;
-};
-
-const SERIE: Record<string, string> = {
-  te_lo_resumo: "Te lo resumo", archivo_folklore: "Archivo Folklore", criterio_viernes: "Criterio del viernes",
-  amplificacion: "Amplificación", espontanea: "Espontánea",
 };
 
 /** Una tarea en la cola. En escritorio es una fila de cuatro columnas: pieza · tarea · vence · acciones. */
@@ -41,7 +37,7 @@ export function FilaTarea({ tarea, mostrarAsignado }: { tarea: TareaEnCola; most
   const titulo = tarea.pieza
     ? (tarea.pieza.titulo ?? tarea.pieza.id_publico)
     : tarea.historia
-      ? `${SERIE[tarea.historia.serie] ?? tarea.historia.serie} · ${DIAS_SEMANA[tarea.historia.dia - 1]}`
+      ? `${NOMBRE_TIPO_HISTORIA[tarea.historia.tipo] ?? tarea.historia.tipo} · ${tarea.historia.dia ? DIAS_SEMANA[tarea.historia.dia - 1] : "sin fecha"}`
       : "Tarea";
 
   function mover(estado: string, notaBloqueo?: string) {

@@ -339,7 +339,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     description: "Tareas de una persona por estado, con bloqueos y vencimientos. persona: nombre, user_id o 'todos'.",
     inputSchema: { persona: z.string().default("todos"), incluir_hechas: z.boolean().default(false) },
   }, async ({ persona, incluir_hechas }) => {
-    let q = supabase.from("tareas").select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado:perfiles!tareas_asignado_a_fkey(nombre), pieza:piezas(id_publico, titulo, tipo, estado), historia:historias(semana, dia, serie)").order("vence", { ascending: true, nullsFirst: false });
+    let q = supabase.from("tareas").select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado:perfiles!tareas_asignado_a_fkey(nombre), pieza:piezas(id_publico, titulo, tipo, estado), historia:historias(semana, dia, tipo)").order("vence", { ascending: true, nullsFirst: false });
     if (!incluir_hechas) q = q.neq("estado", "hecha");
     if (persona !== "todos") {
       const id = await resolverPersona(supabase, persona);
@@ -372,12 +372,15 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   // -------------------------------------------------------------------------
   // Historias
   // -------------------------------------------------------------------------
+  const TIPO_HISTORIA = z.enum(["lead_magnet", "amplificacion", "frase", "pregunta", "archivo"]);
+  const SERIE_LEGADO: Record<string, string> = { te_lo_resumo: "lead_magnet", archivo_folklore: "archivo", criterio_viernes: "amplificacion", espontanea: "frase" };
+
   server.registerTool("proponer_historias", {
-    description: "Propone el paquete de historias de una semana (lunes). Quedan en estado propuesta hasta que Nazho apruebe.",
+    description: "Propone historias. Con semana (lunes) y dia entran al paquete de esa semana en propuesta, hasta que Nazho apruebe. Sin semana caen al buffer (sin fecha) para agendarlas después con agendar_historia. tipo dice qué busca la historia: lead_magnet (DM con keyword y recurso), amplificacion (de una pieza), frase, pregunta, archivo. registro: organico (cámara) o producido (Mariela diseña el asset).",
     inputSchema: {
-      semana: fecha, historias: z.array(z.object({
-        dia: z.number().int().min(1).max(7), orden: z.number().int().min(1).default(1),
-        serie: z.enum(["te_lo_resumo", "archivo_folklore", "criterio_viernes", "amplificacion", "espontanea"]),
+      semana: fecha.optional(), historias: z.array(z.object({
+        dia: z.number().int().min(1).max(7).optional(), orden: z.number().int().min(1).default(1),
+        tipo: TIPO_HISTORIA.optional(), serie: z.string().optional().describe("nombre viejo de tipo; se traduce"),
         registro: z.enum(["organico", "producido"]), copy: z.string().optional(), keyword: z.string().optional(),
         pieza_amplificada: z.string().optional().describe("id_publico o uuid"), recurso_slug: z.string().optional(),
       })).min(1),
@@ -386,6 +389,9 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     const { data: com } = await supabase.from("comunidades").select("id").eq("activa", true).order("nombre").limit(1).single();
     const filas = [];
     for (const h of historias) {
+      const tipo = h.tipo ?? (h.serie ? SERIE_LEGADO[h.serie] ?? h.serie : null);
+      if (!tipo) return error("Cada historia necesita tipo: lead_magnet, amplificacion, frase, pregunta o archivo.");
+      if (semana && !h.dia) return error("Con semana, cada historia necesita dia (1 = lunes … 7 = domingo).");
       let pieza_amplificada_id: string | null = null;
       if (h.pieza_amplificada) {
         const { data: p } = await supabase.from("piezas").select("id").or(`id_publico.eq.${h.pieza_amplificada},id.eq.${uuidOrNil(h.pieza_amplificada)}`).maybeSingle();
@@ -396,12 +402,22 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
         const { data: r } = await supabase.from("recursos").select("id").eq("slug_go", h.recurso_slug).maybeSingle();
         recurso_id = r?.id ?? null;
       }
-      filas.push({ comunidad_id: com?.id, semana, dia: h.dia, orden: h.orden, serie: h.serie, registro: h.registro, copy: h.copy, keyword: h.keyword, pieza_amplificada_id, recurso_id, estado: "propuesta" });
+      filas.push({ comunidad_id: com?.id, semana: semana ?? null, dia: semana ? h.dia : null, orden: h.orden, tipo, registro: h.registro, copy: h.copy, keyword: h.keyword?.toUpperCase(), pieza_amplificada_id, recurso_id, estado: "propuesta" });
     }
-    const { data, error: e } = await supabase.from("historias").insert(filas).select("id, dia, serie");
+    const { data, error: e } = await supabase.from("historias").insert(filas).select("id, dia, tipo, semana");
     if (e) return error(limpiarError(e.message));
-    await corrida("proponer_historias", `semana ${semana}: ${data.length} historias en propuesta`, { semana }, perfil);
+    await corrida("proponer_historias", semana ? `semana ${semana}: ${data.length} historias en propuesta` : `${data.length} historias al buffer`, { semana: semana ?? null }, perfil);
     return json({ propuestas: data.length, historias: data });
+  });
+
+  server.registerTool("agendar_historia", {
+    description: "Manda una historia del buffer (o de otro día) a un día de una semana. Si estaba en propuesta queda aprobada y crea la tarea «publicar» para Mariela.",
+    inputSchema: { historia_id: uuid, semana: fecha.describe("lunes (o cualquier día de esa semana)"), dia: z.number().int().min(1).max(7) },
+  }, async ({ historia_id, semana, dia }) => {
+    const { data, error: e } = await supabase.rpc("agendar_historia", { p_id: historia_id, p_semana: semana, p_dia: dia });
+    if (e) return error(limpiarError(e.message));
+    await corrida("agendar_historia", `historia ${historia_id} → ${semana} día ${dia}`, { historia_id }, perfil);
+    return json(data);
   });
 
   server.registerTool("aprobar_historias", {
@@ -500,7 +516,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     const dia = f ?? new Date().toISOString().slice(0, 10);
     if (historia_id) {
       if (!["views", "replies", "dms"].includes(campo)) return error("En historias solo views, replies y dms.");
-      const { data, error: e } = await supabase.from("historias").update({ [campo]: valor } as TablesUpdate<"historias">).eq("id", historia_id).select("id, dia, serie, views, replies, dms").single();
+      const { data, error: e } = await supabase.from("historias").update({ [campo]: valor } as TablesUpdate<"historias">).eq("id", historia_id).select("id, dia, tipo, views, replies, dms").single();
       return e ? error(limpiarError(e.message)) : json(data);
     }
     if (!pieza) return error("Indica pieza o historia_id.");

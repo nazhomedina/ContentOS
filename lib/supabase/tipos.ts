@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 016.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 017.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -466,7 +466,7 @@ export type Database = {
           comunidad_id: string | null
           copy: string | null
           created_at: string
-          dia: number
+          dia: number | null
           dms: number | null
           estado: string
           id: string
@@ -480,8 +480,8 @@ export type Database = {
           recurso_id: string | null
           registro: string
           replies: number | null
-          semana: string
-          serie: string
+          semana: string | null
+          tipo: string
           views: number | null
         }
         Insert: {
@@ -489,7 +489,7 @@ export type Database = {
           comunidad_id?: string | null
           copy?: string | null
           created_at?: string
-          dia: number
+          dia?: number | null
           dms?: number | null
           estado?: string
           id?: string
@@ -503,8 +503,8 @@ export type Database = {
           recurso_id?: string | null
           registro: string
           replies?: number | null
-          semana: string
-          serie: string
+          semana?: string | null
+          tipo: string
           views?: number | null
         }
         Update: {
@@ -512,7 +512,7 @@ export type Database = {
           comunidad_id?: string | null
           copy?: string | null
           created_at?: string
-          dia?: number
+          dia?: number | null
           dms?: number | null
           estado?: string
           id?: string
@@ -526,8 +526,8 @@ export type Database = {
           recurso_id?: string | null
           registro?: string
           replies?: number | null
-          semana?: string
-          serie?: string
+          semana?: string | null
+          tipo?: string
           views?: number | null
         }
         Relationships: [
@@ -1418,6 +1418,43 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      agendar_historia: {
+        Args: {
+          p_dia: number
+          p_editor?: string
+          p_id: string
+          p_semana: string
+        }
+        Returns: {
+          asset_url: string | null
+          comunidad_id: string | null
+          copy: string | null
+          created_at: string
+          dia: number | null
+          dms: number | null
+          estado: string
+          id: string
+          keyword: string | null
+          metricas_en: string | null
+          metricas_por: string | null
+          orden: number
+          pieza_amplificada_id: string | null
+          programada_para: string | null
+          publicada_en: string | null
+          recurso_id: string | null
+          registro: string
+          replies: number | null
+          semana: string | null
+          tipo: string
+          views: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "historias"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       aprobar_historias: {
         Args: { p_editor?: string; p_semana: string }
         Returns: number
@@ -1592,6 +1629,38 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "sistemas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      desagendar_historia: {
+        Args: { p_id: string }
+        Returns: {
+          asset_url: string | null
+          comunidad_id: string | null
+          copy: string | null
+          created_at: string
+          dia: number | null
+          dms: number | null
+          estado: string
+          id: string
+          keyword: string | null
+          metricas_en: string | null
+          metricas_por: string | null
+          orden: number
+          pieza_amplificada_id: string | null
+          programada_para: string | null
+          publicada_en: string | null
+          recurso_id: string | null
+          registro: string
+          replies: number | null
+          semana: string | null
+          tipo: string
+          views: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "historias"
           isOneToOne: true
           isSetofReturn: false
         }

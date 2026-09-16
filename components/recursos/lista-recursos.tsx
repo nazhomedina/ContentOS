@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { anotarLeads, guardarRecurso } from "@/lib/acciones/recursos";
-import { NOMBRE_SERIE_HISTORIA } from "@/lib/dominio/historias";
+import { NOMBRE_TIPO_HISTORIA } from "@/lib/dominio/historias";
 import { DOMINIO_GO, ESTADOS_RECURSO, NOMBRE_ESTADO_RECURSO, NOMBRE_TIPO_RECURSO, TIPOS_RECURSO, urlGo, type EstadoRecurso, type TipoRecurso } from "@/lib/dominio/recursos";
 import { fechaCorta, hoyISO } from "@/lib/dominio/tiempo";
 import { cn } from "@/lib/utils";
 
-export type HistoriaLigada = { id: string; semana: string; dia: number; serie: string; estado: string; views: number | null; replies: number | null; dms: number | null };
+export type HistoriaLigada = { id: string; semana: string | null; dia: number | null; tipo: string; estado: string; views: number | null; replies: number | null; dms: number | null };
 export type RecursoFila = {
   id: string; nombre: string; slug_go: string | null; keyword: string | null; kit_tag_id: string | null; estado: string; tipo: string | null; descripcion: string | null;
   leads: number | null; leads_actualizado_en: string | null; leads_fuente: string | null; leads_por_nombre: string | null;
@@ -85,7 +85,7 @@ function Tarjeta({ r, puedeEditar }: { r: RecursoFila; puedeEditar: boolean }) {
             <ul className="divide-y rounded-lg border text-xs">
               {r.historias.slice(0, 5).map((h) => (
                 <li key={h.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5">
-                  <Link href={`/historias?semana=${h.semana}`} className="min-w-0 truncate hover:underline">{fechaCorta(h.semana)} · {NOMBRE_SERIE_HISTORIA[h.serie] ?? h.serie}</Link>
+                  <Link href={h.semana ? `/historias?semana=${h.semana}` : "/historias"} className="min-w-0 truncate hover:underline">{h.semana ? fechaCorta(h.semana) : "en el buffer"} · {NOMBRE_TIPO_HISTORIA[h.tipo] ?? h.tipo}</Link>
                   <span className="shrink-0 text-muted-foreground">{h.estado}{h.estado === "publicada" && h.views != null && <> · {h.views} views · {h.replies ?? 0} replies · {h.dms ?? 0} DMs</>}</span>
                 </li>
               ))}

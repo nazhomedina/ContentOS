@@ -6,24 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { crearHistoria, editarHistoria, type CamposHistoria } from "@/lib/acciones/historias";
-import { NOMBRE_REGISTRO, NOMBRE_SERIE_HISTORIA, REGISTROS_HISTORIA, SERIES_HISTORIA } from "@/lib/dominio/historias";
+import { NOMBRE_REGISTRO, NOMBRE_TIPO_HISTORIA, REGISTROS_HISTORIA, TIPOS_HISTORIA } from "@/lib/dominio/historias";
 import { DIAS_SEMANA } from "@/lib/dominio/tiempo";
 
 export type OpcionRecurso = { id: string; nombre: string; keyword: string | null };
 export type OpcionPieza = { id: string; id_publico: string | null; titulo: string | null };
-export type HistoriaEditable = { id: string; dia: number; serie: string; registro: string; copy: string | null; keyword: string | null; recurso_id?: string | null; pieza_amplificada_id?: string | null };
+export type HistoriaEditable = { id: string; dia: number | null; tipo: string; registro: string; copy: string | null; keyword: string | null; recurso_id?: string | null; pieza_amplificada_id?: string | null };
 
-/** Alta o edición de una historia por el owner: día, serie, registro, copy, keyword, recurso y pieza amplificada. */
-export function FormaHistoria({ semana, historia, recursos, piezas, onListo }: { semana: string; historia?: HistoriaEditable; recursos: OpcionRecurso[]; piezas: OpcionPieza[]; onListo: () => void }) {
+/** Alta o edición de una historia por el owner: qué busca, cómo se produce, copy, keyword, recurso, pieza y día (o buffer). */
+export function FormaHistoria({ semana, dia, historia, recursos, piezas, onListo }: { semana: string; dia?: number; historia?: HistoriaEditable; recursos: OpcionRecurso[]; piezas: OpcionPieza[]; onListo: () => void }) {
   const [c, setC] = useState({
-    dia: historia?.dia ?? 1, serie: historia?.serie ?? "te_lo_resumo", registro: historia?.registro ?? "producido",
+    dia: historia?.dia ?? dia ?? 0, tipo: historia?.tipo ?? "lead_magnet", registro: historia?.registro ?? "producido",
     copy: historia?.copy ?? "", keyword: historia?.keyword ?? "", recurso_id: historia?.recurso_id ?? "", pieza_amplificada_id: historia?.pieza_amplificada_id ?? "",
   });
   const [pendiente, iniciar] = useTransition();
   const set = (k: keyof typeof c) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setC({ ...c, [k]: k === "dia" ? Number(e.target.value) : e.target.value });
   function guardar() {
     iniciar(async () => {
-      const campos: CamposHistoria = { semana, ...c };
+      const campos: CamposHistoria = { ...c, semana: c.dia ? semana : null, dia: c.dia || null };
       const r = historia ? await editarHistoria(historia.id, campos) : await crearHistoria(campos);
       if (r.ok) { toast.success(r.mensaje); onListo(); } else toast.error(r.mensaje);
     });
@@ -33,9 +33,9 @@ export function FormaHistoria({ semana, historia, recursos, piezas, onListo }: {
   return (
     <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
       <div className="grid gap-2 sm:grid-cols-3">
-        <label className={campo}>Día<select value={c.dia} onChange={set("dia")} className={select}>{DIAS_SEMANA.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</select></label>
-        <label className={campo}>Serie<select value={c.serie} onChange={set("serie")} className={select}>{SERIES_HISTORIA.map((s) => <option key={s} value={s}>{NOMBRE_SERIE_HISTORIA[s]}</option>)}</select></label>
+        <label className={campo}>Qué busca<select value={c.tipo} onChange={set("tipo")} className={select}>{TIPOS_HISTORIA.map((t) => <option key={t} value={t}>{NOMBRE_TIPO_HISTORIA[t]}</option>)}</select></label>
         <label className={campo}>Registro<select value={c.registro} onChange={set("registro")} className={select}>{REGISTROS_HISTORIA.map((r) => <option key={r} value={r}>{NOMBRE_REGISTRO[r]}</option>)}</select></label>
+        <label className={campo}>Día<select value={c.dia} onChange={set("dia")} className={select}><option value={0}>Sin fecha · al buffer</option>{DIAS_SEMANA.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</select></label>
       </div>
       <Textarea value={c.copy} onChange={set("copy")} rows={3} placeholder="El copy de la historia, tal como va en pantalla." autoFocus />
       <div className="grid gap-2 sm:grid-cols-3">
@@ -45,7 +45,7 @@ export function FormaHistoria({ semana, historia, recursos, piezas, onListo }: {
       </div>
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" disabled={pendiente} onClick={onListo}>Cancelar</Button>
-        <Button size="sm" disabled={pendiente} onClick={guardar}>{historia ? "Guardar" : "Proponer"}</Button>
+        <Button size="sm" disabled={pendiente} onClick={guardar}>{historia ? "Guardar" : c.dia ? "Proponer" : "Al buffer"}</Button>
       </div>
     </div>
   );

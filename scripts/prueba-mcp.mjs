@@ -108,11 +108,18 @@ try {
   r = await rpc(key, "tools/call", { name: "cola_de", arguments: { persona: "todos" } }, 6);
   ok("cola_de todos responde", r.status === 200 && !r.json?.result?.isError, r.text.slice(0, 100));
 
-  r = await rpc(key, "tools/call", { name: "proponer_historias", arguments: { semana: "2026-09-14", historias: [{ dia: 1, serie: "te_lo_resumo", registro: "producido", copy: "prueba mcp" }] } }, 7);
+  r = await rpc(key, "tools/call", { name: "proponer_historias", arguments: { semana: "2026-09-14", historias: [{ dia: 1, tipo: "lead_magnet", registro: "producido", copy: "prueba mcp" }] } }, 7);
   ok("proponer_historias crea 1 en propuesta", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).propuestas === 1, r.json?.result?.content?.[0]?.text);
   const { count: corr } = await admin.from("corridas").select("*", { count: "exact", head: true }).eq("sistema", "proponer_historias");
   ok("dejó latido en corridas", (corr ?? 0) >= 1, String(corr));
-  await admin.from("historias").delete().eq("copy", "prueba mcp");
+  r = await rpc(key, "tools/call", { name: "proponer_historias", arguments: { historias: [{ tipo: "frase", registro: "organico", copy: "prueba mcp buffer" }] } }, 75);
+  const buf = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("proponer_historias sin semana → buffer sin fecha", buf?.propuestas === 1 && buf?.historias?.[0]?.semana == null, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "agendar_historia", arguments: { historia_id: buf?.historias?.[0]?.id ?? "00000000-0000-0000-0000-000000000000", semana: "2026-09-16", dia: 2 } }, 76);
+  const ag = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("agendar_historia normaliza al lunes, aprueba y crea la tarea", ag?.semana === "2026-09-14" && ag?.dia === 2 && ag?.estado === "aprobada", r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  if (ag?.id) { const { count: tr } = await admin.from("tareas").select("*", { count: "exact", head: true }).eq("historia_id", ag.id).eq("tipo", "publicar"); ok("la historia agendada tiene tarea publicar", (tr ?? 0) === 1, String(tr)); await admin.from("tareas").delete().eq("historia_id", ag.id); }
+  await admin.from("historias").delete().in("copy", ["prueba mcp", "prueba mcp buffer"]);
 
   r = await rpc(key, "tools/call", { name: "listar_recursos", arguments: {} }, 71);
   const recs = JSON.parse(r.json?.result?.content?.[0]?.text ?? "[]");

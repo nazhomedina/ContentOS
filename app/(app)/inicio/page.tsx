@@ -8,6 +8,7 @@ import { IdPublico, InsigniaEstado, InsigniaTipo } from "@/components/app/insign
 import { BotonAprobarHistorias } from "@/components/hoy/aprobar-historias";
 import { Captura } from "@/components/pieza/captura";
 import { AhoraPersona } from "@/components/equipo/ahora";
+import { NOMBRE_TIPO_HISTORIA } from "@/lib/dominio/historias";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Inicio" };
@@ -25,7 +26,7 @@ export default async function Inicio() {
   const ayer = sumarDias(hoy, -1);
 
   const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }] = await Promise.all([
-    supabase.from("historias").select("id, dia, serie, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
+    supabase.from("historias").select("id, dia, tipo, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
     supabase.from("tareas").select("id, tipo, nota_bloqueo, vence, pieza:piezas(id, id_publico, titulo), asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("estado", "bloqueada").order("vence"),
     supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, tipo)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
     supabase.from("piezas").select("id, id_publico, titulo, tipo, estado, fecha_objetivo").in("estado", ["listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }),
@@ -74,8 +75,8 @@ export default async function Inicio() {
           <ul className="divide-y rounded-lg border text-sm">
             {propuestas!.map((h) => (
               <li key={h.id} className="flex items-center gap-3 px-3 py-2">
-                <span className="w-20 shrink-0 text-xs font-semibold text-muted-foreground">{DIAS_SEMANA[h.dia - 1]}</span>
-                <span className="truncate"><span className="font-medium">{h.serie.replace(/_/g, " ")}</span>{h.copy && <span className="text-muted-foreground"> · {h.copy.slice(0, 80)}</span>}</span>
+                <span className="w-20 shrink-0 text-xs font-semibold text-muted-foreground">{DIAS_SEMANA[(h.dia ?? 1) - 1]}</span>
+                <span className="truncate"><span className="font-medium">{NOMBRE_TIPO_HISTORIA[h.tipo] ?? h.tipo}</span>{h.copy && <span className="text-muted-foreground"> · {h.copy.slice(0, 80)}</span>}</span>
               </li>
             ))}
           </ul>

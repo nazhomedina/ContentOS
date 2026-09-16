@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { NOMBRE_TAREA, type TipoTarea } from "@/lib/dominio/estados";
-import { NOMBRE_SERIE_HISTORIA } from "@/lib/dominio/historias";
+import { NOMBRE_TIPO_HISTORIA } from "@/lib/dominio/historias";
 import { bucketVencimiento, fechaCorta, fechaHora, hoyISO, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { IdPublico } from "@/components/app/insignias";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 type TareaAbierta = {
   id: string; tipo: string; estado: string; vence: string | null; nota_bloqueo: string | null;
   pieza: { id: string; id_publico: string | null; titulo: string | null; estado: string } | null;
-  historia: { id: string; dia: number; serie: string; semana: string } | null;
+  historia: { id: string; dia: number | null; tipo: string; semana: string | null } | null;
 };
 
 const nombreTarea = (t: string) => NOMBRE_TAREA[t as TipoTarea] ?? t;
@@ -23,7 +23,7 @@ export async function AhoraPersona({ perfilId, amplio = false }: { perfilId: str
   const hoy = hoyISO();
   const [{ data: tareas }, { data: archivo }] = await Promise.all([
     supabase.from("tareas")
-      .select("id, tipo, estado, vence, nota_bloqueo, pieza:piezas(id, id_publico, titulo, estado), historia:historias(id, dia, serie, semana)")
+      .select("id, tipo, estado, vence, nota_bloqueo, pieza:piezas(id, id_publico, titulo, estado), historia:historias(id, dia, tipo, semana)")
       .eq("asignado_a", perfilId).neq("estado", "hecha").order("vence", { ascending: true, nullsFirst: false }).limit(30),
     supabase.from("assets").select("nombre, carpeta, created_at, pieza:piezas(id, id_publico, titulo)").eq("subido_por", perfilId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
@@ -38,7 +38,7 @@ export async function AhoraPersona({ perfilId, amplio = false }: { perfilId: str
     <>
       <span className="font-medium">{nombreTarea(t.tipo)}</span>
       {t.pieza && <> · <Link href={`/piezas/${t.pieza.id}`} className="hover:underline"><IdPublico id={t.pieza.id_publico} /> {t.pieza.titulo ?? "(sin título)"}</Link></>}
-      {t.historia && <> · <Link href={`/historias?semana=${t.historia.semana}`} className="hover:underline">historia del {DIAS_SEMANA[t.historia.dia - 1].toLowerCase()} · {NOMBRE_SERIE_HISTORIA[t.historia.serie] ?? t.historia.serie}</Link></>}
+      {t.historia && <> · <Link href={t.historia.semana ? `/historias?semana=${t.historia.semana}` : "/historias"} className="hover:underline">historia {t.historia.dia ? `del ${DIAS_SEMANA[t.historia.dia - 1].toLowerCase()}` : "sin fecha"} · {NOMBRE_TIPO_HISTORIA[t.historia.tipo] ?? t.historia.tipo}</Link></>}
       {t.vence && <span className={cn("text-xs", bucketVencimiento(t.vence) === "vencida" ? "text-rojo" : "text-muted-foreground")}> · vence {fechaCorta(t.vence)}</span>}
     </>
   );
