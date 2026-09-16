@@ -7,6 +7,7 @@ import { semaforoBuffer, CLASE_SEMAFORO } from "@/lib/dominio/buffer";
 import { IdPublico, InsigniaEstado, InsigniaTipo } from "@/components/app/insignias";
 import { BotonAprobarHistorias } from "@/components/hoy/aprobar-historias";
 import { Captura } from "@/components/pieza/captura";
+import { AhoraPersona } from "@/components/equipo/ahora";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Inicio" };
@@ -162,18 +163,21 @@ export default async function Inicio() {
         )}
       </Bloque>
 
-      {/* 4 · Cierre del día */}
-      <Bloque titulo="Cierre del día" extra={<Link href="/equipo" className="underline">ver la semana del equipo</Link>}>
-        {equipo.length === 0 ? <p className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">Cuando Mariela entre, aquí aparece su bitácora de hoy y de ayer.</p> : (
+      {/* 4 · Equipo y cierre del día */}
+      <Bloque titulo="Equipo" extra={<Link href="/equipo" className="underline">ver la semana del equipo</Link>}>
+        {equipo.length === 0 ? <p className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">Cuando Mariela entre, aquí aparece en qué pieza está, qué le sigue y su bitácora de hoy y de ayer.</p> : (
           <ul className="divide-y rounded-lg border text-sm">
             {equipo.map((e) => (
-              <li key={e.user_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <Link href={`/equipo?persona=${e.user_id}`} className="font-medium hover:underline">{e.nombre}</Link>
-                <span className="flex items-center gap-3 text-xs">
-                  <span className={cn(e.hoy === 0 && esLaboral ? "font-semibold text-ambar" : "text-muted-foreground")}>hoy: {e.hoy === 0 ? "sin bitácora" : `${e.hoy} entradas`}</span>
-                  <span className={cn(e.ayer === 0 ? "text-rojo" : "text-muted-foreground")}>ayer: {e.ayer === 0 ? "sin bitácora" : `${e.ayer} entradas`}</span>
-                  <span className="text-muted-foreground">{e.tareas} tareas · {e.archivos} archivos hoy</span>
-                </span>
+              <li key={e.user_id} className="space-y-1.5 px-3 py-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Link href={`/equipo?persona=${e.user_id}`} className="font-semibold hover:underline">{e.nombre}</Link>
+                  <span className="flex items-center gap-3 text-xs">
+                    <span className={cn(e.hoy === 0 && esLaboral ? "font-semibold text-ambar" : "text-muted-foreground")}>hoy: {e.hoy === 0 ? "sin bitácora" : `${e.hoy} entradas`}</span>
+                    <span className={cn(e.ayer === 0 ? "text-rojo" : "text-muted-foreground")}>ayer: {e.ayer === 0 ? "sin bitácora" : `${e.ayer} entradas`}</span>
+                    <span className="text-muted-foreground">{e.tareas} tareas · {e.archivos} archivos hoy</span>
+                  </span>
+                </div>
+                <AhoraPersona perfilId={e.user_id} />
               </li>
             ))}
           </ul>

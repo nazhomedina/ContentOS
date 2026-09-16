@@ -229,3 +229,9 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Nazho ya crea y edita historias sin pasar por MCP.** En Historias, «Nueva historia» (día, serie, registro, copy, keyword, recurso, pieza amplificada) la deja en propuesta; «Aprobar la semana · N» vive también ahí, no solo en Inicio. En cada tarjeta el owner edita (lápiz) o descarta (x); descartar borra la tarea «publicar» si seguía abierta, y cambiar el día recorre su vencimiento.
 
 **Mariela sube el asset desde la tarjeta.** Cuando la historia es producida y no tiene asset, la tarjeta ofrece «Subir asset» y avisa en ámbar que falta; el archivo va a `assets/historias/{semana}/{id}/` (la política de Storage del editor ya lo permitía) y queda en `asset_url`. Mientras esté en propuesta, la tarjeta dice que Mariela lo sube al aprobarse. Sin migración: todo cabía en las políticas existentes.
+
+## 2026-09-16 · Claridad sobre Mariela
+
+**Desde Inicio, sin abrir nada más, Nazho contesta «¿en qué está Mariela y qué le sigue?».** El bloque Equipo muestra por persona: *Ahora* (la tarea en curso con su pieza o historia, o el último archivo que subió hoy), *Sigue* (la siguiente tarea abierta por vencimiento) y el conteo de abiertas, vencidas y bloqueadas, además de la bitácora de hoy y de ayer que ya estaba. La pantalla Equipo abre con el mismo bloque, con la nota del bloqueo si la hay. Un solo componente (`AhoraPersona`) alimenta ambas; sin migración.
+
+**No hay «paso del checklist que sigue»:** los checklists por tarea se eliminaron el 15-sep. Lo que sigue es la tarea siguiente, no un punto dentro de ella.

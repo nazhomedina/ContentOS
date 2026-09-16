@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Paperclip } from "lucide-react";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { fechaCorta, fechaHora, hoyISO, lunesDe, lunesDeHoy, sumarDias, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { IdPublico } from "@/components/app/insignias";
+import { AhoraPersona } from "@/components/equipo/ahora";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Equipo" };
@@ -73,6 +74,8 @@ export default async function Equipo({ searchParams }: { searchParams: Promise<{
           ))}
         </nav>
       )}
+
+      <AhoraPersona perfilId={activa.user_id} amplio />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Kpi etiqueta="Días con bitácora" valor={`${diasLaborales.length - diasSin}/${diasLaborales.length}`} rojo={diasSin > 0} />
