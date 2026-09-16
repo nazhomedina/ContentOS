@@ -196,7 +196,7 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 
 ## 2026-09-16 · Lead magnets (migración 014, aplicada en producción)
 
-**Los recursos tienen pantalla y tools.** `/recursos` en el menú, debajo de Historias, para los tres roles: Mariela y los viewers leen, Nazho edita. Cada lead magnet muestra su keyword del DM, la liga en go.folklore.mx, el tag de Kit, el estado (idea · en producción · publicado en Go · contado en historia · retirado), los leads con fecha de corte y las historias que lo han empujado con views, replies y DMs sumados (`resumen_recurso`, calculado, no guardado). La tarjeta de historia enlaza al recurso. MCP: `listar_recursos` y `guardar_recurso` (31 tools).
+**Los recursos tienen pantalla y tools.** `/recursos` en el menú, debajo de Historias, para los tres roles: Mariela y los viewers leen, Nazho edita. Cada lead magnet muestra su keyword del DM, la liga en go.folklore.mx, el tag de Kit, el estado (idea · en producción · publicado en Go · contado en historia · retirado), los leads con fecha de corte y las historias que lo han empujado con views, replies y DMs sumados (`resumen_recurso`, calculado, no guardado). La tarjeta de historia enlaza al recurso. MCP: `listar_recursos` y `guardar_recurso` (30 tools en total).
 
 **La URL pública no se guarda:** es `https://go.folklore.mx/<slug_go>`, se deriva. Se agregan `tipo` (resumen de video, megaprompt, mini app…) y `descripcion`; nada más.
 

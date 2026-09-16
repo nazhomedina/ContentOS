@@ -42,7 +42,7 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (31)
+## 5. Herramientas (30)
 
 | Tool | Para qué | Latido |
 |---|---|---|
