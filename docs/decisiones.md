@@ -223,3 +223,9 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **El día de envío no está fijo en viernes.** Vive en `formatos.dia_envio` (FC-09 = 5 hoy; Nazho contempla martes) y se cambia desde la pantalla o con `actualizar_formato`. `siguiente_envio(formato)` sustituye a `viernes_siguiente()`; `crear_pieza` lo usa como fecha por defecto. Cambiar el día recorre los próximos envíos y las ediciones nuevas; las agendadas conservan su fecha.
 
 **Estados del newsletter, ahora honestos:** redacción → diseño («En Kit», cargada como borrador) → listo (programada en Kit) → publicada. NEW-01 pasó de listo a diseño porque está en Kit sin programar; la pantalla lo señala en ámbar. «Agendar» crea la edición como borrador con el siguiente número en esa fecha (`agendarEdicion`).
+
+## 2026-09-16 · Historias desde la web
+
+**Nazho ya crea y edita historias sin pasar por MCP.** En Historias, «Nueva historia» (día, serie, registro, copy, keyword, recurso, pieza amplificada) la deja en propuesta; «Aprobar la semana · N» vive también ahí, no solo en Inicio. En cada tarjeta el owner edita (lápiz) o descarta (x); descartar borra la tarea «publicar» si seguía abierta, y cambiar el día recorre su vencimiento.
+
+**Mariela sube el asset desde la tarjeta.** Cuando la historia es producida y no tiene asset, la tarjeta ofrece «Subir asset» y avisa en ámbar que falta; el archivo va a `assets/historias/{semana}/{id}/` (la política de Storage del editor ya lo permitía) y queda en `asset_url`. Mientras esté en propuesta, la tarjeta dice que Mariela lo sube al aprobarse. Sin migración: todo cabía en las políticas existentes.

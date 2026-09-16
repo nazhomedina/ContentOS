@@ -1,31 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Download } from "lucide-react";
+import { Copy, Download, Pencil, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { metricasHistoria, programarHistoria, publicarHistoria } from "@/lib/acciones/historias";
+import { descartarHistoria, guardarAssetHistoria, metricasHistoria, programarHistoria, publicarHistoria } from "@/lib/acciones/historias";
+import { crearClienteNavegador } from "@/lib/supabase/client";
+import { FormaHistoria, type OpcionPieza, type OpcionRecurso } from "./forma-historia";
 import { urlFirmada } from "@/lib/acciones/piezas";
 import { fechaHora } from "@/lib/dominio/tiempo";
 import type { Rol } from "@/lib/dominio/roles";
-import { NOMBRE_SERIE_HISTORIA } from "@/lib/dominio/historias";
+import { NOMBRE_REGISTRO, NOMBRE_SERIE_HISTORIA } from "@/lib/dominio/historias";
 
 export type HistoriaCard = {
-  id: string; dia: number; orden: number; serie: string; registro: string; copy: string | null; asset_url: string | null;
+  id: string; semana: string; dia: number; orden: number; serie: string; registro: string; copy: string | null; asset_url: string | null;
+  recurso_id: string | null; pieza_amplificada_id: string | null;
   keyword: string | null; estado: string; programada_para: string | null; publicada_en: string | null;
   views: number | null; replies: number | null; dms: number | null;
   pieza: { id: string; id_publico: string; titulo: string | null } | null;
   recurso: { id: string; nombre: string; slug_go: string | null; keyword: string | null } | null;
 };
 
-export function TarjetaHistoria({ historia: h, rol }: { historia: HistoriaCard; rol: Rol }) {
+export function TarjetaHistoria({ historia: h, rol, recursos = [], piezas = [] }: { historia: HistoriaCard; rol: Rol; recursos?: OpcionRecurso[]; piezas?: OpcionPieza[] }) {
+  const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [hora, setHora] = useState("");
+  const [editando, setEditando] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
   const [m, setM] = useState({ views: h.views ?? "", replies: h.replies ?? "", dms: h.dms ?? "" });
   const puedeActuar = rol !== "viewer";
+  const esOwner = rol === "owner";
+  const faltaAsset = h.registro === "producido" && !h.asset_url && h.estado !== "descartada";
+
+  async function subirAsset(files: FileList | null) {
+    const f = files?.[0];
+    if (!f) return;
+    setSubiendo(true);
+    const supabase = crearClienteNavegador();
+    const nombre = f.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "_");
+    const ruta = `historias/${h.semana}/${h.id}/${nombre}`;
+    const { error } = await supabase.storage.from("assets").upload(ruta, f, { upsert: true });
+    if (error) { toast.error(`${f.name}: ${error.message}`); setSubiendo(false); return; }
+    const r = await guardarAssetHistoria(h.id, ruta);
+    if (r.ok) toast.success(r.mensaje); else toast.error(r.mensaje);
+    setSubiendo(false);
+    if (input.current) input.current.value = "";
+    router.refresh();
+  }
+  function descartar() {
+    if (!confirm("¿Descartar esta historia? Se borra su tarea si seguía abierta.")) return;
+    iniciar(async () => {
+      const r = await descartarHistoria(h.id);
+      if (r.ok) toast.success(r.mensaje); else toast.error(r.mensaje);
+    });
+  }
 
   function copiar() {
     navigator.clipboard.writeText(h.copy ?? "").then(() => toast.success("Copy copiado."));
@@ -58,12 +91,20 @@ export function TarjetaHistoria({ historia: h, rol }: { historia: HistoriaCard; 
     });
   }
 
+  if (editando) return <FormaHistoria semana={h.semana} historia={h} recursos={recursos} piezas={piezas} onListo={() => setEditando(false)} />;
+
   return (
     <div className="space-y-2 rounded-lg border p-3 text-sm">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="font-semibold">{NOMBRE_SERIE_HISTORIA[h.serie] ?? h.serie}</span>
-        <Badge variant="outline">{h.registro}</Badge>
+        <Badge variant="outline" title={NOMBRE_REGISTRO[h.registro]}>{h.registro}</Badge>
         <Badge variant={h.estado === "publicada" ? "default" : "secondary"}>{h.estado}</Badge>
+        {esOwner && h.estado !== "publicada" && (
+          <span className="ml-auto flex gap-0.5">
+            <button type="button" onClick={() => setEditando(true)} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Editar historia"><Pencil className="size-3.5" /></button>
+            <button type="button" onClick={descartar} disabled={pendiente} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-rojo" aria-label="Descartar historia"><X className="size-3.5" /></button>
+          </span>
+        )}
       </div>
       {h.copy && <p className="whitespace-pre-wrap rounded bg-muted/60 p-2 text-xs">{h.copy}</p>}
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -73,9 +114,17 @@ export function TarjetaHistoria({ historia: h, rol }: { historia: HistoriaCard; 
         {h.programada_para && <span>programada {fechaHora(h.programada_para)}</span>}
         {h.publicada_en && <span>publicada {fechaHora(h.publicada_en)}</span>}
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {h.copy && <Button size="sm" variant="outline" onClick={copiar}><Copy className="size-3.5" /> Copy</Button>}
         {h.asset_url && <Button size="sm" variant="outline" disabled={pendiente} onClick={descargar}><Download className="size-3.5" /> Asset</Button>}
+        {faltaAsset && puedeActuar && h.estado !== "propuesta" && (
+          <>
+            <input ref={input} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => subirAsset(e.target.files)} />
+            <Button size="sm" variant="outline" disabled={subiendo} onClick={() => input.current?.click()}><Upload className="size-3.5" /> {subiendo ? "Subiendo…" : "Subir asset"}</Button>
+            <span className="text-xs text-ambar">falta el asset producido</span>
+          </>
+        )}
+        {faltaAsset && h.estado === "propuesta" && <span className="text-xs text-muted-foreground">Mariela sube el asset cuando se apruebe</span>}
       </div>
 
       {puedeActuar && h.estado === "aprobada" && (
