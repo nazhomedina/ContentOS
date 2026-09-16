@@ -1,21 +1,28 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
-import { fechaCorta, hoyISO, lunesDeHoy, sumarDias, DIAS_SEMANA } from "@/lib/dominio/tiempo";
+import { fechaCorta, hoyISO, lunesDeHoy, DIAS_SEMANA } from "@/lib/dominio/tiempo";
 import { NOMBRE_META, resumenSistema, type NodoEstado } from "@/lib/dominio/nodo";
-import { semaforoBuffer, CLASE_SEMAFORO } from "@/lib/dominio/buffer";
-import { IdPublico, InsigniaEstado, InsigniaTipo } from "@/components/app/insignias";
+import { semaforoBuffer } from "@/lib/dominio/buffer";
+import { NOMBRE_TIPO_HISTORIA } from "@/lib/dominio/historias";
+import { numeroEdicion } from "@/lib/dominio/newsletter";
+import { InsigniaEstado } from "@/components/app/insignias";
 import { BotonAprobarHistorias } from "@/components/hoy/aprobar-historias";
 import { Captura } from "@/components/pieza/captura";
 import { AhoraPersona } from "@/components/equipo/ahora";
-import { NOMBRE_TIPO_HISTORIA } from "@/lib/dominio/historias";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Inicio" };
 export const dynamic = "force-dynamic";
 
-type Slot = { id?: string; id_publico?: string; titulo?: string | null; estado?: string; dia?: number };
+type Slot = { id?: string; id_publico?: string; titulo?: string | null; estado?: string; dia?: number; tipo?: string };
+type Pendiente = { clave: string; texto: React.ReactNode; detalle: string; href: string; tono?: "rojo" | "ambar" };
 
+/**
+ * El tablero de Nazho (docs/decisiones.md 2026-09-16 · Inicio, Opción C): cuatro cifras, los sensores de
+ * crecimiento, las metas de la semana y la máquina. Lo que espera su mano aparece como lista solo cuando hay algo.
+ * Mariela no entra aquí: su inicio es la Cola.
+ */
 export default async function Inicio() {
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
@@ -23,122 +30,116 @@ export default async function Inicio() {
   const supabase = await crearClienteServidor();
   const semana = lunesDeHoy();
   const hoy = hoyISO();
-  const ayer = sumarDias(hoy, -1);
 
-  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }] = await Promise.all([
+  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }, { data: produccion }, { data: enKit }, { data: redactando }, { data: porResolver }] = await Promise.all([
     supabase.from("historias").select("id, dia, tipo, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
     supabase.from("tareas").select("id, tipo, nota_bloqueo, vence, pieza:piezas(id, id_publico, titulo), asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("estado", "bloqueada").order("vence"),
     supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, tipo)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
-    supabase.from("piezas").select("id, id_publico, titulo, tipo, estado, fecha_objetivo").in("estado", ["listo", "programada"]).order("fecha_objetivo", { ascending: true, nullsFirst: false }),
+    supabase.from("piezas").select("id").in("estado", ["listo", "programada"]),
     supabase.rpc("cuota_semana", { p_semana: semana }),
     supabase.rpc("latidos"),
     supabase.from("sistemas").select("clave, nombre").eq("activo", true).order("orden"),
     supabase.from("perfiles").select("user_id, nombre").eq("rol", "editor").order("nombre"),
     supabase.from("indicadores_semana").select("*").order("semana", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("piezas").select("estado").in("estado", ["redaccion", "grabacion", "diseno"]),
+    supabase.from("piezas").select("id, id_publico, titulo, fecha_objetivo").eq("tipo", "newsletter").eq("estado", "diseno").order("fecha_objetivo"),
+    supabase.from("piezas").select("id, id_publico, titulo, fecha_objetivo").eq("estado", "redaccion").eq("tipo", "newsletter"),
+    supabase.from("hipotesis").select("id, texto, campo, numero, fecha").eq("estado", "abierta").not("fecha", "is", null).lte("fecha", hoy).order("fecha").limit(5),
   ]);
-  const equipo = await Promise.all((editores ?? []).map(async (e) => {
-    const [{ count: hoyN }, { count: ayerN }, { data: ev }] = await Promise.all([
-      supabase.from("bitacora").select("id", { count: "exact", head: true }).eq("perfil_id", e.user_id).eq("fecha", hoy),
-      supabase.from("bitacora").select("id", { count: "exact", head: true }).eq("perfil_id", e.user_id).eq("fecha", ayer),
-      supabase.rpc("evidencia_dia", { p_perfil: e.user_id, p_fecha: hoy }),
-    ]);
-    const evj = (ev ?? {}) as { tareas_hechas?: unknown[]; archivos?: unknown[] };
-    return { ...e, hoy: hoyN ?? 0, ayer: ayerN ?? 0, tareas: evj.tareas_hechas?.length ?? 0, archivos: evj.archivos?.length ?? 0 };
-  }));
+
+  // Preguntas sin responder en las ediciones que Nazho tiene en redacción.
+  const idsRed = (redactando ?? []).map((p) => p.id);
+  const { data: pens } = idsRed.length ? await supabase.from("pensamientos").select("id, pieza_id, tipo, responde_a").in("pieza_id", idsRed).in("tipo", ["pregunta", "respuesta"]) : { data: [] as { id: string; pieza_id: string | null; tipo: string; responde_a: string | null }[] };
+  const respondidas = new Set((pens ?? []).filter((x) => x.tipo === "respuesta" && x.responde_a).map((x) => x.responde_a as string));
+  const sinResponder = new Map<string, number>();
+  for (const x of pens ?? []) if (x.tipo === "pregunta" && x.pieza_id && !respondidas.has(x.id)) sinResponder.set(x.pieza_id, (sinResponder.get(x.pieza_id) ?? 0) + 1);
+
   const estados = await Promise.all((sistemas ?? []).map(async (x) => {
     const { data } = await supabase.rpc("estado_nodos", { p_clave: x.clave, p_semana: semana });
     return { ...x, nodos: (data ?? []) as NodoEstado[] };
   }));
-  const atrasados = (latidos ?? []).filter((l) => l.atrasado).length;
+
   const orden = ["newsletter", "reel", "carrusel", "historia_dia"];
   const filas = (cuota ?? []).sort((a, b) => orden.indexOf(a.tipo) - orden.indexOf(b.tipo));
-  const meta = filas.reduce((a, f) => a + f.meta, 0), pub = filas.reduce((a, f) => a + f.publicadas, 0), camino = filas.reduce((a, f) => a + f.en_camino, 0);
-  const huecos = Math.max(0, meta - pub - camino);
+  const meta = filas.reduce((a, f) => a + f.meta, 0), pub = filas.reduce((a, f) => a + f.publicadas, 0);
   const nBuffer = (buffer ?? []).length;
-  const { data: porResolver } = await supabase.from("hipotesis").select("id, texto, campo, numero, fecha").eq("estado", "abierta").not("fecha", "is", null).lte("fecha", hoy).order("fecha").limit(5);
   const sem = semaforoBuffer(nBuffer);
-  const pendientes = (propuestas ?? []).length + (bloqueadas ?? []).length;
-  const esLaboral = new Date(hoy + "T12:00:00").getDay() % 6 !== 0;
+  const prod = { total: (produccion ?? []).length, grabacion: (produccion ?? []).filter((p) => p.estado === "grabacion").length, diseno: (produccion ?? []).filter((p) => p.estado === "diseno").length };
+  const atrasados = (latidos ?? []).filter((l) => l.atrasado).length;
+  const sinSensor = [ind?.seguidores, ind?.suscriptores, ind?.leads].filter((v) => v == null).length;
+
+  // Lo que solo Nazho puede hacer, en un solo lugar.
+  const pendientes: Pendiente[] = [
+    ...(propuestas ?? []).length > 0 ? [{ clave: "aprobar", texto: <>Aprobar <b>{propuestas!.length}</b> {propuestas!.length === 1 ? "historia" : "historias"} de esta semana</>, detalle: propuestas!.map((h) => `${DIAS_SEMANA[(h.dia ?? 1) - 1]} · ${NOMBRE_TIPO_HISTORIA[h.tipo] ?? h.tipo}`).join(" · "), href: "/historias" }] : [],
+    ...(bloqueadas ?? []).map((t) => ({ clave: `b-${t.id}`, texto: <>Destrabar a {t.asignado?.nombre ?? "Mariela"}: <b>{t.tipo}</b> {t.pieza?.id_publico}</>, detalle: t.nota_bloqueo ?? "", href: t.pieza ? `/piezas/${t.pieza.id}` : "/cola", tono: "rojo" as const })),
+    ...(enKit ?? []).map((p) => ({ clave: `k-${p.id}`, texto: <>Programar <b>{numeroEdicion(p.titulo) ?? p.id_publico}</b> en Kit para el {fechaCorta(p.fecha_objetivo)}</>, detalle: "está en Kit como borrador · al programarla pasa a lista", href: `/piezas/${p.id}`, tono: "ambar" as const })),
+    ...(redactando ?? []).filter((p) => (sinResponder.get(p.id) ?? 0) > 0).map((p) => ({ clave: `q-${p.id}`, texto: <>Contestar <b>{sinResponder.get(p.id)}</b> preguntas de {numeroEdicion(p.titulo) ?? p.id_publico}</>, detalle: `en el stream · sale el ${fechaCorta(p.fecha_objetivo)}`, href: `/piezas/${p.id}` })),
+    ...(grabar ?? []).map((t) => ({ clave: `g-${t.id}`, texto: <>Grabar <b>{t.pieza?.id_publico}</b> {t.pieza?.titulo}</>, detalle: t.vence ? `vence ${fechaCorta(t.vence)}` : "sin fecha", href: t.pieza ? `/piezas/${t.pieza.id}` : "/cola" })),
+    ...(porResolver ?? []).map((x) => ({ clave: `h-${x.id}`, texto: <>Resolver la hipótesis «{x.texto.slice(0, 70)}{x.texto.length > 70 ? "…" : ""}»</>, detalle: `${x.campo} ≥ ${x.numero} · venció ${fechaCorta(x.fecha)}`, href: "/hipotesis", tono: "ambar" as const })),
+  ];
+  const clases = Array.from(new Set(pendientes.map((p) => p.clave.split("-")[0])));
+  const NOMBRE_CLASE: Record<string, string> = { aprobar: "aprobar", b: "destrabar", k: "programar", q: "contestar", g: "grabar", h: "resolver" };
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-4">
+    <div className="space-y-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{fechaCorta(hoy)} · semana del {fechaCorta(semana)}</p>
-          <h1 className="text-3xl font-extrabold tracking-tight">{pendientes === 0 ? "Nada espera tu mano." : `${pendientes} ${pendientes === 1 ? "cosa espera" : "cosas esperan"} tu mano.`}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">Inicio</h1>
         </div>
-        <Captura />
+        <div className="w-full max-w-md"><Captura /></div>
       </header>
 
-      {(propuestas ?? []).length > 0 && (
-        <Bloque titulo="Aprobar" acento>
+      {/* 1 · Cuatro cifras */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Cifra etiqueta="Publicadas esta semana" valor={`${pub} / ${meta}`} tono={pub >= meta ? "ok" : pub > 0 ? "ambar" : "rojo"} nota="meta declarada" />
+        <Cifra etiqueta="Buffer" valor={nBuffer} tono={sem} nota={sem === "ok" ? "sano · ≥ 5" : sem === "ambar" ? "atención · sano es ≥ 5" : "vacío · sano es ≥ 5"} href="/reels?vista=lista&estado=listo" />
+        <Cifra etiqueta="En producción" valor={prod.total} nota={`${prod.grabacion} en grabación · ${prod.diseno} en diseño`} href="/reels" />
+        <Cifra etiqueta="Esperan tu mano" valor={pendientes.length} tono={pendientes.some((p) => p.tono === "rojo") ? "rojo" : pendientes.length > 0 ? "ambar" : undefined} nota={pendientes.length === 0 ? "nada por hoy" : clases.map((c) => NOMBRE_CLASE[c]).join(", ")} />
+      </div>
+
+      {/* 2 · Sensores */}
+      <div className="grid grid-cols-3 gap-3">
+        <Kpi etiqueta="Seguidores @nazho" valor={ind?.seguidores} corte={ind?.seguidores_corte} fuente="snapshot" />
+        <Kpi etiqueta="Suscriptores CRITERIO" valor={ind?.suscriptores} corte={ind?.suscriptores_corte} fuente="Kit" />
+        <Kpi etiqueta="Leads" valor={ind?.leads} corte={ind?.leads_corte} fuente="go.folklore" />
+      </div>
+
+      {/* 3 · Lo que espera tu mano, solo cuando hay algo */}
+      {pendientes.length > 0 && (
+        <Bloque titulo="Esperan tu mano" acento>
           <ul className="divide-y rounded-lg border text-sm">
-            {propuestas!.map((h) => (
-              <li key={h.id} className="flex items-center gap-3 px-3 py-2">
-                <span className="w-20 shrink-0 text-xs font-semibold text-muted-foreground">{DIAS_SEMANA[(h.dia ?? 1) - 1]}</span>
-                <span className="truncate"><span className="font-medium">{NOMBRE_TIPO_HISTORIA[h.tipo] ?? h.tipo}</span>{h.copy && <span className="text-muted-foreground"> · {h.copy.slice(0, 80)}</span>}</span>
-              </li>
-            ))}
-          </ul>
-          <BotonAprobarHistorias semana={semana} n={propuestas!.length} />
-        </Bloque>
-      )}
-      {(bloqueadas ?? []).length > 0 && (
-        <Bloque titulo="Bloqueos" rojo>
-          <ul className="divide-y rounded-lg border border-rojo/40 text-sm">
-            {bloqueadas!.map((t) => (
-              <li key={t.id} className="space-y-0.5 px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  {t.pieza && <IdPublico id={t.pieza.id_publico} />}
-                  <Link href={t.pieza ? `/piezas/${t.pieza.id}` : "/cola"} className="font-medium hover:underline">{t.pieza?.titulo ?? t.tipo}</Link>
-                  <span className="text-xs text-muted-foreground">{t.asignado?.nombre} · {t.tipo} · vence {fechaCorta(t.vence)}</span>
-                </div>
-                <p className="text-sm text-rojo">{t.nota_bloqueo}</p>
+            {pendientes.map((p) => (
+              <li key={p.clave} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className={cn("block", p.tono === "rojo" && "text-rojo")}>{p.texto}</span>
+                  {p.detalle && <span className={cn("block text-xs", p.tono === "rojo" ? "text-rojo" : p.tono === "ambar" ? "text-ambar" : "text-muted-foreground")}>{p.detalle}</span>}
+                </span>
+                {p.clave === "aprobar" ? <BotonAprobarHistorias semana={semana} n={propuestas!.length} compacto /> : <Link href={p.href} className="rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-muted">Abrir</Link>}
               </li>
             ))}
           </ul>
         </Bloque>
       )}
 
-      {(porResolver ?? []).length > 0 && (
-        <Bloque titulo="Hipótesis por resolver" extra={<Link href="/hipotesis" className="underline">ver todas</Link>}>
-          <ul className="divide-y rounded-lg border border-ambar/40 text-sm">
-            {porResolver!.map((x) => (
-              <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <span className="min-w-0 flex-1 truncate">{x.texto}</span>
-                <span className="text-xs text-ambar">{x.campo} ≥ {x.numero} · venció {fechaCorta(x.fecha)}</span>
-              </li>
-            ))}
-          </ul>
-        </Bloque>
-      )}
-
-      {/* 1 · Crecimiento de cuenta */}
-      <Bloque titulo="Crecimiento de cuenta" extra={<span className="text-muted-foreground">un dato sin fecha miente</span>}>
-        <div className="grid grid-cols-3 gap-3">
-          <Kpi etiqueta="Seguidores @nazho" valor={ind?.seguidores} corte={ind?.seguidores_corte} fuente="snapshot" />
-          <Kpi etiqueta="Suscriptores CRITERIO" valor={ind?.suscriptores} corte={ind?.suscriptores_corte} fuente="Kit" />
-          <Kpi etiqueta="Leads" valor={ind?.leads} corte={ind?.leads_corte} fuente="go.folklore" />
-        </div>
-      </Bloque>
-
-      {/* 2 · Metas de la semana */}
-      <Bloque titulo={`Metas de la semana · ${pub}/${meta} publicadas`} extra={huecos > 0 ? <span className="text-rojo">{huecos} huecos sin nada que los llene</span> : <span className="text-muted-foreground">{camino} en camino</span>}>
+      {/* 4 · Metas de la semana */}
+      <Bloque titulo="Metas de la semana">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {filas.map((f) => {
             const slots = (f.piezas as Slot[]) ?? [];
             const llenos = f.tipo === "historia_dia" ? new Set(slots.map((x) => x.dia)).size : slots.length;
             const vacios = Math.max(0, f.meta - llenos);
+            const ruta = f.tipo === "historia_dia" ? "/historias" : f.tipo === "reel" ? "/reels" : f.tipo === "carrusel" ? "/carruseles" : "/newsletter";
             return (
               <div key={f.tipo} className="space-y-2 rounded-xl border p-3">
                 <div className="flex items-baseline justify-between">
-                  <p className="text-sm font-semibold">{NOMBRE_META[f.tipo] ?? f.tipo}</p>
+                  <Link href={ruta} className="text-sm font-semibold hover:underline">{NOMBRE_META[f.tipo] ?? f.tipo}</Link>
                   <p className="text-sm"><span className={cn("text-xl font-extrabold", f.publicadas >= f.meta && "text-ok")}>{f.publicadas}</span><span className="text-muted-foreground"> / {f.meta}</span></p>
                 </div>
                 <ul className="space-y-1 text-xs">
                   {f.tipo === "historia_dia"
-                    ? Array.from(new Set(slots.map((x) => x.dia!))).sort().map((d) => <li key={d} className="truncate rounded bg-muted/60 px-2 py-1"><Link href={`/historias?semana=${semana}`} className="hover:underline">{DIAS_SEMANA[d - 1]}</Link> · {slots.filter((x) => x.dia === d).length}</li>)
-                    : slots.map((p) => <li key={p.id} className="flex items-center justify-between gap-1 rounded bg-muted/60 px-2 py-1"><Link href={`/piezas/${p.id}`} className="truncate hover:underline">{p.titulo ?? p.id_publico}</Link><InsigniaEstado estado={p.estado!} /></li>)}
+                    ? Array.from(new Set(slots.map((x) => x.dia!))).sort().map((d) => <li key={d} className="truncate rounded bg-muted/60 px-2 py-1"><Link href={`/historias?semana=${semana}`} className="hover:underline">{DIAS_SEMANA[d - 1]}</Link> · {slots.filter((x) => x.dia === d).map((x) => NOMBRE_TIPO_HISTORIA[x.tipo ?? ""] ?? x.tipo).join(", ")}</li>)
+                    : slots.map((p) => <li key={p.id} className="flex items-center justify-between gap-1 rounded bg-muted/60 px-2 py-1"><Link href={`/piezas/${p.id}`} className="truncate hover:underline">{p.titulo ?? p.id_publico}</Link>{p.estado === "diseno" && f.tipo === "newsletter" ? <span className="shrink-0 text-[11px] text-ambar">en Kit</span> : <InsigniaEstado estado={p.estado!} />}</li>)}
                   {Array.from({ length: vacios }).map((_, i) => <li key={`v${i}`} className="rounded border border-dashed border-rojo/50 px-2 py-1 text-rojo">Hueco</li>)}
                 </ul>
               </div>
@@ -147,42 +148,8 @@ export default async function Inicio() {
         </div>
       </Bloque>
 
-      {/* 3 · Buffer */}
-      <Bloque titulo="Buffer de contenidos" extra={<span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", CLASE_SEMAFORO[sem])}>{nBuffer} {nBuffer === 1 ? "lista" : "listas"} · {sem === "ok" ? "sano" : sem === "ambar" ? "atención" : "vacío"}</span>}>
-        {nBuffer === 0 ? <p className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">Nada terminado esperando publicación. Sano es ≥ 5.</p> : (
-          <ul className="divide-y rounded-lg border text-sm">
-            {buffer!.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                <Link href={`/piezas/${p.id}`} className="flex min-w-0 items-center gap-2 hover:underline"><IdPublico id={p.id_publico} /><span className="truncate font-medium">{p.titulo}</span></Link>
-                <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">{p.tipo && <InsigniaTipo tipo={p.tipo} />}<InsigniaEstado estado={p.estado} />{p.fecha_objetivo && fechaCorta(p.fecha_objetivo)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {(grabar ?? []).length > 0 && (
-          <p className="text-xs text-muted-foreground">Te toca grabar: {grabar!.map((t) => <Link key={t.id} href={`/piezas/${t.pieza!.id}`} className="mr-2 underline">{t.pieza!.id_publico}</Link>)}</p>
-        )}
-      </Bloque>
-
-      {/* 4 · Equipo y cierre del día */}
-      <Bloque titulo="Equipo" extra={<Link href="/equipo" className="underline">ver la semana del equipo</Link>}>
-        {equipo.length === 0 ? <p className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">Cuando Mariela entre, aquí aparece en qué pieza está, qué le sigue y su bitácora de hoy y de ayer.</p> : (
-          <ul className="divide-y rounded-lg border text-sm">
-            {equipo.map((e) => (
-              <li key={e.user_id} className="space-y-1.5 px-3 py-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Link href={`/equipo?persona=${e.user_id}`} className="font-semibold hover:underline">{e.nombre}</Link>
-                  <span className="flex items-center gap-3 text-xs">
-                    <span className={cn(e.hoy === 0 && esLaboral ? "font-semibold text-ambar" : "text-muted-foreground")}>hoy: {e.hoy === 0 ? "sin bitácora" : `${e.hoy} entradas`}</span>
-                    <span className={cn(e.ayer === 0 ? "text-rojo" : "text-muted-foreground")}>ayer: {e.ayer === 0 ? "sin bitácora" : `${e.ayer} entradas`}</span>
-                    <span className="text-muted-foreground">{e.tareas} tareas · {e.archivos} archivos hoy</span>
-                  </span>
-                </div>
-                <AhoraPersona perfilId={e.user_id} />
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* 5 · La máquina y el equipo */}
+      <Bloque titulo="La máquina" extra={<span className="text-muted-foreground">{atrasados > 0 ? <span className="text-rojo">{atrasados} latidos atrasados</span> : "latidos al día"}{sinSensor > 0 && <> · {sinSensor} sensores sin dato</>} · <Link href="/sistemas" className="underline">sistemas</Link></span>}>
         <ul className="divide-y rounded-lg border text-sm">
           {estados.map((sx) => {
             const r = resumenSistema(sx.nodos);
@@ -200,23 +167,40 @@ export default async function Inicio() {
               </li>
             );
           })}
-          <li className="px-3 py-1.5 text-[11px] text-muted-foreground">La máquina · {atrasados > 0 ? <span className="text-rojo">{atrasados} latidos atrasados</span> : "latidos al día"} · <Link href="/sistemas" className="underline">sistemas</Link></li>
+          {(editores ?? []).map((e) => (
+            <li key={e.user_id} className="space-y-1 px-3 py-2">
+              <Link href={`/equipo?persona=${e.user_id}`} className="text-xs font-semibold hover:underline">{e.nombre}</Link>
+              <AhoraPersona perfilId={e.user_id} />
+            </li>
+          ))}
+          {(editores ?? []).length === 0 && <li className="px-3 py-2 text-xs text-muted-foreground">Mariela todavía no entra. Genera su código en <Link href="/accesos" className="underline">Accesos</Link>.</li>}
         </ul>
       </Bloque>
     </div>
   );
 }
 
-function Bloque({ titulo, children, acento, rojo, extra }: { titulo: string; children: React.ReactNode; acento?: boolean; rojo?: boolean; extra?: React.ReactNode }) {
+function Bloque({ titulo, children, acento, extra }: { titulo: string; children: React.ReactNode; acento?: boolean; extra?: React.ReactNode }) {
   return (
     <section className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className={cn("text-xs font-bold uppercase tracking-wider", acento ? "text-primary" : rojo ? "text-rojo" : "text-muted-foreground")}>{titulo}</h2>
+        <h2 className={cn("text-xs font-bold uppercase tracking-wider", acento ? "text-primary" : "text-muted-foreground")}>{titulo}</h2>
         {extra && <span className="text-xs">{extra}</span>}
       </div>
       {children}
     </section>
   );
+}
+
+function Cifra({ etiqueta, valor, nota, tono, href }: { etiqueta: string; valor: string | number; nota: string; tono?: "ok" | "ambar" | "rojo"; href?: string }) {
+  const cuerpo = (
+    <>
+      <p className="text-xs text-muted-foreground">{etiqueta}</p>
+      <p className={cn("text-2xl font-extrabold tabular-nums tracking-tight", tono === "ok" && "text-ok", tono === "ambar" && "text-ambar", tono === "rojo" && "text-rojo")}>{valor}</p>
+      <p className="text-[11px] text-muted-foreground">{nota}</p>
+    </>
+  );
+  return href ? <Link href={href} className="rounded-xl border p-3 hover:bg-muted/40">{cuerpo}</Link> : <div className="rounded-xl border p-3">{cuerpo}</div>;
 }
 
 function Kpi({ etiqueta, valor, corte, fuente }: { etiqueta: string; valor: number | null | undefined; corte: string | null | undefined; fuente: string }) {

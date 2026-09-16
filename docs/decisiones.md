@@ -249,3 +249,9 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Nazho no quiere instalar Resend.** El login pasa a correo + código: el código es una contraseña de Supabase Auth que Nazho genera en la pantalla **Accesos** (menú, solo owner) y le pasa a la persona en persona. Se muestra una sola vez; uno nuevo reemplaza al anterior. Dar de alta a alguien también se hace ahí (lista blanca `perfiles_permitidos`); al generar su primer código se crea el usuario de Auth y el trigger le da su perfil. Cada código generado deja una fila en `corridas` (`generar_codigo`).
 
 **El enlace por correo queda como respaldo** («¿Sin código? Recibir un enlace por correo»): con el SMTP de fábrica solo llega a los miembros del proyecto de Supabase, o sea a Nazho. `scripts/enlace-acceso.mjs` sigue existiendo por si hace falta un enlace sin correo. El punto 1 del plan de cierre (SMTP con Resend) queda sin efecto.
+
+## 2026-09-16 · Inicio: tablero de números
+
+**Inicio es el tablero de Nazho; Mariela entra por su Cola.** Se eligió la Opción C del canvas (https://claude.ai/artifact/DUcWmeLLPCZf5QYD8SoyvA): cuatro cifras arriba (publicadas contra la meta, buffer con semáforo, en producción con grabación y diseño, y cuántas cosas esperan su mano), los tres sensores de crecimiento (que dicen «sin sensor» hasta que corran los jobs), las metas de la semana con sus huecos, y la máquina con los sistemas, los latidos y una línea por editora.
+
+**«Esperan tu mano» se calcula, no se declara.** Junta en una lista, solo cuando hay algo: historias por aprobar, bloqueos de Mariela, ediciones en Kit por programar, preguntas del stream sin contestar, tareas de grabar e hipótesis vencidas. Antes eran tres bloques distintos que aparecían y desaparecían. La lista del buffer ya no está en Inicio: la cifra enlaza a la lista de Reels.
