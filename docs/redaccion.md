@@ -1,3 +1,5 @@
+> **Retirado el 2026-09-17.** El stream de redacción salió de la plataforma: la entrevista y la redacción viven en Claude Cowork como skill y el resultado entra con `guardar_contenido`. Este documento queda como historia de por qué se diseñó así (docs/decisiones.md).
+
 # Redacción — propuesta del módulo
 
 **Fecha:** 2026-09-09 · **Origen:** Nazho pide un módulo de redacción inspirado en VoicePal (Ali Abdaal).

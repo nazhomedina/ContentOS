@@ -41,20 +41,10 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
   const publicadas = todas.filter((p) => p.estado === "publicada" || p.estado === "en_trial").sort((a, b) => (b.publicada_en ?? "").localeCompare(a.publicada_en ?? ""));
   const activas = todas.filter((p) => !publicadas.includes(p));
 
-  // Preguntas sin responder en el stream de las que están en redacción.
-  const enRedaccion = activas.filter((p) => p.estado === "redaccion").map((p) => p.id);
-  const { data: pens } = enRedaccion.length
-    ? await supabase.from("pensamientos").select("id, pieza_id, tipo, responde_a").in("pieza_id", enRedaccion).in("tipo", ["pregunta", "respuesta"])
-    : { data: [] as { id: string; pieza_id: string | null; tipo: string; responde_a: string | null }[] };
-  const respondidas = new Set((pens ?? []).filter((x) => x.tipo === "respuesta" && x.responde_a).map((x) => x.responde_a as string));
-  const sinResponder = new Map<string, number>();
-  for (const x of pens ?? []) if (x.tipo === "pregunta" && x.pieza_id && !respondidas.has(x.id)) sinResponder.set(x.pieza_id, (sinResponder.get(x.pieza_id) ?? 0) + 1);
-
   const señalDe = (p: Edicion): Senal | null => {
     if (p.fecha_objetivo && p.fecha_objetivo < hoy) return { tono: "rojo", texto: `venció el ${fechaCorta(p.fecha_objetivo)}` };
     if (p.estado === "diseno") return { tono: "ambar", texto: `programar en Kit para el ${fechaCorta(p.fecha_objetivo)} y marcar lista` };
-    const n = sinResponder.get(p.id) ?? 0;
-    if (p.estado === "redaccion" && n > 0) return { tono: "azul", texto: `${n} ${n === 1 ? "pregunta sin responder" : "preguntas sin responder"}` };
+    if (p.estado === "redaccion") return { tono: "azul", texto: "en redacción en Claude Cowork" };
     if (!p.hipotesis_id && !["borrador", "redaccion"].includes(p.estado) && !(p.etiquetas ?? []).includes("legado")) return { tono: "rojo", texto: "sin hipótesis" };
     return null;
   };
@@ -150,7 +140,7 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
                 </ul>
               </section>
             ))}
-            <p className="text-xs text-muted-foreground">La redacción pasa en Claude con el skill del newsletter; aquí se ve qué edición sale qué día y qué le falta para salir. Publicadas guarda las enviadas con su liga.</p>
+            <p className="text-xs text-muted-foreground">La entrevista y la redacción pasan en Claude Cowork con el skill del newsletter; aquí se ve qué edición sale qué día y qué le falta para salir. Publicadas guarda las enviadas con su liga.</p>
           </div>
 
           <aside className="space-y-1.5">

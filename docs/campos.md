@@ -6,7 +6,7 @@
 
 ## 1. Cómo está armado hoy, en un párrafo
 
-Hay **una sola tabla `piezas`** para todo lo publicable (reel, yap, carrusel, artículo, newsletter, YouTube, X, canal de IG). Lo que cambia por formato no son las columnas sino las **sub-etapas** que aplican (en código: `subetapas(formato)`) y el **checklist por defecto** de cada tarea. Alrededor de la pieza viven tablas satélite con relación uno-a-muchos: tareas, métricas, comentarios, pensamientos (el stream de redacción), versiones del guion y los archivos en Storage. **Historias** es la excepción: tiene tabla propia porque se opera como paquete semanal. **Format Cards** es un catálogo aparte al que la pieza apunta.
+Hay **una sola tabla `piezas`** para todo lo publicable (reel, yap, carrusel, artículo, newsletter, YouTube, X, canal de IG). Lo que cambia por formato no son las columnas sino las **sub-etapas** que aplican (en código: `subetapas(formato)`) y el **checklist por defecto** de cada tarea. Alrededor de la pieza viven tablas satélite con relación uno-a-muchos: tareas, métricas, comentarios, versiones del contenido y los archivos en Storage. **Historias** es la excepción: tiene tabla propia porque se opera como paquete semanal. **Format Cards** es un catálogo aparte al que la pieza apunta.
 
 ---
 
@@ -92,7 +92,6 @@ Todo lo que puede ocurrir varias veces por pieza vive en una tabla al lado, una 
 | `tareas` | grabar · editar · diseñar · publicar · capturar métricas · revisar, con checklist, vencimiento, bloqueo | muchas por pieza (o por historia) |
 | `metricas` | una lectura por fecha y fuente: views, likes, comentarios, saves, follows, multiplicador | serie en el tiempo |
 | `comentarios` | conversación entre Nazho y Mariela sobre la pieza | muchas |
-| `pensamientos` | el stream de redacción: voz, texto, link, preguntas de Claude, respuestas | muchas |
 | `guion_versiones` | cada guion que Claude guardó, con su hipótesis, spec e instrucción | muchas; la pieza guarda solo el vigente |
 | Storage `assets/piezas/{id}/` | RAW, portada, final | archivos |
 | `hooks` | banco de ganchos, ligados opcionalmente a la pieza de origen | muchos |

@@ -128,44 +128,8 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     return json(data);
   });
 
-  server.registerTool("stream_de", {
-    description: "El stream de una pieza (borrador o en redacción): notas de voz transcritas, textos, links, preguntas de Claude y respuestas de Nazho, en orden; más el contenido vigente y sus versiones. Léelo antes de preguntar o redactar.",
-    inputSchema: { pieza: z.string().describe("uuid o id_publico") },
-  }, async ({ pieza }) => {
-    const { data: p } = await supabase.from("piezas").select("id, id_publico, titulo, estado, tipo, notas, etiquetas, contenido, etapa_embudo, series, formato:formatos(codigo, nombre), hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
-    if (!p) return error(`No existe la pieza ${pieza}.`);
-    const [{ data: pens }, { data: vers }] = await Promise.all([
-      supabase.from("pensamientos").select("id, tipo, texto, transcript_crudo, transcript_pulido, audio_url, duracion_s, ronda, responde_a, created_at").eq("pieza_id", p.id).order("created_at"),
-      supabase.from("contenido_versiones").select("version, instruccion, autor, created_at").eq("pieza_id", p.id).order("version"),
-    ]);
-    const rondas = Math.max(0, ...(pens ?? []).filter((x) => x.tipo === "pregunta").map((x) => x.ronda ?? 1));
-    const sinResponder = (pens ?? []).filter((x) => x.tipo === "pregunta" && !(pens ?? []).some((r) => r.responde_a === x.id));
-    return json({ pieza: p, stream: pens, versiones: vers, rondas_de_preguntas: rondas, preguntas_sin_responder: sinResponder.map((x) => x.id) });
-  });
-
-  server.registerTool("agregar_pensamiento", {
-    description: "Añade al stream de una pieza: voz (transcript), texto, link, pregunta (de Claude, con ronda) o respuesta (de Nazho, con responde_a). Si la pieza no existe, primero créala con crear_pieza.",
-    inputSchema: {
-      pieza: z.string().describe("uuid o id_publico"),
-      tipo: z.enum(["voz", "texto", "link", "pregunta", "respuesta"]),
-      texto: z.string().optional(), transcript: z.string().optional().describe("transcript crudo de una nota de voz"),
-      transcript_pulido: z.string().optional(), audio_url: z.string().optional(), duracion_s: z.number().int().optional(),
-      ronda: z.number().int().min(1).max(2).optional().describe("para preguntas: 1 o 2"), responde_a: uuid.optional(),
-    },
-  }, async ({ pieza, tipo, texto, transcript, transcript_pulido, audio_url, duracion_s, ronda, responde_a }) => {
-    const { data: p } = await supabase.from("piezas").select("id, id_publico").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
-    if (!p) return error(`No existe la pieza ${pieza}.`);
-    if (!texto && !transcript && !transcript_pulido && !audio_url) return error("Un pensamiento necesita texto, transcript o audio.");
-    const { data, error: e } = await supabase.from("pensamientos").insert({
-      pieza_id: p.id, tipo, texto, transcript_crudo: transcript, transcript_pulido, audio_url, duracion_s, ronda, responde_a, autor: perfil.user_id,
-    }).select().single();
-    if (e) return error(limpiarError(e.message));
-    await corrida("agregar_pensamiento", `${p.id_publico}: ${tipo}`, { pieza_id: p.id, pensamiento_id: data.id }, perfil);
-    return json(data);
-  });
-
   server.registerTool("guardar_contenido", {
-    description: "Guarda el contenido (guion, copy, artículo, edición) como nueva versión de la pieza. Es lo que usan los guionistas al terminar. Si trae hipótesis, la crea y la liga a la pieza. No cambia el estado: para eso, actualizar_pieza.",
+    description: "Guarda el contenido (guion, copy, artículo, edición) como nueva versión de la pieza. Es lo que usan los skills de redacción de Cowork al terminar la entrevista. Si trae hipótesis, la crea y la liga a la pieza. No cambia el estado: para eso, actualizar_pieza.",
     inputSchema: {
       pieza: z.string().describe("uuid o id_publico"), contenido: z.string().min(20),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),

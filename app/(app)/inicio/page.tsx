@@ -31,7 +31,7 @@ export default async function Inicio() {
   const semana = lunesDeHoy();
   const hoy = hoyISO();
 
-  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }, { data: produccion }, { data: enKit }, { data: redactando }, { data: porResolver }] = await Promise.all([
+  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }, { data: produccion }, { data: enKit }, { data: porResolver }] = await Promise.all([
     supabase.from("historias").select("id, dia, tipo, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
     supabase.from("tareas").select("id, tipo, nota_bloqueo, vence, pieza:piezas(id, id_publico, titulo), asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("estado", "bloqueada").order("vence"),
     supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, tipo)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
@@ -43,16 +43,8 @@ export default async function Inicio() {
     supabase.from("indicadores_semana").select("*").order("semana", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("piezas").select("estado").in("estado", ["redaccion", "grabacion", "diseno"]),
     supabase.from("piezas").select("id, id_publico, titulo, fecha_objetivo").eq("tipo", "newsletter").eq("estado", "diseno").order("fecha_objetivo"),
-    supabase.from("piezas").select("id, id_publico, titulo, fecha_objetivo").eq("estado", "redaccion").eq("tipo", "newsletter"),
     supabase.from("hipotesis").select("id, texto, campo, numero, fecha").eq("estado", "abierta").not("fecha", "is", null).lte("fecha", hoy).order("fecha").limit(5),
   ]);
-
-  // Preguntas sin responder en las ediciones que Nazho tiene en redacción.
-  const idsRed = (redactando ?? []).map((p) => p.id);
-  const { data: pens } = idsRed.length ? await supabase.from("pensamientos").select("id, pieza_id, tipo, responde_a").in("pieza_id", idsRed).in("tipo", ["pregunta", "respuesta"]) : { data: [] as { id: string; pieza_id: string | null; tipo: string; responde_a: string | null }[] };
-  const respondidas = new Set((pens ?? []).filter((x) => x.tipo === "respuesta" && x.responde_a).map((x) => x.responde_a as string));
-  const sinResponder = new Map<string, number>();
-  for (const x of pens ?? []) if (x.tipo === "pregunta" && x.pieza_id && !respondidas.has(x.id)) sinResponder.set(x.pieza_id, (sinResponder.get(x.pieza_id) ?? 0) + 1);
 
   const estados = await Promise.all((sistemas ?? []).map(async (x) => {
     const { data } = await supabase.rpc("estado_nodos", { p_clave: x.clave, p_semana: semana });
@@ -73,12 +65,11 @@ export default async function Inicio() {
     ...(propuestas ?? []).length > 0 ? [{ clave: "aprobar", texto: <>Aprobar <b>{propuestas!.length}</b> {propuestas!.length === 1 ? "historia" : "historias"} de esta semana</>, detalle: propuestas!.map((h) => `${DIAS_SEMANA[(h.dia ?? 1) - 1]} · ${NOMBRE_TIPO_HISTORIA[h.tipo] ?? h.tipo}`).join(" · "), href: "/historias" }] : [],
     ...(bloqueadas ?? []).map((t) => ({ clave: `b-${t.id}`, texto: <>Destrabar a {t.asignado?.nombre ?? "Mariela"}: <b>{t.tipo}</b> {t.pieza?.id_publico}</>, detalle: t.nota_bloqueo ?? "", href: t.pieza ? `/piezas/${t.pieza.id}` : "/cola", tono: "rojo" as const })),
     ...(enKit ?? []).map((p) => ({ clave: `k-${p.id}`, texto: <>Programar <b>{numeroEdicion(p.titulo) ?? p.id_publico}</b> en Kit para el {fechaCorta(p.fecha_objetivo)}</>, detalle: "está en Kit como borrador · al programarla pasa a lista", href: `/piezas/${p.id}`, tono: "ambar" as const })),
-    ...(redactando ?? []).filter((p) => (sinResponder.get(p.id) ?? 0) > 0).map((p) => ({ clave: `q-${p.id}`, texto: <>Contestar <b>{sinResponder.get(p.id)}</b> preguntas de {numeroEdicion(p.titulo) ?? p.id_publico}</>, detalle: `en el stream · sale el ${fechaCorta(p.fecha_objetivo)}`, href: `/piezas/${p.id}` })),
     ...(grabar ?? []).map((t) => ({ clave: `g-${t.id}`, texto: <>Grabar <b>{t.pieza?.id_publico}</b> {t.pieza?.titulo}</>, detalle: t.vence ? `vence ${fechaCorta(t.vence)}` : "sin fecha", href: t.pieza ? `/piezas/${t.pieza.id}` : "/cola" })),
     ...(porResolver ?? []).map((x) => ({ clave: `h-${x.id}`, texto: <>Resolver la hipótesis «{x.texto.slice(0, 70)}{x.texto.length > 70 ? "…" : ""}»</>, detalle: `${x.campo} ≥ ${x.numero} · venció ${fechaCorta(x.fecha)}`, href: "/hipotesis", tono: "ambar" as const })),
   ];
   const clases = Array.from(new Set(pendientes.map((p) => p.clave.split("-")[0])));
-  const NOMBRE_CLASE: Record<string, string> = { aprobar: "aprobar", b: "destrabar", k: "programar", q: "contestar", g: "grabar", h: "resolver" };
+  const NOMBRE_CLASE: Record<string, string> = { aprobar: "aprobar", b: "destrabar", k: "programar", g: "grabar", h: "resolver" };
 
   return (
     <div className="space-y-8">

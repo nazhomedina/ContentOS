@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive, ExternalLink, MessageCircleQuestion, MessagesSquare } from "lucide-react";
+import { Archive, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { archivarPieza, pasarARedaccion } from "@/lib/acciones/borradores";
@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 export type Borrador = {
   id: string; id_publico: string; titulo: string | null; notas: string | null; etiquetas: string[];
   notion_url: string | null; created_at: string;
-  stream?: { entradas: number; sin_responder: number };
 };
 
 const ORIGEN: Record<string, string> = { radar: "radar", voz: "voz", destilado: "destilado", markie: "Markie", coyuntura: "coyuntura", audiencia: "audiencia", claude: "Claude", legado: "banco Notion", nazho: "Nazho" };
@@ -70,13 +69,6 @@ export function Borradores({ borradores }: { borradores: Borrador[] }) {
               {b.etiquetas?.map((x) => <Badge key={x} variant="outline" className="text-[10px]">{ORIGEN[x] ?? x}</Badge>)}
               {b.notion_url && <a href={b.notion_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground" onClick={(e) => e.stopPropagation()}><ExternalLink className="size-3" /> Notion</a>}
             </div>
-            {b.stream && b.stream.entradas > 0 && (
-              <Link href={`/piezas/${b.id}`} onClick={(e) => e.stopPropagation()} className={cn("inline-flex items-center gap-1.5 text-[11px] font-semibold hover:underline", b.stream.sin_responder > 0 ? "text-ambar" : "text-muted-foreground")}>
-                {b.stream.sin_responder > 0
-                  ? <><MessageCircleQuestion className="size-3.5" /> {b.stream.sin_responder === 1 ? "Una pregunta de Claude sin contestar" : `${b.stream.sin_responder} preguntas de Claude sin contestar`}</>
-                  : <><MessagesSquare className="size-3.5" /> {b.stream.entradas} en el stream</>}
-              </Link>
-            )}
             <div className="mt-auto flex items-center gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
               <select
                 className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs"

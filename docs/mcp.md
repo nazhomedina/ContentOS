@@ -42,7 +42,7 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (31)
+## 5. Herramientas (29)
 
 | Tool | Para qué | Latido |
 |---|---|---|
@@ -52,7 +52,7 @@ Sin key responde 401.
 | `crear_pieza` | una pieza nace con solo título (borrador). Con tipo → redacción. Con tipo + etapa + hipótesis → grabación | `crear_pieza` |
 | `actualizar_pieza` | **así Claude desarrolla una idea**: tipo, hipótesis (o hipotesis_id), etapa, formato (card), contenido, notas, etiquetas, estado. Acepta id_publico | `actualizar_pieza` |
 | `listar_piezas` | por estado (borradores incluidos), tipo, serie, etiqueta o semana objetivo | — |
-| `stream_de` · `agregar_pensamiento` · `guardar_contenido` | el stream de redacción (voz, texto, link, preguntas, respuestas) y las versiones del contenido; los usa el skill `entrevistador-redaccion` | `agregar_pensamiento`, `guardar_contenido` |
+| `guardar_contenido` | las versiones del contenido; lo usan los skills de redacción de Cowork al terminar la entrevista (el stream se retiró el 17-sep) | `guardar_contenido` |
 | `listar_hipotesis` · `resolver_hipotesis` · `actualizar_hipotesis` | las hipótesis con piezas y evidencia; cerrarlas con veredicto; completar las heredadas | `resolver_hipotesis` |
 | `listar_cuentas` · `seguir_cuenta` | la watchlist | `seguir_cuenta` |
 | `asignar_tarea` · `cola_de` | la cola de Mariela o de Nazho | `asignar_tarea` |

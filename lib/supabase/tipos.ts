@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 017.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 018.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -770,73 +770,6 @@ export type Database = {
           },
         ]
       }
-      pensamientos: {
-        Row: {
-          audio_url: string | null
-          autor: string | null
-          created_at: string
-          duracion_s: number | null
-          id: string
-          pieza_id: string
-          responde_a: string | null
-          ronda: number | null
-          texto: string | null
-          tipo: string
-          transcript_crudo: string | null
-          transcript_pulido: string | null
-        }
-        Insert: {
-          audio_url?: string | null
-          autor?: string | null
-          created_at?: string
-          duracion_s?: number | null
-          id?: string
-          pieza_id: string
-          responde_a?: string | null
-          ronda?: number | null
-          texto?: string | null
-          tipo: string
-          transcript_crudo?: string | null
-          transcript_pulido?: string | null
-        }
-        Update: {
-          audio_url?: string | null
-          autor?: string | null
-          created_at?: string
-          duracion_s?: number | null
-          id?: string
-          pieza_id?: string
-          responde_a?: string | null
-          ronda?: number | null
-          texto?: string | null
-          tipo?: string
-          transcript_crudo?: string | null
-          transcript_pulido?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pensamientos_autor_fkey"
-            columns: ["autor"]
-            isOneToOne: false
-            referencedRelation: "perfiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "pensamientos_pieza_id_fkey"
-            columns: ["pieza_id"]
-            isOneToOne: false
-            referencedRelation: "piezas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pensamientos_responde_a_fkey"
-            columns: ["responde_a"]
-            isOneToOne: false
-            referencedRelation: "pensamientos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       perfiles: {
         Row: {
           api_key_hash: string | null
@@ -1234,6 +1167,73 @@ export type Database = {
           vence?: string | null
         }
         Relationships: []
+      }
+      respaldo_20260917_pensamientos: {
+        Row: {
+          audio_url: string | null
+          autor: string | null
+          created_at: string
+          duracion_s: number | null
+          id: string
+          pieza_id: string
+          responde_a: string | null
+          ronda: number | null
+          texto: string | null
+          tipo: string
+          transcript_crudo: string | null
+          transcript_pulido: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          autor?: string | null
+          created_at?: string
+          duracion_s?: number | null
+          id?: string
+          pieza_id: string
+          responde_a?: string | null
+          ronda?: number | null
+          texto?: string | null
+          tipo: string
+          transcript_crudo?: string | null
+          transcript_pulido?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          autor?: string | null
+          created_at?: string
+          duracion_s?: number | null
+          id?: string
+          pieza_id?: string
+          responde_a?: string | null
+          ronda?: number | null
+          texto?: string | null
+          tipo?: string
+          transcript_crudo?: string | null
+          transcript_pulido?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pensamientos_autor_fkey"
+            columns: ["autor"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pensamientos_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pensamientos_responde_a_fkey"
+            columns: ["responde_a"]
+            isOneToOne: false
+            referencedRelation: "respaldo_20260917_pensamientos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       series: {
         Row: {

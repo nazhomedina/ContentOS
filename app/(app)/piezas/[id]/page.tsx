@@ -11,7 +11,6 @@ import { Etiquetas } from "@/components/pieza/etiquetas";
 import { FichaPieza } from "@/components/pieza/ficha-pieza";
 import { HipotesisPieza } from "@/components/pieza/hipotesis-pieza";
 import { SeriesPieza } from "@/components/pieza/series-pieza";
-import { Stream, type Pensamiento } from "@/components/pieza/stream";
 import { UrlPieza } from "@/components/pieza/url-pieza";
 import { Versiones, type Version } from "@/components/pieza/versiones";
 import { NOMBRE_TAREA, type TipoTarea } from "@/lib/dominio/estados";
@@ -42,15 +41,12 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
   const esOwner = rol === "owner";
   const puedeEditar = rol !== "viewer";
 
-  const [{ data: tareas }, { data: comentarios }, { data: assets }, { data: perfiles }, { data: formatos }, { data: pensamientos }, { data: versiones }] = await Promise.all([
+  const [{ data: tareas }, { data: comentarios }, { data: assets }, { data: perfiles }, { data: formatos }, { data: versiones }] = await Promise.all([
     supabase.from("tareas").select("id, tipo, estado, vence, nota_bloqueo, hecha_en, asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("pieza_id", id).order("created_at"),
     supabase.from("comentarios").select("id, texto, created_at, autor:perfiles!comentarios_autor_fkey(nombre)").eq("pieza_id", id).order("created_at"),
     supabase.from("assets").select("ruta, nombre, carpeta, created_at").eq("pieza_id", id).order("created_at", { ascending: false }),
     supabase.from("perfiles").select("user_id, nombre, rol").in("rol", ["owner", "editor"]).order("nombre"),
     supabase.from("formatos").select("id, codigo, nombre").order("codigo"),
-    esOwner
-      ? supabase.from("pensamientos").select("id, tipo, texto, transcript_crudo, transcript_pulido, audio_url, duracion_s, ronda, responde_a, created_at").eq("pieza_id", id).order("created_at")
-      : Promise.resolve({ data: [] as never[] }),
     supabase.from("contenido_versiones").select("version, contenido, instruccion, autor, created_at").eq("pieza_id", id).order("version"),
   ]);
   const { data: seriesActivas } = await supabase.from("series").select("nombre").eq("activa", true).order("nombre");
@@ -58,13 +54,8 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
     ? await supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado").eq("estado", "abierta").order("created_at", { ascending: false }).limit(150)
     : { data: [] as { id: string; texto: string; campo: string | null; numero: number | null; fecha: string | null; estado: string }[] };
 
-  const stream: Pensamiento[] = (pensamientos ?? []).map((p) => ({
-    id: p.id, tipo: p.tipo, texto: p.texto, transcript: p.transcript_crudo, transcript_pulido: p.transcript_pulido,
-    audio_url: p.audio_url, duracion_s: p.duracion_s, ronda: p.ronda, responde_a: p.responde_a, cuando: fechaHora(p.created_at),
-  }));
   const historial: Version[] = (versiones ?? []).map((v) => ({ version: v.version, contenido: v.contenido, instruccion: v.instruccion, autor: v.autor, cuando: fechaHora(v.created_at) }));
   const vigente = historial.length > 0 ? historial[historial.length - 1] : null;
-  const enRedaccion = pieza.estado === "borrador" || pieza.estado === "redaccion";
   const esLegado = (pieza.etiquetas ?? []).includes("legado");
 
   // Qué sigue: la primera tarea abierta, o la fecha objetivo.
@@ -101,18 +92,12 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
 
       {pieza.estado === "borrador" && (
         <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-          Es un borrador. Habla en el stream, contesta lo que Claude pregunte y, cuando tenga tipo, «Producir» la manda a redacción. Desde Claude: «entrevístame sobre {pieza.id_publico}».
+          Es un borrador. La entrevista y la redacción pasan en Claude Cowork: «entrevístame sobre {pieza.id_publico}». Cuando tenga tipo, «Producir» la manda a redacción.
         </p>
       )}
 
       <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
         <section className="min-w-0 space-y-6">
-          {esOwner && enRedaccion && (
-            <Bloque titulo="Stream de redacción">
-              <Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir />
-            </Bloque>
-          )}
-
           <div className="rounded-xl border px-5 py-5 sm:px-7">
             <div className="mb-3 flex flex-wrap items-baseline gap-2.5">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{vigente ? `Contenido · v${vigente.version}` : "Contenido"}</span>
@@ -134,15 +119,6 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
             </div>
           </details>
 
-          {esOwner && !enRedaccion && stream.length > 0 && (
-            <details className="group rounded-xl border">
-              <summary className="flex cursor-pointer flex-wrap items-baseline gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Stream de redacción</span>
-                <span className="text-xs text-muted-foreground">· {stream.length} · lo que se dijo antes de escribir</span>
-              </summary>
-              <div className="border-t px-4 py-4"><Stream piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} items={stream} puedeEscribir={false} /></div>
-            </details>
-          )}
 
           <Bloque titulo="Comentarios">
             <Comentarios piezaId={pieza.id} comentarios={(comentarios ?? []).map((c) => ({ id: c.id, texto: c.texto, cuando: fechaHora(c.created_at), autor: c.autor?.nombre ?? "?" }))} />
