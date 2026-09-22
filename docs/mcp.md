@@ -25,7 +25,36 @@ claude                              # acepta el servidor "contentos" cuando lo p
 
 ## 3. Registrar en Cowork / claude.ai
 
-Ajustes → Conectores → Añadir conector remoto → URL `https://<dominio>/api/mcp`. Si el conector exige OAuth en vez de Bearer estático, se agrega un endpoint OAuth 2.1 sobre las mismas keys (PLAN.md hallazgo 8). Por eso el orden: primero Claude Code, luego Cowork.
+Hay dos rutas. La A es la buena; la B es el respaldo si el diálogo de conectores de tu cuenta todavía no muestra «Request headers» (está en beta).
+
+**Ruta A · Conector personalizado con cabecera** (Cowork, claude.ai y la app de escritorio comparten conectores).
+
+1. Genera la key (sección 1) y cópiala.
+2. Ajustes → **Customize → Connectors** → **Add custom connector** (en Team/Enterprise: **Organization settings → Connectors → Add → Custom → Web**).
+3. Name: `ContentOS`. MCP server URL: `https://content-os-nazho-flkmxs-projects.vercel.app/api/mcp`.
+4. Authentication: **No sign-in** (el servidor no hace OAuth; la key es la identidad).
+5. **Request headers** → header `authorization`, valor `Bearer cos_…` (con la palabra Bearer y el espacio), marcado como **Required**. Claude no vuelve a mostrar el valor.
+6. Add. En el chat, «+» → Connectors → activa ContentOS. Primera prueba: «lista mis comunidades».
+
+Las cabeceras no se editan después: para rotar la key, elimina el conector y agrégalo de nuevo.
+
+**Ruta B · App de escritorio (config local).** Cowork también ve los servidores de `claude_desktop_config.json` (en macOS: `~/Library/Application Support/Claude/`). Agrega:
+
+```json
+{
+  "mcpServers": {
+    "contentos": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@latest", "https://content-os-nazho-flkmxs-projects.vercel.app/api/mcp", "--header", "Authorization:${CONTENTOS_MCP_KEY}"],
+      "env": { "CONTENTOS_MCP_KEY": "Bearer cos_…" }
+    }
+  }
+}
+```
+
+Reinicia la app por completo. `mcp-remote` corre en tu máquina y reenvía las llamadas con la cabecera; si no lo tienes, `npx` lo baja la primera vez.
+
+**Qué esperar.** Sin key el servidor responde 401 («Couldn't reach the MCP server» en el diálogo casi siempre es eso: falta `Bearer ` o la key es de otro perfil). La key es la identidad: con la de Nazho, Claude es owner y la RLS aplica igual que en la web; cada tool que escribe deja su fila en `corridas`.
 
 ## 4. Prueba con curl
 
@@ -64,9 +93,9 @@ Sin key responde 401.
 
 Se retiraron `crear_idea`, `listar_ideas`, `mover_idea` y `agregar_pensamiento`: las ideas son piezas en estado `idea` (docs/simplificacion.md).
 
-## 6. Cómo usa esto Milo
+## 6. Cómo usa esto Claude desde Cowork
 
 1. `listar_comunidades` + `estado_semana` al arrancar el sprint del lunes.
-2. `listar_piezas(estado=idea)` → `actualizar_pieza` por cada idea que entra a la parrilla (formato, hipótesis, guion, estado para_grabar) → `asignar_tarea`.
-3. `proponer_historias(semana)`; Nazho aprueba desde Hoy o con `aprobar_historias`.
+2. `listar_piezas(estado=borrador)` → `actualizar_pieza` por cada idea que entra a la parrilla (tipo, hipótesis, contenido, estado) → `asignar_tarea`. La entrevista pasa en el chat con el skill; el resultado entra con `guardar_contenido`.
+3. `proponer_historias(semana)` o sin semana al buffer; `agendar_historia` para poner día; Nazho aprueba desde Inicio, Historias o con `aprobar_historias`.
 4. El viernes: `leer_metricas(desde, hasta)` → hallazgos; `declarar_hueco` para lo que no corrió.
