@@ -6,7 +6,7 @@ import { esquemaHipotesis, type HipotesisNueva } from "@/lib/dominio/hipotesis";
 import { fallo, type Resultado } from "./resultado";
 
 function revalidar(piezaId?: string) {
-  for (const p of ["/hipotesis", "/inicio", "/reels", "/carruseles", "/articulos", "/newsletter", "/piezas"]) revalidatePath(p);
+  for (const p of ["/hipotesis", "/inicio", "/reels", "/carruseles", "/articulos", "/newsletter", "/piezas", "/formatos"]) revalidatePath(p);
   if (piezaId) revalidatePath(`/piezas/${piezaId}`);
 }
 

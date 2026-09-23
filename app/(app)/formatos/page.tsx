@@ -1,108 +1,123 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
-import { Markdown } from "@/components/markdown";
-import { IdPublico, InsigniaEstado } from "@/components/app/insignias";
-import { Badge } from "@/components/ui/badge";
-import { ESTADO_FC, FichaFormato } from "@/components/formato/ficha-formato";
+import { ESTADO_FC, ETIQUETAS_CONOCIDAS, FACETAS, señalFormato, type HipotesisFormato } from "@/lib/dominio/formatos";
+import { hoyISO } from "@/lib/dominio/tiempo";
+import { NuevoFormato } from "@/components/formato/nuevo-formato";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Formatos" };
 export const dynamic = "force-dynamic";
 
-const MINIMO = 8;
+type Tarjeta = {
+  id: string; codigo: string; nombre: string; estado: string; etiquetas: string[]; portada: string | null; serie_propia: string | null; duracion: string | null;
+  hipotesis: HipotesisFormato; referencias: { count: number }[];
+  episodios: number; publicadas: number; multiplicador: number | null; portadaUrl: string | null;
+};
 
-export default async function Formatos() {
+/**
+ * La biblioteca de formatos (docs/decisiones.md 2026-09-23): una galería por etiquetas. Cada tarjeta dice
+ * estado, multiplicador, episodios, serie, etiquetas y qué dice su hipótesis. Se alimenta desde aquí o desde
+ * Cowork al analizar cuentas; la ficha de cada formato guarda las referencias y la hipótesis.
+ */
+export default async function Formatos({ searchParams }: { searchParams: Promise<{ e?: string | string[] }> }) {
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
+  const { e } = await searchParams;
+  const elegidas = (Array.isArray(e) ? e : e ? [e] : []).map((x) => x.toLowerCase());
   const supabase = await crearClienteServidor();
   const esOwner = sesion.perfil.rol === "owner";
-  const [{ data: cards }, { data: piezas }] = await Promise.all([
-    supabase.from("formatos").select("id, codigo, nombre, estado, origen, molde, notas, serie_propia, duracion, recompensa, cadencia, hipotesis_formato").order("codigo"),
-    supabase.from("piezas").select("id, id_publico, titulo, estado, formato_id").not("formato_id", "is", null).neq("estado", "archivada").order("created_at", { ascending: false }),
-  ]);
-  // Los rollups se calculan, no se guardan: episodios, publicadas, multiplicador promedio, views y follows.
-  const resumenes = await Promise.all((cards ?? []).map(async (c) => {
-    const { data } = await supabase.rpc("resumen_formato", { p_formato_id: c.id });
-    return [c.id, data?.[0] ?? null] as const;
+  const hoy = hoyISO();
+
+  const { data } = await supabase.from("formatos")
+    .select("id, codigo, nombre, estado, etiquetas, portada, serie_propia, duracion, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado), referencias(count)")
+    .order("codigo");
+  const todos = data ?? [];
+  const resumenes = new Map<string, { episodios: number; publicadas: number; multiplicador: number | null }>();
+  await Promise.all(todos.map(async (f) => {
+    const { data: r } = await supabase.rpc("resumen_formato", { p_formato_id: f.id });
+    resumenes.set(f.id, { episodios: r?.[0]?.episodios ?? 0, publicadas: r?.[0]?.publicadas ?? 0, multiplicador: r?.[0]?.multiplicador_promedio ?? null });
   }));
-  const resumen = Object.fromEntries(resumenes);
+  const conPortada = todos.filter((f) => f.portada).map((f) => f.portada!);
+  const { data: firmadas } = conPortada.length ? await supabase.storage.from("assets").createSignedUrls(conPortada, 3600) : { data: [] };
+  const urlDe = new Map((firmadas ?? []).map((x) => [x.path, x.signedUrl]));
+
+  const tarjetas: Tarjeta[] = todos
+    .map((f) => ({ ...f, hipotesis: f.hipotesis as HipotesisFormato, ...resumenes.get(f.id)!, portadaUrl: f.portada ? urlDe.get(f.portada) ?? null : null }))
+    .sort((a, b) => (b.multiplicador ?? -1) - (a.multiplicador ?? -1) || b.episodios - a.episodios);
+  const visibles = tarjetas.filter((t) => elegidas.every((x) => t.etiquetas.includes(x)));
+  const cuenta = (et: string) => tarjetas.filter((t) => t.etiquetas.includes(et)).length;
+  const otras = Array.from(new Set(tarjetas.flatMap((t) => t.etiquetas))).filter((x) => !ETIQUETAS_CONOCIDAS.has(x)).sort();
+  const href = (et: string) => { const s = new URLSearchParams(); for (const x of elegidas.includes(et) ? elegidas.filter((y) => y !== et) : [...elegidas, et]) s.append("e", x); const q = s.toString(); return q ? `/formatos?${q}` : "/formatos"; };
+  const porEstado = (k: string) => tarjetas.filter((t) => t.estado === k).length;
+  const sinNumero = tarjetas.filter((t) => t.hipotesis && t.hipotesis.estado === "abierta" && !t.hipotesis.campo).length;
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">Formatos</h1>
-        <p className="text-sm text-muted-foreground">
-          Las Format Cards. Un formato es una estructura repetible, no un video. Se valida con ocho episodios publicados y datos propios. Moratoria: no se crean cards nuevas hasta que una llegue a validado propio.
-        </p>
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-extrabold tracking-tight">Formatos</h1>
+          <p className="text-sm">
+            <span className="font-semibold">{tarjetas.length}</span> <span className="text-muted-foreground">formatos · </span>
+            {(["experimentando", "detectado", "validado_propio", "firma"] as const).filter((k) => porEstado(k) > 0).map((k, i) => <span key={k}><span className="font-semibold">{porEstado(k)}</span> <span className="text-muted-foreground">{ESTADO_FC[k].toLowerCase()}{i < 3 ? " · " : ""}</span></span>)}
+            {porEstado("validado_propio") + porEstado("firma") === 0 && <span className="font-semibold text-rojo">ninguno validado</span>}
+            {sinNumero > 0 && <span className="text-muted-foreground"> · {sinNumero} hipótesis de formato sin número ni fecha</span>}
+          </p>
+        </div>
+        {esOwner && <NuevoFormato />}
       </header>
 
-      <div className="space-y-4">
-        {(cards ?? []).map((c) => {
-          const propias = (piezas ?? []).filter((p) => p.formato_id === c.id);
-          const r = resumen[c.id];
-          const publicadas = r?.publicadas ?? 0;
-          const faltan = Math.max(0, MINIMO - publicadas);
+      <div className="space-y-2 rounded-xl border px-3.5 py-3">
+        {FACETAS.map((f) => (
+          <div key={f.clave} className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{f.nombre}</span>
+            <span className="flex flex-wrap gap-1.5">
+              {f.clave === "donde" && <Link href="/formatos" className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", elegidas.length === 0 ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>Todos</Link>}
+              {f.etiquetas.map((et) => <Link key={et} href={href(et)} className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", elegidas.includes(et) ? "border-foreground bg-foreground text-background" : cuenta(et) === 0 ? "text-muted-foreground/60" : "text-muted-foreground hover:bg-muted")}>{et} <span className="opacity-70">{cuenta(et)}</span></Link>)}
+            </span>
+          </div>
+        ))}
+        {otras.length > 0 && (
+          <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Otras</span>
+            <span className="flex flex-wrap gap-1.5">{otras.map((et) => <Link key={et} href={href(et)} className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", elegidas.includes(et) ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>{et} <span className="opacity-70">{cuenta(et)}</span></Link>)}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{visibles.length} {visibles.length === 1 ? "formato" : "formatos"} · ordenados por multiplicador</span>
+        <span className="text-xs text-muted-foreground">— x = sin sensor todavía</span>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {visibles.map((t) => {
+          const s = señalFormato(t.hipotesis, hoy);
+          const refs = t.referencias?.[0]?.count ?? 0;
           return (
-            <details key={c.id} className="group rounded-xl border">
-              <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-                <span className="font-mono text-xs font-semibold text-muted-foreground">{c.codigo}</span>
-                <span className="font-semibold">{c.nombre}</span>
-                <Badge variant="outline">{ESTADO_FC[c.estado] ?? c.estado}</Badge>
-                {c.serie_propia && <span className="text-xs text-muted-foreground">serie {c.serie_propia}</span>}
-                <span className="ml-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span>{r?.episodios ?? propias.length} episodios</span>
-                  <span>{publicadas} publicadas</span>
-                  <span className={cn(faltan === 0 ? "font-semibold text-ok" : "")}>{faltan === 0 ? "listo para validar" : `${faltan} para validar`}</span>
-                  <span className={cn("font-semibold", (r?.multiplicador_promedio ?? 0) >= 3 ? "text-ok" : "text-foreground")}>{r?.multiplicador_promedio != null ? `${r.multiplicador_promedio}x` : "— x"}</span>
-                </span>
-              </summary>
-              <div className="space-y-5 border-t px-4 py-4">
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <Cifra k="Episodios" v={r?.episodios ?? 0} nota="sin archivadas" />
-                  <Cifra k="Publicadas" v={publicadas} nota={`de ${MINIMO} para validar`} />
-                  <Cifra k="Multiplicador promedio" v={r?.multiplicador_promedio != null ? `${r.multiplicador_promedio}x` : "—"} nota={r?.multiplicador_promedio == null ? "sin sensor todavía" : "≥ 3x = outlier"} />
-                  <Cifra k="Views · follows" v={`${(r?.views_totales ?? 0).toLocaleString("es-MX")} · ${(r?.follows_totales ?? 0).toLocaleString("es-MX")}`} nota="última lectura por pieza" />
-                </div>
-                <FichaFormato formato={c} puedeEditar={esOwner} />
-                <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-                  <details className="rounded-lg border">
-                    <summary className="cursor-pointer px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground [&::-webkit-details-marker]:hidden">Molde · la receta completa</summary>
-                    <div className="border-t px-3 py-3"><Markdown texto={c.molde} className="prose-sm" /></div>
-                  </details>
-                  <aside className="space-y-3">
-                    {c.origen && <p className="text-xs text-muted-foreground">Origen: {c.origen}</p>}
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Piezas con este formato</p>
-                      {propias.length === 0 ? <p className="text-xs text-muted-foreground">Ninguna todavía.</p> : (
-                        <ul className="space-y-1">
-                          {propias.slice(0, 12).map((p) => (
-                            <li key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                              <Link href={`/piezas/${p.id}`} className="flex min-w-0 items-center gap-1.5 hover:underline"><IdPublico id={p.id_publico} /><span className="truncate">{p.titulo}</span></Link>
-                              <InsigniaEstado estado={p.estado} />
-                            </li>
-                          ))}
-                          {propias.length > 12 && <li className="text-[11px] text-muted-foreground">y {propias.length - 12} más</li>}
-                        </ul>
-                      )}
-                    </div>
-                  </aside>
-                </div>
+            <Link key={t.id} href={`/formatos/${t.id}`} className="flex min-w-0 flex-col overflow-hidden rounded-xl border bg-background transition hover:border-foreground">
+              <div className={cn("relative flex h-40 flex-col justify-end p-3.5", t.portadaUrl ? "text-background" : "bg-foreground text-background")}>
+                {t.portadaUrl && <><img src={t.portadaUrl} alt="" className="absolute inset-0 size-full object-cover" /><span className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" /></>}
+                <span className={cn("absolute left-2.5 top-2.5 rounded-full px-2 py-0.5 text-[11px] font-medium", t.estado === "detectado" ? "border border-background/60 bg-background/90 text-foreground" : "bg-background text-foreground")}>{ESTADO_FC[t.estado] ?? t.estado}</span>
+                <span className="absolute right-2.5 top-2.5 rounded-full bg-background px-2 py-0.5 text-xs font-bold text-foreground">{t.multiplicador != null ? `${t.multiplicador}x` : "— x"}</span>
+                <span className="relative font-mono text-[11px] tracking-widest opacity-80">{t.codigo} · {t.episodios} {t.episodios === 1 ? "episodio" : "episodios"}{!t.portada && " · sin portada"}</span>
               </div>
-            </details>
+              <div className="flex flex-1 flex-col gap-2 p-3.5">
+                <p className="text-[15px] font-bold leading-tight">{t.nombre}</p>
+                <p className="text-xs text-muted-foreground">{[t.serie_propia && `Serie ${t.serie_propia}`, t.duracion].filter(Boolean).join(" · ") || "sin serie"}</p>
+                <p className="flex flex-wrap gap-1">{t.etiquetas.map((et) => <span key={et} className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium">{et}</span>)}</p>
+                <p className="mt-auto flex items-center justify-between gap-2 border-t pt-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">{s.tono && <span className={cn("size-[7px] rounded-full", s.tono === "ok" ? "bg-ok" : s.tono === "ambar" ? "bg-ambar" : "bg-rojo")} />}{s.texto}</span>
+                  <span>{t.publicadas} publicadas · {refs} refs</span>
+                </p>
+              </div>
+            </Link>
           );
         })}
+        {esOwner && elegidas.length === 0 && <NuevoFormato variante="tarjeta" />}
       </div>
-    </div>
-  );
-}
-
-function Cifra({ k, v, nota }: { k: string; v: string | number; nota?: string }) {
-  return (
-    <div className="rounded-lg border px-3 py-2">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{k}</p>
-      <p className="text-lg font-extrabold tabular-nums">{v}</p>
-      {nota && <p className="text-[11px] text-muted-foreground">{nota}</p>}
+      {visibles.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Ningún formato con esas etiquetas. Un hueco en la biblioteca: si lo ves en una cuenta, créalo.</p>}
+      <p className="text-xs text-muted-foreground">Verde: la hipótesis del formato resultó verdadera. Ámbar: le falta número y fecha, o ya venció. Rojo: no tiene hipótesis o resultó falsa. Un formato se valida con ocho episodios publicados y datos propios.</p>
     </div>
   );
 }

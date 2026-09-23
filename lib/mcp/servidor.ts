@@ -250,41 +250,95 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     return json(data);
   });
 
+  const ESTADO_FORMATO = z.enum(["detectado", "experimentando", "validado_propio", "firma", "retirado"]);
+
   server.registerTool("listar_formatos", {
-    description: "Los formatos (Format Cards): código, nombre, estado de validación, serie propia, duración, recompensa, cadencia, hipótesis de formato, molde y rollups (episodios, publicadas, multiplicador promedio, views, follows). Léelos antes de proponer o escribir una pieza.",
-    inputSchema: { con_molde: z.boolean().default(true) },
-  }, async ({ con_molde }) => {
-    const { data, error: e } = await supabase.from("formatos").select("id, codigo, nombre, estado, origen, serie_propia, duracion, recompensa, cadencia, hipotesis_formato, dia_envio, molde, notas").order("codigo");
+    description: "La biblioteca de formatos: código, nombre, estado, etiquetas (dónde se graba, quién aparece, mecánica, duración), serie propia, duración, recompensa, cadencia, origen, la hipótesis del formato (resoluble si trae campo, número y fecha), cuántas referencias tiene y los rollups (episodios, publicadas, multiplicador). Filtra por etiqueta o estado. con_molde trae la receta completa; con_referencias, la lista de reels que lo sostienen.",
+    inputSchema: { con_molde: z.boolean().default(false), con_referencias: z.boolean().default(false), etiqueta: z.string().optional(), estado: ESTADO_FORMATO.optional() },
+  }, async ({ con_molde, con_referencias, etiqueta, estado }) => {
+    let q = supabase.from("formatos").select("id, codigo, nombre, estado, origen, etiquetas, portada, serie_propia, duracion, recompensa, cadencia, dia_envio, molde, notas, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado, veredicto), referencias(id, cuenta, url, multiplicador, views, duracion_s, nota)").order("codigo");
+    if (etiqueta) q = q.contains("etiquetas", [etiqueta.toLowerCase()]);
+    if (estado) q = q.eq("estado", estado);
+    const { data, error: e } = await q;
     if (e) return error(e.message);
     const salida = [];
     for (const f of data ?? []) {
-      const { data: r } = await supabase.rpc("resumen_formato", { p_formato_id: f.id });
-      salida.push({ ...f, molde: con_molde ? f.molde : undefined, resumen: r?.[0] ?? null });
+      const [{ data: r }, { data: hr }] = await Promise.all([supabase.rpc("resumen_formato", { p_formato_id: f.id }), supabase.rpc("resumen_hipotesis_formato", { p_formato_id: f.id })]);
+      const { molde, referencias, ...resto } = f;
+      salida.push({ ...resto, molde: con_molde ? molde : undefined, referencias: con_referencias ? referencias : (referencias ?? []).length, resumen: r?.[0] ?? null, hipotesis_episodios: hr?.[0] ?? null });
     }
     return json(salida);
   });
 
-  server.registerTool("actualizar_formato", {
-    description: "Edita la ficha de un formato (Format Card) por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), serie_propia, duracion, recompensa, cadencia, hipotesis_formato, notas, molde, dia_envio (newsletter: 1 = lunes … 7 = domingo).",
+  server.registerTool("crear_formato", {
+    description: "Da de alta un formato en la biblioteca, normalmente al detectarlo analizando una cuenta: nombre, etiquetas (grabado dentro · grabado fuera · escrito · nazho a cámara · sin nazho · voz en off · clip ajeno · motion graphics · texto en pantalla · una sola toma · serie con contador · caption largo · menos de 15 s · 15 a 60 s · más de 60 s · lectura, o libres), origen (@cuenta), y lo que se sepa. El código FC-NN se asigna solo. Nace detectado. Después: agregar_referencia con los reels que lo sostienen y actualizar_formato con su hipótesis.",
     inputSchema: {
-      formato: z.string().describe("código FC-08 o uuid"), nombre: z.string().optional(),
-      estado: z.enum(["detectado", "experimentando", "validado_propio", "firma", "retirado"]).optional(),
-      serie_propia: z.string().nullable().optional(), duracion: z.string().nullable().optional(), recompensa: z.string().nullable().optional(),
-      cadencia: z.string().nullable().optional(), hipotesis_formato: z.string().nullable().optional(), notas: z.string().nullable().optional(), molde: z.string().optional(),
-      dia_envio: z.number().int().min(1).max(7).nullable().optional().describe("día de envío del newsletter; cambia la fecha por defecto de las ediciones nuevas"),
+      nombre: z.string().min(3), etiquetas: z.array(z.string()).default([]), origen: z.string().optional().describe("@cuenta o «propio»"),
+      serie_propia: z.string().optional(), duracion: z.string().optional(), recompensa: z.string().optional(), cadencia: z.string().optional(),
+      molde: z.string().optional().describe("la receta en markdown: estructura, mecánica, por qué retiene"), notas: z.string().optional(), estado: ESTADO_FORMATO.default("detectado"),
     },
-  }, async ({ formato, ...cambios }) => {
-    const { data: f } = await supabase.from("formatos").select("id").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
-    if (!f) return error(`No existe el formato ${formato}.`);
-    const { data, error: e } = await supabase.from("formatos").update(cambios).eq("id", f.id).select("id, codigo, nombre, estado, serie_propia, duracion, recompensa, cadencia, hipotesis_formato, dia_envio").single();
+  }, async (a) => {
+    const { data, error: e } = await supabase.rpc("crear_formato", {
+      p_nombre: a.nombre, p_etiquetas: a.etiquetas.map((x) => x.toLowerCase()), p_serie_propia: a.serie_propia, p_duracion: a.duracion, p_recompensa: a.recompensa,
+      p_cadencia: a.cadencia, p_origen: a.origen, p_molde: a.molde, p_notas: a.notas, p_estado: a.estado,
+    });
     if (e) return error(limpiarError(e.message));
-    await corrida("actualizar_formato", `${data.codigo}: ${Object.keys(cambios).join(", ")}`, { formato_id: f.id }, perfil);
+    await corrida("crear_formato", `${data.codigo} · ${data.nombre}`, { formato_id: data.id }, perfil);
     return json(data);
   });
 
-  // -------------------------------------------------------------------------
-  // Tareas y cola
-  // -------------------------------------------------------------------------
+  server.registerTool("agregar_referencia", {
+    description: "Agrega a un formato un reel que lo sostiene: de una cuenta de terceros (cuenta + url + multiplicador + views) o propio (pieza). Es como la biblioteca se alimenta al analizar cuentas.",
+    inputSchema: {
+      formato: z.string().describe("código FC-04 o uuid"), cuenta: z.string().optional().describe("@handle"), url: z.string().url().optional(),
+      pieza: z.string().optional().describe("id_publico o uuid de una pieza propia"), multiplicador: z.number().optional(), views: z.number().int().optional(),
+      duracion_s: z.number().int().optional(), nota: z.string().optional().describe("qué mecánica se copia"),
+    },
+  }, async ({ formato, cuenta, url, pieza, multiplicador, views, duracion_s, nota }) => {
+    const { data: f } = await supabase.from("formatos").select("id, codigo").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
+    if (!f) return error(`No existe el formato ${formato}.`);
+    let pieza_id: string | null = null;
+    if (pieza) {
+      const { data: p } = await supabase.from("piezas").select("id").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
+      if (!p) return error(`No existe la pieza ${pieza}.`);
+      pieza_id = p.id;
+    }
+    if (!url && !pieza_id) return error("Una referencia necesita url o pieza.");
+    const handle = cuenta ? (cuenta.startsWith("@") ? cuenta : `@${cuenta}`) : null;
+    const { data, error: e } = await supabase.from("referencias").insert({ formato_id: f.id, cuenta: handle, url: url ?? null, pieza_id, multiplicador: multiplicador ?? null, views: views ?? null, duracion_s: duracion_s ?? null, nota: nota ?? null, creado_por: perfil.user_id }).select().single();
+    if (e) return error(/duplicate/i.test(e.message) ? "Esa liga ya está en las referencias del formato." : limpiarError(e.message));
+    await corrida("agregar_referencia", `${f.codigo}: ${handle ?? "propia"} ${multiplicador != null ? `${multiplicador}x` : ""}`, { formato_id: f.id, referencia_id: data.id }, perfil);
+    return json(data);
+  });
+
+  server.registerTool("actualizar_formato", {
+    description: "Edita la ficha de un formato por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), etiquetas (sustituye la lista), serie_propia, duracion, recompensa, cadencia, origen, notas, molde, dia_envio (newsletter) y la hipótesis del formato {texto, campo, numero, fecha}: con los tres últimos se vuelve resoluble.",
+    inputSchema: {
+      formato: z.string().describe("código FC-08 o uuid"), nombre: z.string().optional(), estado: ESTADO_FORMATO.optional(),
+      etiquetas: z.array(z.string()).optional(), serie_propia: z.string().nullable().optional(), duracion: z.string().nullable().optional(), recompensa: z.string().nullable().optional(),
+      cadencia: z.string().nullable().optional(), origen: z.string().nullable().optional(), notas: z.string().nullable().optional(), molde: z.string().optional(),
+      dia_envio: z.number().int().min(1).max(7).nullable().optional().describe("día de envío del newsletter; cambia la fecha por defecto de las ediciones nuevas"),
+      hipotesis: z.object({ texto: z.string().min(3), campo: z.string().optional(), numero: z.number().optional(), fecha: fecha.optional() }).optional(),
+    },
+  }, async ({ formato, hipotesis, ...cambios }) => {
+    const { data: f } = await supabase.from("formatos").select("id").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
+    if (!f) return error(`No existe el formato ${formato}.`);
+    if (cambios.etiquetas) cambios.etiquetas = cambios.etiquetas.map((x) => x.trim().toLowerCase()).filter(Boolean);
+    if (Object.keys(cambios).length > 0) {
+      const { error: e } = await supabase.from("formatos").update(cambios).eq("id", f.id);
+      if (e) return error(limpiarError(e.message));
+    }
+    if (hipotesis) {
+      const completa = Boolean(hipotesis.campo && hipotesis.numero != null && hipotesis.fecha);
+      const { error: e } = await supabase.rpc("guardar_hipotesis_formato", { p_formato_id: f.id, p_texto: hipotesis.texto, p_campo: completa ? hipotesis.campo : undefined, p_numero: completa ? hipotesis.numero : undefined, p_fecha: completa ? hipotesis.fecha : undefined });
+      if (e) return error(limpiarError(e.message));
+    }
+    const { data, error: e2 } = await supabase.from("formatos").select("id, codigo, nombre, estado, etiquetas, serie_propia, duracion, recompensa, cadencia, dia_envio, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").eq("id", f.id).single();
+    if (e2) return error(limpiarError(e2.message));
+    await corrida("actualizar_formato", `${data.codigo}: ${Object.keys(cambios).concat(hipotesis ? ["hipotesis"] : []).join(", ")}`, { formato_id: f.id }, perfil);
+    return json(data);
+  });
+
   server.registerTool("asignar_tarea", {
     description: "Crea una tarea en la cola de alguien (nombre o user_id): grabar · editar · diseñar · publicar · capturar_metricas · revisar.",
     inputSchema: {

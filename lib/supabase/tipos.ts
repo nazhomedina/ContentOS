@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 018.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 019.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -378,12 +378,14 @@ export type Database = {
           dia_envio: number | null
           duracion: string | null
           estado: string
-          hipotesis_formato: string | null
+          etiquetas: string[]
+          hipotesis_id: string | null
           id: string
           molde: string | null
           nombre: string
           notas: string | null
           origen: string | null
+          portada: string | null
           recompensa: string | null
           serie_propia: string | null
         }
@@ -394,12 +396,14 @@ export type Database = {
           dia_envio?: number | null
           duracion?: string | null
           estado: string
-          hipotesis_formato?: string | null
+          etiquetas?: string[]
+          hipotesis_id?: string | null
           id?: string
           molde?: string | null
           nombre: string
           notas?: string | null
           origen?: string | null
+          portada?: string | null
           recompensa?: string | null
           serie_propia?: string | null
         }
@@ -410,16 +414,26 @@ export type Database = {
           dia_envio?: number | null
           duracion?: string | null
           estado?: string
-          hipotesis_formato?: string | null
+          etiquetas?: string[]
+          hipotesis_id?: string | null
           id?: string
           molde?: string | null
           nombre?: string
           notas?: string | null
           origen?: string | null
+          portada?: string | null
           recompensa?: string | null
           serie_propia?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "formatos_hipotesis_id_fkey"
+            columns: ["hipotesis_id"]
+            isOneToOne: false
+            referencedRelation: "hipotesis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hipotesis: {
         Row: {
@@ -991,6 +1005,70 @@ export type Database = {
           },
         ]
       }
+      referencias: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          cuenta: string | null
+          duracion_s: number | null
+          formato_id: string
+          id: string
+          multiplicador: number | null
+          nota: string | null
+          pieza_id: string | null
+          url: string | null
+          views: number | null
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          cuenta?: string | null
+          duracion_s?: number | null
+          formato_id: string
+          id?: string
+          multiplicador?: number | null
+          nota?: string | null
+          pieza_id?: string | null
+          url?: string | null
+          views?: number | null
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          cuenta?: string | null
+          duracion_s?: number | null
+          formato_id?: string
+          id?: string
+          multiplicador?: number | null
+          nota?: string | null
+          pieza_id?: string | null
+          url?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referencias_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "referencias_formato_id_fkey"
+            columns: ["formato_id"]
+            isOneToOne: false
+            referencedRelation: "formatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referencias_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       respaldo_20260915_guion_versiones: {
         Row: {
           autor: string | null
@@ -1519,6 +1597,45 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      crear_formato: {
+        Args: {
+          p_cadencia?: string
+          p_codigo?: string
+          p_duracion?: string
+          p_estado?: string
+          p_etiquetas?: string[]
+          p_molde?: string
+          p_nombre: string
+          p_notas?: string
+          p_origen?: string
+          p_recompensa?: string
+          p_serie_propia?: string
+        }
+        Returns: {
+          cadencia: string | null
+          codigo: string
+          created_at: string
+          dia_envio: number | null
+          duracion: string | null
+          estado: string
+          etiquetas: string[]
+          hipotesis_id: string | null
+          id: string
+          molde: string | null
+          nombre: string
+          notas: string | null
+          origen: string | null
+          portada: string | null
+          recompensa: string | null
+          serie_propia: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "formatos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       crear_hipotesis: {
         Args: {
           p_campo: string
@@ -1727,6 +1844,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "contenido_versiones"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      guardar_hipotesis_formato: {
+        Args: {
+          p_campo?: string
+          p_fecha?: string
+          p_formato_id: string
+          p_numero?: number
+          p_texto: string
+        }
+        Returns: {
+          campo: string | null
+          created_at: string
+          estado: string
+          fecha: string | null
+          id: string
+          numero: number | null
+          resuelta_en: string | null
+          texto: string
+          updated_at: string
+          veredicto: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hipotesis"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1991,6 +2135,16 @@ export type Database = {
           views_totales: number
         }[]
       }
+      resumen_hipotesis_formato: {
+        Args: { p_formato_id: string }
+        Returns: {
+          abiertas: number
+          falsas: number
+          sin_datos: number
+          vencidas: number
+          verdaderas: number
+        }[]
+      }
       resumen_recurso: {
         Args: { p_id: string }
         Returns: {
@@ -2023,6 +2177,7 @@ export type Database = {
         }[]
       }
       rol_actual: { Args: never; Returns: string }
+      siguiente_codigo_formato: { Args: never; Returns: string }
       siguiente_edicion_criterio: { Args: never; Returns: number }
       siguiente_envio: { Args: { p_formato?: string }; Returns: string }
       siguiente_id_publico: { Args: { p_prefijo: string }; Returns: string }
@@ -2184,5 +2339,6 @@ export type Hipotesis = Tables<"hipotesis">
 export type Asset = Tables<"assets">
 export type Comentario = Tables<"comentarios">
 export type Recurso = Tables<"recursos">
+export type Referencia = Tables<"referencias">
 export type Sistema = Tables<"sistemas">
 export type Hueco = Tables<"huecos">

@@ -78,7 +78,20 @@ try {
 
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: { con_molde: false } }, 43);
   const fcs = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
-  ok("listar_formatos devuelve 7 formatos con ficha y resumen (FC-09 incluido)", fcs.length === 7 && fcs.some((f) => f.codigo === "FC-09") && fcs.every((f) => f.serie_propia && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} ${fcs[0].serie_propia} · ${fcs[0].resumen?.episodios} episodios` : "");
+  ok("listar_formatos: ≥ 7 formatos con etiquetas, hipótesis, referencias y resumen", fcs.length >= 7 && fcs.some((f) => f.codigo === "FC-09") && fcs.every((f) => Array.isArray(f.etiquetas) && "hipotesis" in f && typeof f.referencias === "number" && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} · ${fcs[0].etiquetas?.join(", ")} · ${fcs[0].referencias} refs` : "");
+  r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: { etiqueta: "sin nazho" } }, 431);
+  const sinN = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
+  ok("listar_formatos filtra por etiqueta (sin nazho → FC-05)", sinN.length >= 1 && sinN.every((f) => f.etiquetas.includes("sin nazho")), sinN.map((f) => f.codigo).join(","));
+  r = await rpc(key, "tools/call", { name: "crear_formato", arguments: { nombre: "prueba mcp formato", etiquetas: ["grabado fuera", "Sin Nazho"], origen: "@prueba" } }, 432);
+  const nf = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("crear_formato asigna código FC-NN, nace detectado y normaliza etiquetas", /^FC-\d{2,}$/.test(nf?.codigo ?? "") && nf?.estado === "detectado" && nf?.etiquetas?.includes("sin nazho"), r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "agregar_referencia", arguments: { formato: nf?.codigo ?? "FC-00", cuenta: "prueba", url: "https://www.instagram.com/reel/PRUEBAMCP/", multiplicador: 12.5, views: 340000, nota: "prueba" } }, 433);
+  const ref = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("agregar_referencia guarda cuenta con @ y multiplicador", ref?.cuenta === "@prueba" && Number(ref?.multiplicador) === 12.5, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  r = await rpc(key, "tools/call", { name: "actualizar_formato", arguments: { formato: nf?.codigo ?? "FC-00", hipotesis: { texto: "prueba mcp: hipótesis de formato", campo: "multiplicador", numero: 3, fecha: "2026-12-31" } } }, 434);
+  const af = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("actualizar_formato escribe la hipótesis del formato como fila resoluble", af?.hipotesis?.campo === "multiplicador" && Number(af?.hipotesis?.numero) === 3, r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  if (nf?.id) { await admin.from("formatos").delete().eq("id", nf.id); if (af?.hipotesis?.id) await admin.from("hipotesis").delete().eq("id", af.hipotesis.id); }
 
   // hipótesis: la del stream quedó creada; se lista con evidencia, se resuelve con veredicto y se limpia
   r = await rpc(key, "tools/call", { name: "listar_hipotesis", arguments: { estado: "abierta", limite: 300 } }, 44);

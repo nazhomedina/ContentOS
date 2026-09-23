@@ -6,21 +6,19 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { guardarFormato, type CambiosFormato } from "@/lib/acciones/formatos";
 
-export const ESTADO_FC: Record<string, string> = {
-  detectado: "Detectado", experimentando: "Experimentando", validado_propio: "Validado propio", firma: "Firma", retirado: "Retirado",
-};
+import { ESTADO_FC } from "@/lib/dominio/formatos";
+export { ESTADO_FC };
 
-type Formato = { id: string; codigo: string; nombre: string; estado: string; serie_propia: string | null; duracion: string | null; recompensa: string | null; cadencia: string | null; hipotesis_formato: string | null };
+type Formato = { id: string; codigo: string; nombre: string; estado: string; serie_propia: string | null; duracion: string | null; recompensa: string | null; cadencia: string | null };
 
 /** Los campos propios de la card, en lectura y con edición en línea para el owner. */
 export function FichaFormato({ formato, puedeEditar }: { formato: Formato; puedeEditar: boolean }) {
   const [editando, setEditando] = useState(false);
   const [f, setF] = useState<CambiosFormato & { nombre: string; estado: string }>({
     nombre: formato.nombre, estado: formato.estado, serie_propia: formato.serie_propia, duracion: formato.duracion,
-    recompensa: formato.recompensa, cadencia: formato.cadencia, hipotesis_formato: formato.hipotesis_formato,
+    recompensa: formato.recompensa, cadencia: formato.cadencia,
   });
   const [pendiente, iniciar] = useTransition();
 
@@ -38,10 +36,6 @@ export function FichaFormato({ formato, puedeEditar }: { formato: Formato; puede
         <Dato k="Duración" v={formato.duracion} />
         <Dato k="Cadencia" v={formato.cadencia} />
         <Dato k="Recompensa" v={formato.recompensa} />
-        <div className="sm:col-span-2">
-          <dt className="text-xs text-muted-foreground">Hipótesis de formato · se resuelve con 8 episodios, no con uno</dt>
-          <dd className={formato.hipotesis_formato ? "font-medium" : "text-muted-foreground"}>{formato.hipotesis_formato ?? "Sin escribir todavía."}</dd>
-        </div>
         {puedeEditar && <div className="sm:col-span-2"><Button size="sm" variant="outline" onClick={() => setEditando(true)}><Pencil className="size-3.5" /> Editar ficha</Button></div>}
       </dl>
     );
@@ -67,10 +61,6 @@ export function FichaFormato({ formato, puedeEditar }: { formato: Formato; puede
         {campo("duracion", "Duración", "60-90 s")}
         {campo("cadencia", "Cadencia", "2 por semana")}
         {campo("recompensa", "Recompensa", "qué se lleva quien lo ve")}
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Hipótesis de formato</Label>
-        <Textarea rows={2} value={f.hipotesis_formato ?? ""} placeholder="Qué prueba este formato como conjunto, no cada pieza." onChange={(e) => setF({ ...f, hipotesis_formato: e.target.value })} />
       </div>
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" disabled={pendiente} onClick={() => setEditando(false)}>Cancelar</Button>

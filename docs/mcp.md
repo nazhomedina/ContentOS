@@ -71,12 +71,13 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (29)
+## 5. Herramientas (31)
 
 | Tool | Para qué | Latido |
 |---|---|---|
-| `listar_comunidades` · `listar_formatos` · `latidos` | contexto: ICP, formatos con ficha y rollups, última corrida por sistema | — |
-| `actualizar_formato` | ficha de un formato: estado, serie propia, duración, recompensa, cadencia, hipótesis de formato | `actualizar_formato` |
+| `listar_comunidades` · `latidos` | contexto: ICP, última corrida por sistema | — |
+| `listar_formatos` · `crear_formato` · `agregar_referencia` | la biblioteca de formatos: etiquetas, hipótesis del formato, referencias de terceros y propias, rollups; dar de alta uno al analizar una cuenta y colgarle los reels que lo sostienen | `crear_formato`, `agregar_referencia` |
+| `actualizar_formato` | ficha de un formato: estado, etiquetas, serie propia, duración, recompensa, cadencia, molde, día de envío y la hipótesis del formato (resoluble con campo, número y fecha) | `actualizar_formato` |
 | `listar_series` · `guardar_serie` | las series declaradas con descripción, activas y piezas; prenderlas, apagarlas, renombrarlas | `guardar_serie` |
 | `crear_pieza` | una pieza nace con solo título (borrador). Con tipo → redacción. Con tipo + etapa + hipótesis → grabación | `crear_pieza` |
 | `actualizar_pieza` | **así Claude desarrolla una idea**: tipo, hipótesis (o hipotesis_id), etapa, formato (card), contenido, notas, etiquetas, estado. Acepta id_publico | `actualizar_pieza` |

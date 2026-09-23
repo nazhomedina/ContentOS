@@ -6,7 +6,7 @@
 
 ## 1. Cómo está armado hoy, en un párrafo
 
-Hay **una sola tabla `piezas`** para todo lo publicable (reel, yap, carrusel, artículo, newsletter, YouTube, X, canal de IG). Lo que cambia por formato no son las columnas sino las **sub-etapas** que aplican (en código: `subetapas(formato)`) y el **checklist por defecto** de cada tarea. Alrededor de la pieza viven tablas satélite con relación uno-a-muchos: tareas, métricas, comentarios, versiones del contenido y los archivos en Storage. **Historias** es la excepción: tiene tabla propia porque se opera como paquete semanal. **Format Cards** es un catálogo aparte al que la pieza apunta.
+Hay **una sola tabla `piezas`** para todo lo publicable (reel, yap, carrusel, artículo, newsletter, YouTube, X, canal de IG). Lo que cambia por formato no son las columnas sino las **sub-etapas** que aplican (en código: `subetapas(formato)`) y el **checklist por defecto** de cada tarea. Alrededor de la pieza viven tablas satélite con relación uno-a-muchos: tareas, métricas, comentarios, versiones del contenido y los archivos en Storage. **Historias** es la excepción: tiene tabla propia porque se opera como paquete semanal. **Formatos** es un catálogo aparte al que la pieza apunta; desde el 23-sep es una biblioteca con etiquetas, portada, referencias (tabla `referencias`) y la hipótesis del formato como fila de `hipotesis`.
 
 ---
 
