@@ -71,11 +71,12 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (31)
+## 5. Herramientas (33)
 
 | Tool | Para qué | Latido |
 |---|---|---|
 | `listar_comunidades` · `latidos` | contexto: ICP, última corrida por sistema | — |
+| `leer_identidad` · `actualizar_identidad` | la identidad de Nazho en siete filas (quien-soy, audiencia, postura, voz, oferta, reglas, evidencia). `voz` y `reglas` se leen antes de redactar cualquier pieza. Editar es solo owner, con motivo, y guarda la versión anterior. Sin MCP: `GET /api/identidad`, `/api/identidad/{clave}.md`, `/api/identidad.md` con la misma key (docs/identidad/README.md) | `actualizar_identidad` |
 | `listar_formatos` · `crear_formato` · `agregar_referencia` | la biblioteca de formatos: etiquetas, hipótesis del formato, referencias de terceros y propias, rollups; dar de alta uno al analizar una cuenta y colgarle los reels que lo sostienen | `crear_formato`, `agregar_referencia` |
 | `actualizar_formato` | ficha de un formato: estado, etiquetas, serie propia, duración, recompensa, cadencia, molde, día de envío y la hipótesis del formato (resoluble con campo, número y fecha) | `actualizar_formato` |
 | `listar_series` · `guardar_serie` | las series declaradas con descripción, activas y piezas; prenderlas, apagarlas, renombrarlas | `guardar_serie` |
@@ -96,6 +97,7 @@ Se retiraron `crear_idea`, `listar_ideas`, `mover_idea` y `agregar_pensamiento`:
 
 ## 6. Cómo usa esto Claude desde Cowork
 
+0. `leer_identidad(clave: ["voz","reglas"])` antes de escribir cualquier pieza; `["audiencia","postura"]` antes de planear o proponer.
 1. `listar_comunidades` + `estado_semana` al arrancar el sprint del lunes.
 2. `listar_piezas(estado=borrador)` → `actualizar_pieza` por cada idea que entra a la parrilla (tipo, hipótesis, contenido, estado) → `asignar_tarea`. La entrevista pasa en el chat con el skill; el resultado entra con `guardar_contenido`.
 3. `proponer_historias(semana)` o sin semana al buffer; `agendar_historia` para poner día; Nazho aprueba desde Inicio, Historias o con `aprobar_historias`.

@@ -600,6 +600,46 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     return e ? error(limpiarError(e.message)) : json(data);
   });
 
+  // -------------------------------------------------------------------------
+  // Identidad: la verdad universal de quién es Nazho y cómo escribe
+  // -------------------------------------------------------------------------
+  server.registerTool("leer_identidad", {
+    description: "La identidad de Nazho: quién es, a quién le habla, qué defiende, cómo escribe, qué vende, reglas duras y piezas canónicas. Léela antes de escribir o decidir por él. `voz` y `reglas` son obligatorias antes de redactar cualquier pieza; `quien-soy` cuando la pieza habla en primera persona; `audiencia` y `postura` al planear o al proponer ideas; `oferta` cuando hay un llamado a la acción; `evidencia` cuando haya duda de cómo suena. Claves: quien-soy · audiencia · postura · voz · oferta · reglas · evidencia.",
+    inputSchema: {
+      clave: z.union([z.string(), z.array(z.string())]).optional().describe("una clave o lista; sin parámetro devuelve las siete"),
+      solo_resumen: z.boolean().optional().describe("true: omite el cuerpo (para orientarse antes de pedir una fila completa)"),
+    },
+  }, async ({ clave, solo_resumen }) => {
+    const claves = clave ? (Array.isArray(clave) ? clave : [clave]) : null;
+    let q = supabase.from("identidad").select("clave, orden, titulo, resumen, cuerpo, version, actualizado").eq("vigente", true).order("orden");
+    if (claves) q = q.in("clave", claves);
+    const { data, error: e } = await q;
+    if (e) return error(e.message);
+    if (claves) {
+      const faltan = claves.filter((c) => !data.some((d) => d.clave === c));
+      if (faltan.length) return error(`No existe la fila «${faltan.join("», «")}». Claves válidas: quien-soy, audiencia, postura, voz, oferta, reglas, evidencia.`);
+    }
+    return json(solo_resumen ? data.map(({ cuerpo: _c, ...resto }) => resto) : data);
+  });
+
+  server.registerTool("actualizar_identidad", {
+    description: "Cambia una fila de la identidad y deja rastro (versión anterior guardada, motivo, corrida). Úsala solo cuando Nazho tome una decisión explícita sobre quién es, a quién le habla, qué defiende, cómo escribe o qué vende. Nunca para registrar estado ni aprendizajes de una pieza: eso va a hipótesis, veredictos y notas. Solo rol owner.",
+    inputSchema: {
+      clave: z.string().regex(/^[a-z][a-z0-9-]+$/),
+      cuerpo: z.string().min(80).describe("markdown completo de la fila, no un parche"),
+      motivo: z.string().min(5).max(300).describe("una línea: qué decidió Nazho y por qué"),
+      resumen: z.string().min(20).max(400).optional(),
+    },
+  }, async ({ clave, cuerpo, motivo, resumen }) => {
+    if (perfil.rol !== "owner") return error("Esta acción requiere rol owner.");
+    const cambios: TablesUpdate<"identidad"> = { cuerpo, motivo, ...(resumen ? { resumen } : {}) };
+    const { data, error: e } = await supabase.from("identidad").update(cambios).eq("clave", clave).select("clave, titulo, version, actualizado").maybeSingle();
+    if (e) return error(limpiarError(e.message));
+    if (!data) return error(`No existe la fila «${clave}». Claves válidas: quien-soy, audiencia, postura, voz, oferta, reglas, evidencia.`);
+    await corrida("actualizar_identidad", `${clave} → v${data.version}: ${motivo}`, { clave, version: data.version, motivo }, perfil);
+    return json(data);
+  });
+
   return server;
 }
 

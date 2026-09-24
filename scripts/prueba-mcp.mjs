@@ -141,6 +141,42 @@ try {
   ok("crear_pieza newsletter: título numerado, serie Criterio y siguiente envío por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).includes("Criterio") && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && nl.fecha_objetivo > new Date().toISOString().slice(0, 10), `${nl?.titulo} · ${nl?.fecha_objetivo}`);
   if (nl?.id) await admin.from("piezas").delete().eq("id", nl.id);
 
+  // identidad: lectura por MCP y por HTTP; escritura solo owner con versión y motivo
+  r = await rpc(key, "tools/call", { name: "leer_identidad", arguments: {} }, 80);
+  const idn = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
+  ok("leer_identidad trae las 7 filas en orden con cuerpo", idn.length === 7 && idn[0]?.clave === "quien-soy" && idn[6]?.clave === "evidencia" && idn.every((f) => f.cuerpo?.length > 500 && f.version >= 1), idn.map((f) => f.clave).join(","));
+  r = await rpc(key, "tools/call", { name: "leer_identidad", arguments: { clave: ["voz", "reglas"], solo_resumen: true } }, 81);
+  const idn2 = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
+  ok("leer_identidad filtra por claves y solo_resumen omite el cuerpo", idn2.length === 2 && idn2.every((f) => !("cuerpo" in f) && f.resumen), idn2.map((f) => f.clave).join(","));
+  r = await rpc(key, "tools/call", { name: "leer_identidad", arguments: { clave: "no-existe" } }, 82);
+  ok("leer_identidad con clave inexistente → error legible con las válidas", r.json?.result?.isError && /quien-soy/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 80));
+  const reglasAntes = idn.find((f) => f.clave === "reglas");
+  r = await rpc(key, "tools/call", { name: "actualizar_identidad", arguments: { clave: "reglas", cuerpo: reglasAntes.cuerpo + "\n\n15. **Regla de prueba.** Se borra al terminar la prueba del MCP.", motivo: "prueba mcp: regla temporal" } }, 83);
+  const idnUp = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("actualizar_identidad sube la versión y deja corrida", idnUp?.version === reglasAntes.version + 1, r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  const { data: ver } = await admin.from("identidad_versiones").select("version, cuerpo").eq("clave", "reglas").eq("version", reglasAntes.version).maybeSingle();
+  ok("la versión anterior quedó guardada íntegra", ver?.cuerpo === reglasAntes.cuerpo, ver ? `v${ver.version}` : "no está");
+  const { count: corrI } = await admin.from("corridas").select("*", { count: "exact", head: true }).eq("sistema", "actualizar_identidad").like("payload->>actor", userId);
+  ok("actualizar_identidad dejó latido", (corrI ?? 0) >= 1, String(corrI));
+  // restaurar sin dejar versión extra: se reponen cuerpo y versión originales y se borran las versiones de la prueba
+  await admin.from("identidad").update({ cuerpo: reglasAntes.cuerpo, motivo: "prueba mcp: restaurar" }).eq("clave", "reglas");
+  await admin.from("identidad_versiones").delete().eq("clave", "reglas").gte("version", reglasAntes.version);
+  await admin.from("identidad").update({ version: reglasAntes.version, motivo: null }).eq("clave", "reglas");
+  const { data: rest } = await admin.from("identidad").select("version, cuerpo").eq("clave", "reglas").single();
+  ok("reglas restaurada a su versión original", rest.version === reglasAntes.version && rest.cuerpo === reglasAntes.cuerpo, `v${rest.version}`);
+
+  let h = await fetch(`${BASE}/api/identidad/voz.md`, { headers: { "x-api-key": key } });
+  const vozMd = await h.text();
+  ok("GET /api/identidad/voz.md con x-api-key → markdown de la fila", h.status === 200 && (h.headers.get("content-type") ?? "").includes("text/markdown") && /^# Cómo escribo/.test(vozMd), `${h.status} ${vozMd.slice(0, 40)}`);
+  h = await fetch(`${BASE}/api/identidad?solo_resumen=1`, { headers: { authorization: `Bearer ${key}` } });
+  const idnJson = h.status === 200 ? await h.json() : null;
+  ok("GET /api/identidad JSON con 7 filas sin cuerpo", idnJson?.filas?.length === 7 && !("cuerpo" in idnJson.filas[0]), String(h.status));
+  h = await fetch(`${BASE}/api/identidad.md`, { headers: { authorization: `Bearer ${key}` } });
+  const docMd = await h.text();
+  ok("GET /api/identidad.md → documento completo con 7 secciones", h.status === 200 && (docMd.match(/^# \d\. /gm) ?? []).length === 7, `${h.status} ${docMd.length} chars`);
+  h = await fetch(`${BASE}/api/identidad`);
+  ok("GET /api/identidad sin key → 401 (no redirige al login)", h.status === 401, String(h.status));
+
   // editor por MCP no puede crear ideas (RLS vía impersonación)
   const emailE = `prueba-mcp-editor-${Date.now()}@contentos.local`;
   await admin.from("perfiles_permitidos").insert({ email: emailE, nombre: "MCP Editor", rol: "editor" });
@@ -149,6 +185,10 @@ try {
   await admin.from("perfiles").update({ api_key_hash: createHash("sha256").update(keyE + process.env.MCP_KEY_PEPPER).digest("hex") }).eq("user_id", ue.user.id);
   r = await rpc(keyE, "tools/call", { name: "crear_pieza", arguments: { titulo: "no debería" } }, 8);
   ok("editor por MCP: crear_pieza bloqueada (requiere owner)", r.json?.result?.isError && /owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
+  r = await rpc(keyE, "tools/call", { name: "leer_identidad", arguments: { clave: "voz" } }, 84);
+  ok("editor por MCP: leer_identidad sí puede", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text)[0]?.clave === "voz", r.json?.result?.content?.[0]?.text?.slice(0, 60));
+  r = await rpc(keyE, "tools/call", { name: "actualizar_identidad", arguments: { clave: "voz", cuerpo: "x".repeat(100), motivo: "no debería poder" } }, 85);
+  ok("editor por MCP: actualizar_identidad → «requiere rol owner»", r.json?.result?.isError && /requiere rol owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   await admin.auth.admin.deleteUser(ue.user.id);
   await admin.from("perfiles_permitidos").delete().eq("email", emailE);
 } finally {

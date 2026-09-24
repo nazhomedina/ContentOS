@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 020.
+// Generado con el conector de Supabase el 2026-09-24 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 024.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -658,6 +658,100 @@ export type Database = {
           },
         ]
       }
+      identidad: {
+        Row: {
+          actualizado: string
+          actualizado_por: string | null
+          clave: string
+          cuerpo: string
+          motivo: string | null
+          orden: number
+          resumen: string
+          titulo: string
+          version: number
+          vigente: boolean
+        }
+        Insert: {
+          actualizado?: string
+          actualizado_por?: string | null
+          clave: string
+          cuerpo: string
+          motivo?: string | null
+          orden: number
+          resumen: string
+          titulo: string
+          version?: number
+          vigente?: boolean
+        }
+        Update: {
+          actualizado?: string
+          actualizado_por?: string | null
+          clave?: string
+          cuerpo?: string
+          motivo?: string | null
+          orden?: number
+          resumen?: string
+          titulo?: string
+          version?: number
+          vigente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identidad_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      identidad_versiones: {
+        Row: {
+          actualizado: string
+          actualizado_por: string | null
+          clave: string
+          cuerpo: string
+          guardado: string
+          id: number
+          motivo: string | null
+          resumen: string
+          titulo: string
+          version: number
+        }
+        Insert: {
+          actualizado: string
+          actualizado_por?: string | null
+          clave: string
+          cuerpo: string
+          guardado?: string
+          id?: number
+          motivo?: string | null
+          resumen: string
+          titulo: string
+          version: number
+        }
+        Update: {
+          actualizado?: string
+          actualizado_por?: string | null
+          clave?: string
+          cuerpo?: string
+          guardado?: string
+          id?: number
+          motivo?: string | null
+          resumen?: string
+          titulo?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identidad_versiones_clave_fkey"
+            columns: ["clave"]
+            isOneToOne: false
+            referencedRelation: "identidad"
+            referencedColumns: ["clave"]
+          },
+        ]
+      }
       indicadores_semana: {
         Row: {
           actualizado_en: string
@@ -1065,250 +1159,6 @@ export type Database = {
             columns: ["pieza_id"]
             isOneToOne: false
             referencedRelation: "piezas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      respaldo_20260915_guion_versiones: {
-        Row: {
-          autor: string | null
-          created_at: string | null
-          fidelidad: string | null
-          guion: string | null
-          hipotesis: Json | null
-          id: string | null
-          instruccion: string | null
-          pieza_id: string | null
-          spec_visual: string | null
-          version: number | null
-        }
-        Insert: {
-          autor?: string | null
-          created_at?: string | null
-          fidelidad?: string | null
-          guion?: string | null
-          hipotesis?: Json | null
-          id?: string | null
-          instruccion?: string | null
-          pieza_id?: string | null
-          spec_visual?: string | null
-          version?: number | null
-        }
-        Update: {
-          autor?: string | null
-          created_at?: string | null
-          fidelidad?: string | null
-          guion?: string | null
-          hipotesis?: Json | null
-          id?: string | null
-          instruccion?: string | null
-          pieza_id?: string | null
-          spec_visual?: string | null
-          version?: number | null
-        }
-        Relationships: []
-      }
-      respaldo_20260915_piezas: {
-        Row: {
-          comunidad_id: string | null
-          created_at: string | null
-          cta: string | null
-          estado: string | null
-          etapa_embudo: string | null
-          etapa_legado: boolean | null
-          fecha_objetivo: string | null
-          fidelidad: string | null
-          format_card_id: string | null
-          formato: string | null
-          formato_sugerido: string[] | null
-          guion: string | null
-          hipotesis: Json | null
-          id: string | null
-          id_publico: string | null
-          idea_id: string | null
-          notas: string | null
-          notion_url: string | null
-          origen: string | null
-          plataforma: string | null
-          programa_aprobado: boolean | null
-          publicada_en: string | null
-          requiere_hipotesis: boolean | null
-          responsable_id: string | null
-          serie: string | null
-          spec_visual: string | null
-          titulo: string | null
-          updated_at: string | null
-          url: string | null
-        }
-        Insert: {
-          comunidad_id?: string | null
-          created_at?: string | null
-          cta?: string | null
-          estado?: string | null
-          etapa_embudo?: string | null
-          etapa_legado?: boolean | null
-          fecha_objetivo?: string | null
-          fidelidad?: string | null
-          format_card_id?: string | null
-          formato?: string | null
-          formato_sugerido?: string[] | null
-          guion?: string | null
-          hipotesis?: Json | null
-          id?: string | null
-          id_publico?: string | null
-          idea_id?: string | null
-          notas?: string | null
-          notion_url?: string | null
-          origen?: string | null
-          plataforma?: string | null
-          programa_aprobado?: boolean | null
-          publicada_en?: string | null
-          requiere_hipotesis?: boolean | null
-          responsable_id?: string | null
-          serie?: string | null
-          spec_visual?: string | null
-          titulo?: string | null
-          updated_at?: string | null
-          url?: string | null
-        }
-        Update: {
-          comunidad_id?: string | null
-          created_at?: string | null
-          cta?: string | null
-          estado?: string | null
-          etapa_embudo?: string | null
-          etapa_legado?: boolean | null
-          fecha_objetivo?: string | null
-          fidelidad?: string | null
-          format_card_id?: string | null
-          formato?: string | null
-          formato_sugerido?: string[] | null
-          guion?: string | null
-          hipotesis?: Json | null
-          id?: string | null
-          id_publico?: string | null
-          idea_id?: string | null
-          notas?: string | null
-          notion_url?: string | null
-          origen?: string | null
-          plataforma?: string | null
-          programa_aprobado?: boolean | null
-          publicada_en?: string | null
-          requiere_hipotesis?: boolean | null
-          responsable_id?: string | null
-          serie?: string | null
-          spec_visual?: string | null
-          titulo?: string | null
-          updated_at?: string | null
-          url?: string | null
-        }
-        Relationships: []
-      }
-      respaldo_20260915_tareas: {
-        Row: {
-          asignado_a: string | null
-          checklist: Json | null
-          created_at: string | null
-          estado: string | null
-          hecha_en: string | null
-          historia_id: string | null
-          id: string | null
-          nota_bloqueo: string | null
-          pieza_id: string | null
-          tipo: string | null
-          vence: string | null
-        }
-        Insert: {
-          asignado_a?: string | null
-          checklist?: Json | null
-          created_at?: string | null
-          estado?: string | null
-          hecha_en?: string | null
-          historia_id?: string | null
-          id?: string | null
-          nota_bloqueo?: string | null
-          pieza_id?: string | null
-          tipo?: string | null
-          vence?: string | null
-        }
-        Update: {
-          asignado_a?: string | null
-          checklist?: Json | null
-          created_at?: string | null
-          estado?: string | null
-          hecha_en?: string | null
-          historia_id?: string | null
-          id?: string | null
-          nota_bloqueo?: string | null
-          pieza_id?: string | null
-          tipo?: string | null
-          vence?: string | null
-        }
-        Relationships: []
-      }
-      respaldo_20260917_pensamientos: {
-        Row: {
-          audio_url: string | null
-          autor: string | null
-          created_at: string
-          duracion_s: number | null
-          id: string
-          pieza_id: string
-          responde_a: string | null
-          ronda: number | null
-          texto: string | null
-          tipo: string
-          transcript_crudo: string | null
-          transcript_pulido: string | null
-        }
-        Insert: {
-          audio_url?: string | null
-          autor?: string | null
-          created_at?: string
-          duracion_s?: number | null
-          id?: string
-          pieza_id: string
-          responde_a?: string | null
-          ronda?: number | null
-          texto?: string | null
-          tipo: string
-          transcript_crudo?: string | null
-          transcript_pulido?: string | null
-        }
-        Update: {
-          audio_url?: string | null
-          autor?: string | null
-          created_at?: string
-          duracion_s?: number | null
-          id?: string
-          pieza_id?: string
-          responde_a?: string | null
-          ronda?: number | null
-          texto?: string | null
-          tipo?: string
-          transcript_crudo?: string | null
-          transcript_pulido?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pensamientos_autor_fkey"
-            columns: ["autor"]
-            isOneToOne: false
-            referencedRelation: "perfiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "pensamientos_pieza_id_fkey"
-            columns: ["pieza_id"]
-            isOneToOne: false
-            referencedRelation: "piezas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pensamientos_responde_a_fkey"
-            columns: ["responde_a"]
-            isOneToOne: false
-            referencedRelation: "respaldo_20260917_pensamientos"
             referencedColumns: ["id"]
           },
         ]
@@ -2350,3 +2200,4 @@ export type Recurso = Tables<"recursos">
 export type Referencia = Tables<"referencias">
 export type Sistema = Tables<"sistemas">
 export type Hueco = Tables<"huecos">
+export type Identidad = Tables<"identidad">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { CalendarDays, CalendarRange, Clapperboard, FileText, FlaskConical, Gift, Images, KeyRound, Layers, LayoutList, Lightbulb, ListChecks, LogOut, Mail, Menu, Radar, Shapes, Sun, X } from "lucide-react";
+import { CalendarDays, CalendarRange, Clapperboard, FileText, Fingerprint, FlaskConical, Gift, Images, KeyRound, Layers, LayoutList, Lightbulb, ListChecks, LogOut, Mail, Menu, Radar, Shapes, Sun, X } from "lucide-react";
 import { MARCA } from "@/lib/dominio/marca";
 import type { Rol } from "@/lib/dominio/roles";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ const GRUPOS: Grupo[] = [
     { href: "/newsletter", etiqueta: "Newsletter", icono: Mail, roles: ["owner", "editor"] },
   ],
   [
+    { href: "/identidad", etiqueta: "Identidad", icono: Fingerprint, roles: ["owner", "editor", "viewer"] },
     { href: "/formatos", etiqueta: "Formatos", icono: Shapes, roles: ["owner", "editor"] },
     { href: "/series", etiqueta: "Series", icono: Layers, roles: ["owner", "editor", "viewer"] },
     { href: "/hipotesis", etiqueta: "Hipótesis", icono: FlaskConical, roles: ["owner", "viewer"] },

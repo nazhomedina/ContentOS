@@ -284,3 +284,9 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 
 - Se borran las tablas `respaldo_20260915_*` y `respaldo_20260917_pensamientos` (migración 023). Lo que valía ya vive en las tablas actuales.
 - Tag `v1.0` en git. Desde aquí el trabajo es operar: cola de Mariela, sensores diarios, rituales desde Cowork por MCP. No hay desarrollo pendiente en la plataforma.
+
+## 2026-09-24 · Identidad dentro de ContentOS
+
+- La verdad universal de quién es Nazho y cómo escribe vive en la tabla `identidad` (siete filas: quien-soy, audiencia, postura, voz, oferta, reglas, evidencia), con historial en `identidad_versiones` (migración 024). Seed inicial desde `docs/identidad/*.md`.
+- Se lee desde la app (`/identidad`, todos los roles), por MCP (`leer_identidad`) y por HTTP para clientes sin MCP como Grok (`/api/identidad`, `/api/identidad/{clave}.md`, `/api/identidad.md`) con la misma key del MCP. Se escribe solo por MCP y solo owner (`actualizar_identidad`), con motivo obligatorio; cada cambio guarda la versión anterior y deja corrida.
+- Los skills de Cowork leen `voz` y `reglas` antes de redactar y `audiencia` y `postura` antes de planear. La identidad no guarda estado ni aprendizajes de piezas: eso sigue en hipótesis, veredictos y notas.

@@ -15,8 +15,8 @@ export function inicioPorRol(rol: Rol): string {
 /** Prefijos de ruta que cada rol puede abrir. owner: todo. */
 const RUTAS: Record<Rol, string[]> = {
   owner: ["/"],
-  editor: ["/cola", "/piezas", "/historias", "/reels", "/carruseles", "/articulos", "/newsletter", "/formatos", "/calendario"],
-  viewer: ["/calendario", "/piezas", "/historias"],
+  editor: ["/cola", "/piezas", "/historias", "/reels", "/carruseles", "/articulos", "/newsletter", "/formatos", "/calendario", "/identidad"],
+  viewer: ["/calendario", "/piezas", "/historias", "/identidad"],
 };
 
 export function rutaPermitida(rol: Rol, pathname: string): boolean {
