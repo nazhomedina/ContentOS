@@ -198,10 +198,10 @@ Estado 2026-09-07 (tarde): bloques B y C construidos y probados de extremo a ext
 
 | # | Paso | Verificación |
 |---|---|---|
-| 2.8 | pg_cron: recálculo nocturno de `metricas.multiplicador`; `latidos()` | fila en `corridas` cada noche |
-| 2.9 | n8n (contrato en `docs/jobs-n8n.md`): `post_scraper_grilla`, `snapshot_seguidores` (handle `nazho`), `kit_suscriptores`, `go_leads`; cada uno inserta `corridas` al inicio y al fin; `api/hooks/n8n` recibe y valida | 7 corridas ok de `snapshot_seguidores` → se apaga la tarea de la Mini |
-| 2.10 | `scripts/espejo-md.ts` + bucket `espejo/` | archivos `.md` fechados |
-| 2.11 | Reescribir prompts de Milo (sprint lunes, review viernes) para leer/escribir por MCP | fuera del repo; se documenta el contrato de tools que usan |
+| 2.8 ✅ | pg_cron: recálculo diario de `metricas.multiplicador` (03:00 MX); `latidos()` | fila en `corridas` cada noche (primera: 2026-09-24) |
+| 2.9 ✅ | **Sin n8n.** Cuatro sensores como Vercel Cron en `api/cron/[job]` (`snapshot_seguidores`, `post_scraper_grilla` vía Apify; `kit_suscriptores`; `go_leads` desde Folklore Leads), cada uno con corrida abierta/cerrada y botón «Correr ahora» en /sistemas. Decisión 2026-09-24 | los cuatro en verde el 2026-09-24 con datos reales; ver `docs/jobs.md` |
+| 2.10 ✗ | Espejo `.md`: apagado en 1.0 (`sistemas_registrados.activo=false`); se retoma si hace falta | — |
+| 2.11 ✅ | Sprint de lunes y review de viernes viven en Cowork como skills que leen y escriben por MCP; en la app son sistemas humanos con evidencia (`proponer_historias`, `resolver_hipotesis`) | — |
 | 2.12 | **Criterio de cierre S2 (textual):** desde Cowork, `crear_pieza` sin fecha devuelve error legible; Milo propone la parrilla por MCP; Nazho aprueba historias desde el teléfono; el viernes `leer_metricas` devuelve multiplicador para toda pieza publicada con URL sin intervención humana | — |
 
 ### v2 y v3 — solo documentación en este repo
