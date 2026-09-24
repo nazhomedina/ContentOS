@@ -23,7 +23,7 @@ Siete filas que todo agente lee antes de escribir o decidir por Nazho. Viven en 
 
 ## Regla de arranque para todo skill de Cowork
 
-Antes de escribir una palabra: `listar_comunidades` → `leer_identidad(clave: ["voz","reglas"])` → `listar_formatos` si la pieza tiene formato. Antes de planear o proponer: `leer_identidad(clave: ["audiencia","postura"])` y `estado_semana`. `quien-soy` cuando la pieza habla en primera persona; `oferta` cuando hay un llamado a la acción; `evidencia` cuando haya duda de cómo suena.
+Antes de escribir una palabra: `listar_comunidades` → `leer_identidad(clave: ["voz","reglas"])` → `listar_formatos(con_molde: true)` si la pieza tiene formato. Antes de planear o proponer: `leer_identidad(clave: ["audiencia","postura"])` y `estado_semana`. `quien-soy` cuando la pieza habla en primera persona; `oferta` cuando hay un llamado a la acción; `evidencia` cuando haya duda de cómo suena.
 
 ## Lectura sin MCP
 
