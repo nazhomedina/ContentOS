@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { inicioPorRol, rutaPermitida, type Rol } from "./lib/dominio/roles";
 
-const PUBLICAS = ["/login", "/auth"];
+const PUBLICAS = ["/login", "/auth", "/.well-known"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
