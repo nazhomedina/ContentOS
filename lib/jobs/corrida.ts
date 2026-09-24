@@ -19,15 +19,16 @@ export type ResultadoJob = { sistema: string; estado: "ok" | "vacio" | "error"; 
 
 /** Envuelve un job: abre la corrida, corre, cierra con lo que pasó. Un error nunca se traga: queda como corrida en error. */
 export async function conCorrida(sistema: string, correr: () => Promise<{ estado: "ok" | "vacio"; resumen: string; detalle?: Record<string, unknown> }>): Promise<ResultadoJob> {
-  const id = await abrirCorrida(sistema);
+  let id: number | null = null;
   try {
+    id = await abrirCorrida(sistema);
     const r = await correr();
     await cerrarCorrida(id, r.estado, r.resumen, r.detalle ?? {});
     return { sistema, ...r };
   } catch (e) {
-    const mensaje = e instanceof Error ? e.message : String(e);
-    await cerrarCorrida(id, "error", mensaje.slice(0, 300));
-    return { sistema, estado: "error", resumen: mensaje.slice(0, 300) };
+    const mensaje = (e instanceof Error ? e.message : String(e)).slice(0, 300);
+    if (id !== null) await cerrarCorrida(id, "error", mensaje);
+    return { sistema, estado: "error", resumen: mensaje };
   }
 }
 
