@@ -279,3 +279,8 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Los rituales no son jobs.** `sprint_lunes` y `review_viernes` siguen registrados con cadencia de 7 días, pero su evidencia son las corridas de las herramientas que Nazho usa desde Cowork (`fuentes`: proponer_historias, agendar_historia, crear_pieza; resolver_hipotesis, registrar_metrica_manual, declarar_hueco). Si una semana no corre el ritual, el latido se pone rojo solo. `espejo_md` se apagó. Los grafos del Nodo ya no nombran a n8n ni a tareas de nube: dicen app (cron), pg_cron o Claude desde Cowork.
 
 **Variables pendientes de Nazho en Vercel:** `CRON_SECRET`, `APIFY_TOKEN`, `KIT_API_KEY`, `FOLKLORE_LEADS_URL`, `FOLKLORE_LEADS_SERVICE_KEY`. Hasta entonces los cuatro sensores siguen en rojo y lo dicen.
+
+## 2026-09-24 · Cierre de v1.0
+
+- Se borran las tablas `respaldo_20260915_*` y `respaldo_20260917_pensamientos` (migración 023). Lo que valía ya vive en las tablas actuales.
+- Tag `v1.0` en git. Desde aquí el trabajo es operar: cola de Mariela, sensores diarios, rituales desde Cowork por MCP. No hay desarrollo pendiente en la plataforma.
