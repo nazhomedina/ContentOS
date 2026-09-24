@@ -37,7 +37,9 @@ try {
   await admin.from("perfiles").update({ api_key_hash: hash }).eq("user_id", userId);
 
   let r = await rpc(null, "initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "prueba", version: "0" } });
-  ok("sin key → 401", r.status === 401, String(r.status));
+  ok("sin key: initialize responde 200 (el conector puede verificar la URL)", r.status === 200 && r.json?.result?.serverInfo?.name === "ContentOS", String(r.status));
+  r = await rpc(null, "tools/call", { name: "listar_comunidades", arguments: {} }, 9);
+  ok("sin key: tools/call → 401", r.status === 401, String(r.status));
 
   r = await rpc("cos_invalida_" + "x".repeat(30), "initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "prueba", version: "0" } });
   ok("key inválida → 401", r.status === 401, String(r.status));
