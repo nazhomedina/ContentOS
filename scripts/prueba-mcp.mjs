@@ -41,8 +41,8 @@ try {
   r = await rpc(null, "tools/call", { name: "listar_comunidades", arguments: {} }, 9);
   ok("sin key: tools/call → 401", r.status === 401, String(r.status));
 
-  r = await rpc("cos_invalida_" + "x".repeat(30), "initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "prueba", version: "0" } });
-  ok("key inválida → 401", r.status === 401, String(r.status));
+  r = await rpc("cos_invalida_" + "x".repeat(30), "tools/call", { name: "listar_comunidades", arguments: {} }, 91);
+  ok("key inválida: tools/call → 401", r.status === 401, String(r.status));
 
   r = await rpc(key, "initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "prueba", version: "0" } });
   ok("initialize 200 con serverInfo ContentOS", r.status === 200 && r.json?.result?.serverInfo?.name === "ContentOS", `${r.status} ${r.text.slice(0, 120)}`);
