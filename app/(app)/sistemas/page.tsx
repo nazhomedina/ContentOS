@@ -4,6 +4,8 @@ import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { fechaCorta, lunesDe, lunesDeHoy, sumarDias } from "@/lib/dominio/tiempo";
 import { resumenSistema, type AristaDef, type NodoEstado } from "@/lib/dominio/nodo";
 import { Grafo } from "@/components/maquina/grafo";
+import { Latidos, type LatidoFila } from "@/components/maquina/latidos";
+import { JOBS, jobListo } from "@/lib/jobs";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Sistemas" };
@@ -30,6 +32,11 @@ export default async function Sistemas({ searchParams }: { searchParams: Promise
   }));
   const porSistema = Object.fromEntries(estados);
   const nodos = porSistema[activo.clave] ?? [];
+  const esOwner = sesion.perfil.rol === "owner";
+  const filasLatidos: LatidoFila[] = (latidos ?? []).map((l) => ({
+    sistema: l.sistema, dueno: l.dueno, descripcion: l.descripcion, esperado_cada: String(l.esperado_cada), ultima_corrida: l.ultima_corrida, ultimo_estado: l.ultimo_estado, ultimo_resumen: l.ultimo_resumen, atrasado: l.atrasado,
+    puedeCorrer: l.sistema in JOBS, listo: jobListo(l.sistema), faltan: (JOBS[l.sistema]?.necesita ?? []).filter((v) => !process.env[v]),
+  }));
 
   return (
     <div className="space-y-6">
@@ -92,6 +99,14 @@ export default async function Sistemas({ searchParams }: { searchParams: Promise
       <p className="text-xs text-muted-foreground">
         Versión {activo.version} · el sistema se redefine desde Claude con <code className="font-mono">definir_sistema</code>. Los nodos se pintan con la evidencia de esta semana: nada se estima.
       </p>
+
+      <section className="space-y-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Latidos · {filasLatidos.filter((l) => l.atrasado).length} atrasados de {filasLatidos.length}</h2>
+          <span className="text-xs text-muted-foreground">Los jobs de la app corren solos cada día y se pueden correr a mano; los rituales cuentan cuando Nazho usa sus herramientas desde Cowork.</span>
+        </div>
+        <Latidos filas={filasLatidos} esOwner={esOwner} />
+      </section>
     </div>
   );
 }

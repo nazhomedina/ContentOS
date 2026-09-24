@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 019.
+// Generado con el conector de Supabase el 2026-09-16 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 020.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -1386,19 +1386,25 @@ export type Database = {
         Row: {
           activo: boolean
           descripcion: string | null
+          dueno: string | null
           esperado_cada: string
+          fuentes: string[] | null
           nombre: string
         }
         Insert: {
           activo?: boolean
           descripcion?: string | null
+          dueno?: string | null
           esperado_cada: string
+          fuentes?: string[] | null
           nombre: string
         }
         Update: {
           activo?: boolean
           descripcion?: string | null
+          dueno?: string | null
           esperado_cada?: string
+          fuentes?: string[] | null
           nombre?: string
         }
         Relationships: []
@@ -1968,6 +1974,8 @@ export type Database = {
         Args: never
         Returns: {
           atrasado: boolean
+          descripcion: string
+          dueno: string
           esperado_cada: string
           sistema: string
           ultima_corrida: string

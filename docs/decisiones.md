@@ -269,3 +269,13 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 **Pantalla.** `/formatos` es una galería de tarjetas (portada, estado, multiplicador, episodios, serie, etiquetas y la señal de la hipótesis: verde verdadera, ámbar sin número o vencida, rojo sin hipótesis o falsa) con filtros por faceta y «Nuevo formato». `/formatos/[id]` es la ficha: portada, camino de estados, etiquetas, campos, cifras, referencias con alta, hipótesis del formato (escribir, completar, resolver) y lo que dicen las de sus episodios, episodios y molde plegado.
 
 **MCP (31 tools).** `crear_formato` (código FC-NN automático, nace detectado) y `agregar_referencia` son la vía para que Cowork alimente la biblioteca al analizar cuentas; `listar_formatos` filtra por etiqueta y trae hipótesis y referencias; `actualizar_formato` acepta etiquetas y la hipótesis del formato. La moratoria de «no crear cards» deja de ser regla del sistema: es decisión de Nazho.
+
+## 2026-09-24 · La máquina: jobs en la app, nada en n8n, rituales a mano (migración 020, aplicada en producción)
+
+**Nazho decidió:** n8n queda para sus otros procesos, no para ContentOS; Apify para todo lo que sea Instagram (la cuenta es business, la Graph API queda para después); y ninguna rutina automática de Claude: «difícilmente tengo la computadora abierta; me quedo con rituales que yo corra a mano».
+
+**Dónde corre cada cosa** (docs/jobs.md): los cuatro sensores corren en la app como Vercel Cron (`/api/cron/{job}`, protegidos con `CRON_SECRET`, `maxDuration` 300 s): seguidores y métricas de piezas por Apify, suscriptores por Kit v4, leads leyendo el Supabase de Folklore Leads. `recalcular_multiplicadores` corre en pg_cron dentro de Supabase a las 03:00. Cada job abre su fila en `corridas` en estado `corriendo` y la cierra con ok, vacío o error. En Sistemas hay una lista de latidos con «Correr ahora» para el owner, y dice qué variable falta en Vercel cuando un job no puede correr.
+
+**Los rituales no son jobs.** `sprint_lunes` y `review_viernes` siguen registrados con cadencia de 7 días, pero su evidencia son las corridas de las herramientas que Nazho usa desde Cowork (`fuentes`: proponer_historias, agendar_historia, crear_pieza; resolver_hipotesis, registrar_metrica_manual, declarar_hueco). Si una semana no corre el ritual, el latido se pone rojo solo. `espejo_md` se apagó. Los grafos del Nodo ya no nombran a n8n ni a tareas de nube: dicen app (cron), pg_cron o Claude desde Cowork.
+
+**Variables pendientes de Nazho en Vercel:** `CRON_SECRET`, `APIFY_TOKEN`, `KIT_API_KEY`, `FOLKLORE_LEADS_URL`, `FOLKLORE_LEADS_SERVICE_KEY`. Hasta entonces los cuatro sensores siguen en rojo y lo dicen.
