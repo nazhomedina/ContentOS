@@ -14,9 +14,23 @@ export function hashApiKey(key: string): string {
  * JWT HS256 firmado con el secreto legacy del proyecto (sub = user_id, role = authenticated).
  * Así la RLS aplica al MCP igual que a la web (PLAN.md hallazgo 7, plan A).
  */
-export async function autenticarMcp(authorization: string | null): Promise<{ perfil: Perfil; supabase: SupabaseClient<Database> } | null> {
-  const key = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
-  if (!key || key.length < 20) return null;
+/** Saca la key de las cabeceras: `Authorization: Bearer cos_…`, `Authorization: cos_…` (sin esquema) o `x-api-key: cos_…`. */
+export function extraerKey(authorization: string | null, xApiKey: string | null): string | null {
+  const conEsquema = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  const candidata = conEsquema ?? authorization?.trim() ?? xApiKey?.trim() ?? null;
+  return candidata && candidata.length >= 20 ? candidata : null;
+}
+
+/** Cómo llegó la autorización, sin revelar la key: para leerlo en los logs de Vercel. */
+export function describirAuth(authorization: string | null, xApiKey: string | null): string {
+  if (authorization) return /^Bearer\s+/i.test(authorization) ? `authorization bearer (${authorization.length} chars)` : `authorization sin esquema (${authorization.length} chars)`;
+  if (xApiKey) return `x-api-key (${xApiKey.length} chars)`;
+  return "sin cabecera";
+}
+
+export async function autenticarMcp(authorization: string | null, xApiKey: string | null = null): Promise<{ perfil: Perfil; supabase: SupabaseClient<Database> } | null> {
+  const key = extraerKey(authorization, xApiKey);
+  if (!key) return null;
 
   const admin = crearClienteAdmin();
   const { data: perfil } = await admin.rpc("perfil_por_api_key", { p_hash: hashApiKey(key) });

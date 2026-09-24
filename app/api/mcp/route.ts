@@ -1,6 +1,6 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createClient } from "@supabase/supabase-js";
-import { autenticarMcp } from "@/lib/mcp/auth";
+import { autenticarMcp, describirAuth } from "@/lib/mcp/auth";
 import { crearServidorMcp } from "@/lib/mcp/servidor";
 import type { Database, Perfil } from "@/lib/supabase/tipos";
 
@@ -32,9 +32,11 @@ function contextoAnonimo() {
  * sin sesiones ni SSE de reanudación: Vercel es serverless). Auth: Bearer <api_key>.
  */
 async function manejar(request: Request): Promise<Response> {
-  let auth = await autenticarMcp(request.headers.get("authorization"));
+  const cabAuth = request.headers.get("authorization"), cabKey = request.headers.get("x-api-key");
+  let auth = await autenticarMcp(cabAuth, cabKey);
   if (!auth) {
     const metodos = await metodosDe(request);
+    console.log(`mcp sin key válida · ${describirAuth(cabAuth, cabKey)} · ${request.method} ${metodos?.join(",") ?? "?"} · ua=${(request.headers.get("user-agent") ?? "").slice(0, 60)}`);
     if (metodos && metodos.length > 0 && metodos.every((m) => SIN_KEY.has(m))) {
       auth = contextoAnonimo();
     } else {
