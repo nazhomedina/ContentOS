@@ -132,7 +132,7 @@ try {
   r = await getO("/reels?vista=publicados");
   ok("/reels publicados 200 con tabla", r.status === 200 && r.html.includes("Multiplicador"), String(r.status));
   r = await getO("/carruseles");
-  ok("/carruseles 200 con CAR-01 en redacción y DEMO-02 en diseño", r.status === 200 && r.html.includes("CAR-01") && r.html.includes("DEMO-02") && !r.html.includes(">Grabación<"), String(r.status));
+  ok("/carruseles 200 con CAR-01 en redacción y DEMO-02 en diseño", r.status === 200 && r.html.includes("4 marcas mexicanas que cobran caro") && r.html.includes("El descuento más caro") && r.html.includes("Diseño y producción") && !r.html.includes(">Grabación<"), String(r.status));
   r = await getO("/calendario?semana=2026-09-07");
   ok("/calendario 200 con DEMO-01 en su semana", r.status === 200 && r.html.includes("DEMO-01"), String(r.status));
   r = await getO("/cuentas");
@@ -168,7 +168,9 @@ try {
   const { data: hk, error: e7 } = await conOwner.rpc("declarar_hueco", { p_semana: semanaISO(), p_sistema: "maquina_semanal", p_nodo: "review", p_nota: "prueba e2e" });
   ok("owner: declarar_hueco ok", !e7 && hk?.nota === "prueba e2e", e7?.message);
   const { data: en } = await conOwner.rpc("estado_nodos", { p_clave: "maquina_semanal", p_semana: semanaISO() });
-  ok("estado_nodos refleja el hueco", en?.find((x) => x.nodo_clave === "review")?.estado === "hueco", JSON.stringify(en?.find((x) => x.nodo_clave === "review")));
+  { const rv = en?.find((x) => x.nodo_clave === "review");
+    // Si esta semana ya corrió una review real, el nodo dice «corrio»; el hueco sigue registrado en su nota.
+    ok("estado_nodos refleja el hueco (o la review real de la semana, con la nota del hueco)", (rv?.estado === "hueco" || rv?.estado === "corrio") && rv?.hueco_nota === "prueba e2e", `${rv?.estado} · ${rv?.hueco_nota}`); }
   await admin.from("huecos").delete().eq("nota", "prueba e2e");
 } finally {
   if (ownerId) await admin.auth.admin.deleteUser(ownerId);
