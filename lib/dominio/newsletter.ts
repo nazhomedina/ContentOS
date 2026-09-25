@@ -1,7 +1,7 @@
 import { addDays, format, getISODay, parseISO } from "date-fns";
 
-/** El newsletter es una pieza `newsletter` con formato FC-09; el día de envío vive en el formato (docs/newsletter.md). */
-export const FORMATO_NEWSLETTER = "FC-09";
+/** CRITERIO vive aparte (tabla `newsletter`: día de envío, receta, promesa). Cada edición es una pieza tipo newsletter
+ *  sin formato ni serie (docs/newsletter.md, decisión 2026-09-25). */
 
 export const DIAS_ENVIO = [[1, "lunes"], [2, "martes"], [3, "miércoles"], [4, "jueves"], [5, "viernes"], [6, "sábado"], [7, "domingo"]] as const;
 export function nombreDia(dia: number): string {

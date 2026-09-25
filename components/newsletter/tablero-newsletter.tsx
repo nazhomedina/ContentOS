@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
-import { FORMATO_NEWSLETTER, idKit, numeroEdicion, proximosEnvios, tituloSinNumero } from "@/lib/dominio/newsletter";
+import { idKit, numeroEdicion, proximosEnvios, tituloSinNumero } from "@/lib/dominio/newsletter";
 import { NOMBRE_ESTADO, type EstadoPieza } from "@/lib/dominio/estados";
 import { fechaCorta, hoyISO } from "@/lib/dominio/tiempo";
+import { Markdown } from "@/components/markdown";
 import { cn } from "@/lib/utils";
 import { AgendarEdicion } from "./agendar-edicion";
 import { SelectorDiaEnvio } from "./selector-dia-envio";
@@ -22,7 +23,7 @@ const NOMBRE_GRUPO: Record<string, string> = { lista: "Lista para enviar", kit: 
 /**
  * La pantalla del newsletter (docs/decisiones.md 2026-09-16, Opción A): la redacción pasa en Claude; aquí se ve
  * qué edición sale qué día y qué le falta. Izquierda, las ediciones por lo que les falta; derecha, los próximos
- * envíos con hueco para agendar. El día de envío vive en el formato FC-09 y se cambia aquí mismo.
+ * envíos con hueco para agendar. El newsletter vive aparte de formatos y series: su día de envío y su receta están en la tabla newsletter y se ven aquí.
  */
 export async function TableroNewsletter({ vista }: { vista?: string }) {
   const sesion = await sesionActual();
@@ -31,12 +32,15 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
   const esOwner = sesion.perfil.rol === "owner";
   const hoy = hoyISO();
 
-  const [{ data: piezas }, { data: fmt }] = await Promise.all([
+  const [{ data: piezas }, { data: nl }, { data: hijas }] = await Promise.all([
     supabase.from("piezas").select("id, id_publico, titulo, estado, fecha_objetivo, publicada_en, url, notas, hipotesis_id, etiquetas")
       .eq("tipo", "newsletter").neq("estado", "archivada").order("fecha_objetivo", { ascending: true, nullsFirst: false }),
-    supabase.from("formatos").select("dia_envio").eq("codigo", FORMATO_NEWSLETTER).maybeSingle(),
+    supabase.from("newsletter").select("nombre, promesa, dia_envio, cadencia, plataforma, dominio, receta, actualizado, hipotesis:hipotesis(texto, campo, numero, fecha, estado)").eq("id", 1).maybeSingle(),
+    supabase.from("piezas").select("madre_id").not("madre_id", "is", null).neq("estado", "archivada"),
   ]);
-  const dia = fmt?.dia_envio ?? 5;
+  const dia = nl?.dia_envio ?? 5;
+  const derivadas = new Map<string, number>();
+  for (const h of hijas ?? []) if (h.madre_id) derivadas.set(h.madre_id, (derivadas.get(h.madre_id) ?? 0) + 1);
   const todas: Edicion[] = piezas ?? [];
   const publicadas = todas.filter((p) => p.estado === "publicada" || p.estado === "en_trial").sort((a, b) => (b.publicada_en ?? "").localeCompare(a.publicada_en ?? ""));
   const activas = todas.filter((p) => !publicadas.includes(p));
@@ -67,7 +71,7 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
 
   const siguiente = activas.find((p) => p.fecha_objetivo && p.fecha_objetivo >= hoy && ["listo", "programada", "diseno"].includes(p.estado));
   const redactando = activas.find((p) => p.estado === "redaccion");
-  const vistaActual = vista === "publicadas" ? "publicadas" : "ediciones";
+  const vistaActual = vista === "publicadas" || vista === "receta" ? vista : "ediciones";
 
   return (
     <div className="space-y-5">
@@ -85,7 +89,7 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <nav className="flex gap-1 text-xs font-medium">
-            {([["ediciones", "Ediciones"], ["publicadas", `Publicadas · ${publicadas.length}`]] as const).map(([v, n]) => (
+            {([["ediciones", "Ediciones"], ["publicadas", `Publicadas · ${publicadas.length}`], ["receta", "Receta"]] as const).map(([v, n]) => (
               <Link key={v} href={v === "ediciones" ? "/newsletter" : `/newsletter?vista=${v}`} className={cn("rounded-full px-3 py-1", vistaActual === v ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{n}</Link>
             ))}
           </nav>
@@ -93,7 +97,18 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
         </div>
       </header>
 
-      {vistaActual === "publicadas" ? (
+      {vistaActual === "receta" ? (
+        <section className="space-y-4">
+          <div className="grid gap-3 rounded-xl border p-4 text-sm md:grid-cols-4">
+            <div><p className="text-xs text-muted-foreground">Promesa</p><p className="font-medium">{nl?.promesa ?? "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Cadencia</p><p className="font-medium">{nl?.cadencia ?? "—"}</p></div>
+            <div><p className="text-xs text-muted-foreground">Dónde sale</p><p className="font-medium">{nl?.plataforma ?? "kit"}{nl?.dominio ? ` · ${nl.dominio}` : ""}</p></div>
+            <div><p className="text-xs text-muted-foreground">Hipótesis del newsletter</p><p className="font-medium">{nl?.hipotesis ? `${nl.hipotesis.texto}${nl.hipotesis.campo ? ` · ${nl.hipotesis.campo} ≥ ${nl.hipotesis.numero} al ${fechaCorta(nl.hipotesis.fecha)}` : ""}` : "sin hipótesis"}</p></div>
+          </div>
+          <div className="rounded-xl border p-4"><Markdown texto={nl?.receta} /></div>
+          <p className="text-xs text-muted-foreground">La receta la lee el skill del newsletter en Cowork con leer_newsletter y se cambia con actualizar_newsletter. Última edición: {fechaCorta(nl?.actualizado)}.</p>
+        </section>
+      ) : vistaActual === "publicadas" ? (
         publicadas.length === 0
           ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Todavía ninguna. {siguiente ? `La primera sale el ${fechaCorta(siguiente.fecha_objetivo)}.` : ""}</p>
           : (
@@ -128,9 +143,10 @@ export async function TableroNewsletter({ vista }: { vista?: string }) {
                           {s && <span className={cn("size-[7px] rounded-full", s.tono === "rojo" ? "bg-rojo" : s.tono === "ambar" ? "bg-ambar" : "bg-primary")} aria-hidden />}
                           {p.fecha_objetivo ? fechaCorta(p.fecha_objetivo) : "sin fecha"}
                         </span>
-                        {(s || kit) && (
+                        {(s || kit || (derivadas.get(p.id) ?? 0) > 0) && (
                           <span className="col-start-1 flex flex-wrap items-center gap-x-2.5 text-xs text-muted-foreground">
                             {kit && <span>Kit · borrador {kit}</span>}
+                            {(derivadas.get(p.id) ?? 0) > 0 && <span>{derivadas.get(p.id)} derivadas</span>}
                             {s && <span className={cn("font-semibold", s.tono === "rojo" ? "text-rojo" : s.tono === "ambar" ? "text-ambar" : "text-primary")}>{s.texto}</span>}
                           </span>
                         )}

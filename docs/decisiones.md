@@ -298,3 +298,10 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 - Cada botón deja registro en `bitacora` con `origen = 'auto'` (RPCs `tomar_pieza`, `pieza_lista`, `programar_pieza`, `publicar_desde_tablero`, `publicar_historia`; migración 025). **Mi día** muestra automáticos y manuales; sigue en ámbar hasta que ella declara algo a mano.
 - La editora ahora puede leer `cuota_semana` y `tablero_material()` (piezas en diseño con quién las tiene). Las tareas siguen existiendo debajo; ella ya no las ve como lista.
 - La prueba e2e se puso al día: las páginas de la semana demo se consultan con `?semana=2026-09-07`.
+
+## 2026-09-25 · CRITERIO es el newsletter y vive aparte
+
+- El newsletter deja de ser el formato FC-09 y la serie «Criterio». Su casa es la tabla `newsletter` (una fila: promesa, día de envío, cadencia, plataforma, dominio, receta, hipótesis). FC-09 se borró de la biblioteca; su molde es la receta. Migración 026.
+- Las ediciones siguen siendo piezas tipo newsletter (contenido versionado, hipótesis, tareas, cuota), pero el esquema les prohíbe formato y serie (`newsletter_sin_formato`, `newsletter_sin_serie`).
+- La serie de los 30 yaps de postura se llamaba «Criterio»; ahora se llama **Postura** (nombre elegido por Claude a falta de otro; se cambia con `guardar_serie`). Los id_publico CRI-NN se conservan. La serie duplicada «CRITERIO» se borró.
+- Derivadas: `piezas.madre_id` liga el reel hablado o el carrusel del caso con su edición. MCP: `leer_newsletter`, `actualizar_newsletter`, y `madre` en `crear_pieza` / `actualizar_pieza`. `actualizar_formato` ya no tiene día de envío.

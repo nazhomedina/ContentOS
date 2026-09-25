@@ -1,19 +1,23 @@
 # Newsletter CRITERIO — cómo vive en ContentOS
 
-**Fecha:** 2026-09-16 · **Spec del formato:** `02 PROYECTOS/NEWSLETTER 2026/00-FORMATO-CRITERIO.md` (copiada como molde de FC-09) · **Plantilla de correo:** `05-PLANTILLA-EMAIL-KIT.md` (v2, 600 px).
+**Fecha:** 2026-09-16 · **Spec:** `02 PROYECTOS/NEWSLETTER 2026/00-FORMATO-CRITERIO.md` (copiada como receta en la tabla `newsletter`; desde el 2026-09-25 CRITERIO vive aparte de formatos y series) · **Plantilla de correo:** `05-PLANTILLA-EMAIL-KIT.md` (v2, 600 px).
+
+## 0. CRITERIO vive aparte
+
+Desde el 2026-09-25 el newsletter no es un formato ni una serie. Su casa es la tabla `newsletter` (una fila): promesa, día de envío, cadencia, plataforma y dominio, la **receta** (6 secciones + checklist de 8 puntos) y su hipótesis. Se ve en la pestaña **Receta** de la pantalla Newsletter y se lee por MCP con `leer_newsletter`; se cambia con `actualizar_newsletter` (solo owner). La serie de yaps que se llamaba «Criterio» se llama **Postura**.
 
 ## 1. La edición es una pieza
 
-- `tipo = newsletter`, formato **FC-09** (se pone solo), serie **Criterio** (heredada del formato), `id_publico` **NEW-NN**.
+- `tipo = newsletter`, **sin formato y sin serie** (el esquema lo impide), `id_publico` **NEW-NN**.
 - El título lleva el número público: `Criterio #002 — Si tienes que explicar tu diferencia, no eres diferente.` Si se crea sin número, `crear_pieza` lo antepone con la siguiente edición (se lee de los títulos, no se guarda).
-- `fecha_objetivo` = el día de envío. El día de la semana vive en el formato (`formatos.dia_envio` de FC-09, viernes hoy; se cambia desde la pantalla Newsletter o con `actualizar_formato`). Sin fecha, `crear_pieza` pone el siguiente envío (`siguiente_envio`). Cambiar el día recorre los próximos envíos y la fecha por defecto de las ediciones nuevas; las ya agendadas conservan su fecha.
+- `fecha_objetivo` = el día de envío. El día de la semana vive en `newsletter.dia_envio` (viernes hoy; se cambia desde la pantalla Newsletter o con `actualizar_newsletter`). Sin fecha, `crear_pieza` pone el siguiente envío (`siguiente_envio`). Cambiar el día recorre los próximos envíos y la fecha por defecto de las ediciones nuevas; las ya agendadas conservan su fecha.
 - `contenido` = la edición completa en markdown, versionada en `contenido_versiones`: opciones de subject (2 mínimo) y preheader arriba, las 6 secciones, el PS y las notas de producción al final.
 - Estados: **redacción** (entrevista y redacción en Claude Cowork) → **diseño** (cargada en Kit como borrador, revisión visual) → **listo** (programada en Kit para el viernes 9:00) → **publicada** (enviada, con URL pública). Newsletter no pasa por grabación.
 - Hipótesis: obligatoria de diseño en adelante, como toda pieza. Campo típico: `replies` (respuestas al correo) o `leads` cuando el PS empuja un lead magnet. Open rate es salud, no hipótesis.
 
 ## 2. El puente con Kit (sin sincronización de regreso)
 
-1. **Redacción en Cowork.** Claude entrevista a Nazho en el chat con el skill del newsletter, redacta las 6 secciones y guarda con `guardar_contenido`. Antes de mover a diseño, Claude corre el checklist de 8 puntos del molde de FC-09.
+1. **Redacción en Cowork.** Claude entrevista a Nazho en el chat con el skill del newsletter, redacta las 6 secciones y guarda con `guardar_contenido`. Antes de mover a diseño, Claude corre el checklist de 8 puntos de la receta (`leer_newsletter`).
 2. **Borrador en Kit.** Claude crea el broadcast con su conector de Kit (`create_broadcast`) sobre la plantilla v2, con el subject elegido y el preheader. Guarda en `notas` de la pieza el id del broadcast (ejemplo: `kit: 25356283`). No hay API para programar.
 3. **Programación.** Nazho programa el broadcast en la interfaz de Kit para el día de envío a las 9:00 (America/Mexico_City) y mueve la pieza a **listo**.
 4. **Envío.** El viernes, tras el envío, la pieza pasa a **publicada** con la URL pública del broadcast (`guardar_url` o `actualizar_pieza`). «Publicada exige URL» aplica igual que a un reel.
@@ -23,7 +27,7 @@ Lo que Kit sabe (opens, clicks) no regresa a la app en 1.0. Cuando exista el job
 
 ## 3. La cascada
 
-Cada edición se re-empaca (no se clipea igual): 1 reel (El Criterio hablado), 1 carrusel (El Caso), 2-3 posts de texto. Se crean con `crear_pieza` (tipo reel / carrusel / x, serie Criterio, misma hipótesis o una propia) y se producen el jueves con Mariela. En 1.0 las hijas se crean a mano; la derivación automática queda para después.
+Cada edición se re-empaca (no se clipea igual): 1 reel (El Criterio hablado), 1 carrusel (El Caso), 2-3 posts de texto. Se crean con `crear_pieza` (tipo reel / carrusel / x, con `madre` = el id_publico de la edición, misma hipótesis o una propia) y se producen el jueves con Mariela. La pantalla Newsletter cuenta las derivadas de cada edición y `leer_newsletter` las lista.
 
 ## 4. Estado al 16 de septiembre de 2026
 

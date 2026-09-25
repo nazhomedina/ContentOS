@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-25 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 025.
+// Generado con el conector de Supabase el 2026-09-25 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 026.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -881,6 +881,66 @@ export type Database = {
           },
         ]
       }
+      newsletter: {
+        Row: {
+          actualizado: string
+          actualizado_por: string | null
+          cadencia: string | null
+          dia_envio: number
+          dominio: string | null
+          hipotesis_id: string | null
+          id: number
+          nombre: string
+          notas: string | null
+          plataforma: string
+          promesa: string | null
+          receta: string
+        }
+        Insert: {
+          actualizado?: string
+          actualizado_por?: string | null
+          cadencia?: string | null
+          dia_envio?: number
+          dominio?: string | null
+          hipotesis_id?: string | null
+          id?: number
+          nombre: string
+          notas?: string | null
+          plataforma?: string
+          promesa?: string | null
+          receta: string
+        }
+        Update: {
+          actualizado?: string
+          actualizado_por?: string | null
+          cadencia?: string | null
+          dia_envio?: number
+          dominio?: string | null
+          hipotesis_id?: string | null
+          id?: number
+          nombre?: string
+          notas?: string | null
+          plataforma?: string
+          promesa?: string | null
+          receta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "newsletter_hipotesis_id_fkey"
+            columns: ["hipotesis_id"]
+            isOneToOne: false
+            referencedRelation: "hipotesis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles: {
         Row: {
           api_key_hash: string | null
@@ -945,6 +1005,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -969,6 +1030,7 @@ export type Database = {
           hipotesis_id?: string | null
           id?: string
           id_publico?: string | null
+          madre_id?: string | null
           notas?: string | null
           notion_url?: string | null
           plataforma?: string | null
@@ -993,6 +1055,7 @@ export type Database = {
           hipotesis_id?: string | null
           id?: string
           id_publico?: string | null
+          madre_id?: string | null
           notas?: string | null
           notion_url?: string | null
           plataforma?: string | null
@@ -1025,6 +1088,13 @@ export type Database = {
             columns: ["hipotesis_id"]
             isOneToOne: false
             referencedRelation: "hipotesis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piezas_madre_id_fkey"
+            columns: ["madre_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
             referencedColumns: ["id"]
           },
           {
@@ -1441,6 +1511,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -1539,6 +1610,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -1808,6 +1880,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -1854,6 +1927,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -1887,6 +1961,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -1947,6 +2022,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -1981,6 +2057,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -2014,6 +2091,7 @@ export type Database = {
           hipotesis_id: string | null
           id: string
           id_publico: string | null
+          madre_id: string | null
           notas: string | null
           notion_url: string | null
           plataforma: string | null
@@ -2175,7 +2253,7 @@ export type Database = {
       rol_actual: { Args: never; Returns: string }
       siguiente_codigo_formato: { Args: never; Returns: string }
       siguiente_edicion_criterio: { Args: never; Returns: number }
-      siguiente_envio: { Args: { p_formato?: string }; Returns: string }
+      siguiente_envio: { Args: never; Returns: string }
       siguiente_id_publico: { Args: { p_prefijo: string }; Returns: string }
       tablero_material: {
         Args: never
@@ -2380,3 +2458,4 @@ export type Referencia = Tables<"referencias">
 export type Sistema = Tables<"sistemas">
 export type Hueco = Tables<"huecos">
 export type Identidad = Tables<"identidad">
+export type Newsletter = Tables<"newsletter">

@@ -53,7 +53,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   // Piezas
   // -------------------------------------------------------------------------
   server.registerTool("crear_pieza", {
-    description: "Crea una pieza. Nace como borrador con solo un título (aparece en Ideas). Para redaccion hace falta tipo; de grabacion en adelante hacen falta tipo, etapa_embudo e hipótesis {texto, campo, numero, fecha} (o hipotesis_id de una existente). id_publico se genera solo. Devuelve error legible si falta algo.",
+    description: "Crea una pieza. Nace como borrador con solo un título (aparece en Ideas). Una edición del newsletter es tipo newsletter SIN formato ni serie (vive aparte: leer_newsletter); sus derivadas llevan madre = id_publico de la edición. Para redaccion hace falta tipo; de grabacion en adelante hacen falta tipo, etapa_embudo e hipótesis {texto, campo, numero, fecha} (o hipotesis_id de una existente). id_publico se genera solo. Devuelve error legible si falta algo.",
     inputSchema: {
       titulo: z.string().min(3),
       estado: z.enum(["borrador", "redaccion", "grabacion", "diseno"]).default("borrador"),
@@ -61,7 +61,8 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       notas: z.string().optional().describe("tensión, ángulo, contexto, spec visual"),
       etiquetas: z.array(z.string()).optional().describe("libres: origen (radar, markie, nazho…), temas, campañas"),
       id_publico: z.string().regex(/^[A-Z]{2,5}-\d{2,3}([a-z]|-[A-E])?$/).optional(),
-      series: z.array(z.string()).optional().describe("series declaradas (Criterio, Róbate…); se crean solas si son nuevas"), formato: z.string().optional().describe("Format Card: código FC-08 o uuid"),
+      series: z.array(z.string()).optional().describe("series declaradas (Postura, Róbate…); se crean solas si son nuevas. El newsletter no lleva serie"), formato: z.string().optional().describe("Format Card: código FC-08 o uuid. El newsletter no lleva formato"),
+      madre: z.string().optional().describe("id_publico o uuid de la pieza de la que deriva (p. ej. el reel hablado de NEW-03)"),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),
       hipotesis_id: uuid.optional().describe("para que varias piezas respondan a la misma hipótesis"),
       etapa_embudo: z.enum(["atraer", "capturar", "convertir"]).optional(),
@@ -86,13 +87,14 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       etapa_embudo: z.enum(["atraer", "capturar", "convertir"]).optional(),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),
       hipotesis_id: uuid.nullable().optional(),
-      formato: z.string().nullable().optional().describe("Format Card: código FC-08 o uuid; null la quita"),
+      formato: z.string().nullable().optional().describe("Format Card: código FC-08 o uuid; null la quita. El newsletter no lleva formato"),
+      madre: z.string().nullable().optional().describe("id_publico o uuid de la pieza de la que deriva; null la suelta"),
       contenido: z.string().optional().describe("guion, copy, artículo…; queda como versión nueva"),
       fecha_objetivo: fecha.nullable().optional(),
       responsable: z.string().nullable().optional(),
       programa_aprobado: z.boolean().optional(), estado: z.enum(["borrador", "redaccion", "grabacion", "diseno", "listo", "programada", "archivada", "en_trial"]).optional(),
     },
-  }, async ({ pieza, responsable, estado, formato, hipotesis, contenido, ...campos }) => {
+  }, async ({ pieza, responsable, estado, formato, madre, hipotesis, contenido, ...campos }) => {
     const { data: ref } = await supabase.from("piezas").select("id").or(`id_publico.eq.${pieza},id.eq.${uuidOrNil(pieza)}`).maybeSingle();
     if (!ref) return error(`No existe la pieza ${pieza}.`);
     const pieza_id = ref.id;
@@ -104,6 +106,15 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
         const { data: fc } = await supabase.from("formatos").select("id").or(`codigo.eq.${formato},id.eq.${uuidOrNil(formato)}`).maybeSingle();
         if (!fc) return error(`No existe el formato ${formato}.`);
         cambios.formato_id = fc.id;
+      }
+    }
+    if (madre !== undefined) {
+      if (madre === null) cambios.madre_id = null;
+      else {
+        const { data: m } = await supabase.from("piezas").select("id").or(`id_publico.eq.${madre},id.eq.${uuidOrNil(madre)}`).maybeSingle();
+        if (!m) return error(`No existe la pieza madre ${madre}.`);
+        if (m.id === pieza_id) return error("Una pieza no puede derivar de sí misma.");
+        cambios.madre_id = m.id;
       }
     }
     if (hipotesis) {
@@ -166,7 +177,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("listar_series", {
-    description: "Las series declaradas (Criterio, Róbate, Brand Reels…) con descripción, si están activas y cuántas piezas llevan. Una pieza puede pertenecer a varias.",
+    description: "Las series declaradas (Postura, Róbate, Brand Reels…). El newsletter CRITERIO no es serie: leer_newsletter con descripción, si están activas y cuántas piezas llevan. Una pieza puede pertenecer a varias.",
     inputSchema: { solo_activas: z.boolean().default(false) },
   }, async ({ solo_activas }) => {
     let q = supabase.from("series").select("id, nombre, descripcion, activa, created_at").order("activa", { ascending: false }).order("nombre");
@@ -256,7 +267,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     description: "La biblioteca de formatos: código, nombre, estado, etiquetas (dónde se graba, quién aparece, mecánica, duración), serie propia, duración, recompensa, cadencia, origen, la hipótesis del formato (resoluble si trae campo, número y fecha), cuántas referencias tiene y los rollups (episodios, publicadas, multiplicador). Filtra por etiqueta o estado. con_molde trae la receta completa; con_referencias, la lista de reels que lo sostienen.",
     inputSchema: { con_molde: z.boolean().default(false), con_referencias: z.boolean().default(false), etiqueta: z.string().optional(), estado: ESTADO_FORMATO.optional() },
   }, async ({ con_molde, con_referencias, etiqueta, estado }) => {
-    let q = supabase.from("formatos").select("id, codigo, nombre, estado, origen, etiquetas, portada, serie_propia, duracion, recompensa, cadencia, dia_envio, molde, notas, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado, veredicto), referencias(id, cuenta, url, multiplicador, views, duracion_s, nota)").order("codigo");
+    let q = supabase.from("formatos").select("id, codigo, nombre, estado, origen, etiquetas, portada, serie_propia, duracion, recompensa, cadencia, molde, notas, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado, veredicto), referencias(id, cuenta, url, multiplicador, views, duracion_s, nota)").order("codigo");
     if (etiqueta) q = q.contains("etiquetas", [etiqueta.toLowerCase()]);
     if (estado) q = q.eq("estado", estado);
     const { data, error: e } = await q;
@@ -312,12 +323,11 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("actualizar_formato", {
-    description: "Edita la ficha de un formato por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), etiquetas (sustituye la lista), serie_propia, duracion, recompensa, cadencia, origen, notas, molde, dia_envio (newsletter) y la hipótesis del formato {texto, campo, numero, fecha}: con los tres últimos se vuelve resoluble.",
+    description: "Edita la ficha de un formato por código: nombre, estado (detectado · experimentando · validado_propio · firma · retirado), etiquetas (sustituye la lista), serie_propia, duracion, recompensa, cadencia, origen, notas, molde y la hipótesis del formato {texto, campo, numero, fecha}: con los tres últimos se vuelve resoluble.",
     inputSchema: {
       formato: z.string().describe("código FC-08 o uuid"), nombre: z.string().optional(), estado: ESTADO_FORMATO.optional(),
       etiquetas: z.array(z.string()).optional(), serie_propia: z.string().nullable().optional(), duracion: z.string().nullable().optional(), recompensa: z.string().nullable().optional(),
       cadencia: z.string().nullable().optional(), origen: z.string().nullable().optional(), notas: z.string().nullable().optional(), molde: z.string().optional(),
-      dia_envio: z.number().int().min(1).max(7).nullable().optional().describe("día de envío del newsletter; cambia la fecha por defecto de las ediciones nuevas"),
       hipotesis: z.object({ texto: z.string().min(3), campo: z.string().optional(), numero: z.number().optional(), fecha: fecha.optional() }).optional(),
     },
   }, async ({ formato, hipotesis, ...cambios }) => {
@@ -333,9 +343,47 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
       const { error: e } = await supabase.rpc("guardar_hipotesis_formato", { p_formato_id: f.id, p_texto: hipotesis.texto, p_campo: completa ? hipotesis.campo : undefined, p_numero: completa ? hipotesis.numero : undefined, p_fecha: completa ? hipotesis.fecha : undefined });
       if (e) return error(limpiarError(e.message));
     }
-    const { data, error: e2 } = await supabase.from("formatos").select("id, codigo, nombre, estado, etiquetas, serie_propia, duracion, recompensa, cadencia, dia_envio, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").eq("id", f.id).single();
+    const { data, error: e2 } = await supabase.from("formatos").select("id, codigo, nombre, estado, etiquetas, serie_propia, duracion, recompensa, cadencia, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").eq("id", f.id).single();
     if (e2) return error(limpiarError(e2.message));
     await corrida("actualizar_formato", `${data.codigo}: ${Object.keys(cambios).concat(hipotesis ? ["hipotesis"] : []).join(", ")}`, { formato_id: f.id }, perfil);
+    return json(data);
+  });
+
+  // -------------------------------------------------------------------------
+  // Newsletter: CRITERIO vive aparte de formatos y series
+  // -------------------------------------------------------------------------
+  server.registerTool("leer_newsletter", {
+    description: "CRITERIO, el newsletter: promesa, día de envío (1 = lunes … 7 = domingo) y el siguiente envío, cadencia, plataforma, la receta completa (6 secciones + checklist de 8 puntos), su hipótesis y las ediciones en camino con sus derivadas. Léelo antes de redactar o planear una edición. El newsletter no es un formato ni una serie.",
+    inputSchema: { con_receta: z.boolean().default(true) },
+  }, async ({ con_receta }) => {
+    const [{ data: nl, error: e }, { data: envio }, { data: eds }] = await Promise.all([
+      supabase.from("newsletter").select("nombre, promesa, dia_envio, cadencia, plataforma, dominio, receta, notas, actualizado, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").eq("id", 1).single(),
+      supabase.rpc("siguiente_envio"),
+      supabase.from("piezas").select("id, id_publico, titulo, estado, fecha_objetivo, derivadas:piezas!piezas_madre_id_fkey(id_publico, tipo, estado)").eq("tipo", "newsletter").not("estado", "in", "(archivada,publicada,en_trial)").order("fecha_objetivo", { ascending: true, nullsFirst: false }),
+    ]);
+    if (e) return error(e.message);
+    return json({ ...nl, receta: con_receta ? nl.receta : undefined, siguiente_envio: envio, ediciones_en_camino: eds ?? [] });
+  });
+
+  server.registerTool("actualizar_newsletter", {
+    description: "Cambia la ficha de CRITERIO: dia_envio (1-7; recorre la fecha por defecto de las ediciones nuevas, las agendadas conservan la suya), receta (markdown completo, no un parche), promesa, cadencia, plataforma, dominio, notas, y su hipótesis {texto, campo, numero, fecha}. Solo rol owner. Para una edición concreta se usa crear_pieza o actualizar_pieza.",
+    inputSchema: {
+      dia_envio: z.number().int().min(1).max(7).optional(), receta: z.string().min(200).optional(), promesa: z.string().optional(), cadencia: z.string().optional(),
+      plataforma: z.string().optional(), dominio: z.string().nullable().optional(), notas: z.string().nullable().optional(),
+      hipotesis: z.object({ texto: z.string().min(3), campo: z.string().min(2), numero: z.number(), fecha }).optional(),
+    },
+  }, async ({ hipotesis, ...cambios }) => {
+    if (perfil.rol !== "owner") return error("Esta acción requiere rol owner.");
+    const upd: TablesUpdate<"newsletter"> = { ...cambios };
+    if (hipotesis) {
+      const { data: h, error: eh } = await supabase.rpc("crear_hipotesis", { p_texto: hipotesis.texto, p_campo: hipotesis.campo, p_numero: hipotesis.numero, p_fecha: hipotesis.fecha });
+      if (eh) return error(limpiarError(eh.message));
+      upd.hipotesis_id = h.id;
+    }
+    if (Object.keys(upd).length === 0) return error("No hay nada que cambiar.");
+    const { data, error: e } = await supabase.from("newsletter").update(upd).eq("id", 1).select("nombre, promesa, dia_envio, cadencia, plataforma, dominio, actualizado, hipotesis_id").single();
+    if (e) return error(limpiarError(e.message));
+    await corrida("actualizar_newsletter", `CRITERIO: ${Object.keys(upd).join(", ")}`, { campos: Object.keys(upd) }, perfil);
     return json(data);
   });
 

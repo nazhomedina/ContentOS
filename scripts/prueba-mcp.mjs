@@ -80,7 +80,7 @@ try {
 
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: { con_molde: false } }, 43);
   const fcs = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
-  ok("listar_formatos: ≥ 7 formatos con etiquetas, hipótesis, referencias y resumen", fcs.length >= 7 && fcs.some((f) => f.codigo === "FC-09") && fcs.every((f) => Array.isArray(f.etiquetas) && "hipotesis" in f && typeof f.referencias === "number" && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} · ${fcs[0].etiquetas?.join(", ")} · ${fcs[0].referencias} refs` : "");
+  ok("listar_formatos: ≥ 7 formatos (sin el newsletter) con etiquetas, hipótesis, referencias y resumen", fcs.length >= 7 && !fcs.some((f) => f.codigo === "FC-09") && fcs.every((f) => Array.isArray(f.etiquetas) && "hipotesis" in f && typeof f.referencias === "number" && f.resumen && typeof f.resumen.episodios === "number"), fcs[0] ? `${fcs[0].codigo} · ${fcs[0].etiquetas?.join(", ")} · ${fcs[0].referencias} refs` : "");
   r = await rpc(key, "tools/call", { name: "listar_formatos", arguments: { etiqueta: "sin nazho" } }, 431);
   const sinN = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
   ok("listar_formatos filtra por etiqueta (sin nazho → FC-05)", sinN.length >= 1 && sinN.every((f) => f.etiquetas.includes("sin nazho")), sinN.map((f) => f.codigo).join(","));
@@ -138,7 +138,16 @@ try {
 
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp newsletter", tipo: "newsletter", estado: "redaccion" } }, 74);
   const nl = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
-  ok("crear_pieza newsletter: título numerado, serie Criterio y siguiente envío por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).includes("Criterio") && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && nl.fecha_objetivo > new Date().toISOString().slice(0, 10), `${nl?.titulo} · ${nl?.fecha_objetivo}`);
+  ok("crear_pieza newsletter: título numerado, sin serie ni formato, siguiente envío por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).length === 0 && nl?.formato_id == null && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && nl.fecha_objetivo > new Date().toISOString().slice(0, 10), `${nl?.titulo} · ${nl?.fecha_objetivo} · ${JSON.stringify(nl?.series)}`);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp derivada", tipo: "reel", madre: nl?.id_publico ?? "NEW-99" } }, 741);
+  const der = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("crear_pieza con madre liga la derivada a la edición", der?.madre_id === nl?.id, r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  r = await rpc(key, "tools/call", { name: "leer_newsletter", arguments: {} }, 742);
+  const lnl = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("leer_newsletter: CRITERIO con receta, día de envío y la edición nueva con su derivada", lnl?.nombre === "CRITERIO" && (lnl?.receta ?? "").length > 1000 && lnl?.dia_envio >= 1 && (lnl?.ediciones_en_camino ?? []).some((e) => e.id === nl?.id && e.derivadas?.length === 1), r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp nl con serie", tipo: "newsletter", series: ["Postura"] } }, 743);
+  ok("crear_pieza newsletter con serie → error legible", r.json?.result?.isError && /no lleva formato ni serie/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  if (der?.id) await admin.from("piezas").delete().eq("id", der.id);
   if (nl?.id) await admin.from("piezas").delete().eq("id", nl.id);
 
   // identidad: lectura por MCP y por HTTP; escritura solo owner con versión y motivo
@@ -187,6 +196,8 @@ try {
   ok("editor por MCP: crear_pieza bloqueada (requiere owner)", r.json?.result?.isError && /owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(keyE, "tools/call", { name: "leer_identidad", arguments: { clave: "voz" } }, 84);
   ok("editor por MCP: leer_identidad sí puede", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text)[0]?.clave === "voz", r.json?.result?.content?.[0]?.text?.slice(0, 60));
+  r = await rpc(keyE, "tools/call", { name: "actualizar_newsletter", arguments: { dia_envio: 2 } }, 86);
+  ok("editor por MCP: actualizar_newsletter → «requiere rol owner»", r.json?.result?.isError && /requiere rol owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(keyE, "tools/call", { name: "actualizar_identidad", arguments: { clave: "voz", cuerpo: "x".repeat(100), motivo: "no debería poder" } }, 85);
   ok("editor por MCP: actualizar_identidad → «requiere rol owner»", r.json?.result?.isError && /requiere rol owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   await admin.auth.admin.deleteUser(ue.user.id);

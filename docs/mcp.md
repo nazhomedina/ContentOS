@@ -71,14 +71,15 @@ curl -s http://localhost:3017/api/mcp \
 
 Sin key responde 401.
 
-## 5. Herramientas (33)
+## 5. Herramientas (35)
 
 | Tool | Para qué | Latido |
 |---|---|---|
 | `listar_comunidades` · `latidos` | contexto: ICP, última corrida por sistema | — |
 | `leer_identidad` · `actualizar_identidad` | la identidad de Nazho en siete filas (quien-soy, audiencia, postura, voz, oferta, reglas, evidencia). `voz` y `reglas` se leen antes de redactar cualquier pieza. Editar es solo owner, con motivo, y guarda la versión anterior. Sin MCP: `GET /api/identidad`, `/api/identidad/{clave}.md`, `/api/identidad.md` con la misma key (docs/identidad/README.md) | `actualizar_identidad` |
+| `leer_newsletter` · `actualizar_newsletter` | CRITERIO vive aparte de formatos y series: promesa, día de envío y siguiente envío, cadencia, receta (6 secciones + checklist), hipótesis y ediciones en camino con sus derivadas. Editar es solo owner | `actualizar_newsletter` |
 | `listar_formatos` · `crear_formato` · `agregar_referencia` | la biblioteca de formatos: etiquetas, hipótesis del formato, referencias de terceros y propias, rollups; dar de alta uno al analizar una cuenta y colgarle los reels que lo sostienen | `crear_formato`, `agregar_referencia` |
-| `actualizar_formato` | ficha de un formato: estado, etiquetas, serie propia, duración, recompensa, cadencia, molde, día de envío y la hipótesis del formato (resoluble con campo, número y fecha) | `actualizar_formato` |
+| `actualizar_formato` | ficha de un formato: estado, etiquetas, serie propia, duración, recompensa, cadencia, molde y la hipótesis del formato (resoluble con campo, número y fecha) | `actualizar_formato` |
 | `listar_series` · `guardar_serie` | las series declaradas con descripción, activas y piezas; prenderlas, apagarlas, renombrarlas | `guardar_serie` |
 | `crear_pieza` | una pieza nace con solo título (borrador). Con tipo → redacción. Con tipo + etapa + hipótesis → grabación | `crear_pieza` |
 | `actualizar_pieza` | **así Claude desarrolla una idea**: tipo, hipótesis (o hipotesis_id), etapa, formato (card), contenido, notas, etiquetas, estado. Acepta id_publico | `actualizar_pieza` |
