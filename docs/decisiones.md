@@ -325,3 +325,10 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 - La liga directa, una recarga o «Página completa» siguen abriendo la página de la pieza.
 - Dentro del panel, Contenido y Maqueta cambian sin apilar historial, así que cerrar regresa en un paso.
 - La ficha vive en `components/pieza/detalle-pieza.tsx` y la usan la página y el panel.
+
+## 2026-09-25 · Editor visual de contenido
+
+- «Editar» en una pieza abre un editor visual (Tiptap 3 con su extensión oficial de markdown): se ven títulos, negritas, cursivas, ligas, listas, citas, bloques de código y tablas mientras se escribe. Lo que se guarda sigue siendo markdown, igual que lo que escribe Claude por MCP; cada guardado es una versión nueva.
+- Atajos de markdown al escribir (`# `, `## `, `**texto**`, `- `, `1. `, `> `, `---`) y de teclado (⌘B, ⌘I, ⌘Z, ⌘S o ⌘Enter guardan). Botón «Markdown» para ver y editar la fuente cruda. Pantalla amplia para escribir sin distracciones.
+- Lo escrito sin guardar se respalda en el navegador; al volver a editar, la pieza ofrece recuperarlo. Cancelar con cambios pide confirmación.
+- Guardar desde el editor normaliza el markdown (espacios, alineación de tablas); el contenido no cambia.

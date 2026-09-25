@@ -116,7 +116,7 @@ export async function DetallePieza({ id, vista, v, enPanel = false }: { id: stri
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{vigente ? `Contenido · v${vigente.version}` : "Contenido"}</span>
               {vigente && <span className="text-xs text-muted-foreground">{vigente.autor ?? "claude"} · {vigente.cuando}{vigente.instruccion && ` · «${vigente.instruccion}»`}</span>}
             </div>
-            <div className="max-w-[68ch]">
+            <div className="max-w-3xl">
               <Contenido piezaId={pieza.id} contenido={pieza.contenido} puedeEditar={puedeEditar} vacio={pieza.estado === "borrador" ? "Todavía no hay contenido. Sale de la entrevista con Claude o se escribe aquí." : "Sin contenido. Escríbelo aquí o pídeselo a Claude."} />
             </div>
             {historial.length > 1 && <div className="mt-4"><Versiones piezaId={pieza.id} versiones={historial} puedeVolver={puedeEditar} /></div>}
