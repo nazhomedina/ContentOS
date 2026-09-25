@@ -48,7 +48,7 @@ export function Navegacion({ rol, nombre }: { rol: Rol; nombre: string }) {
       {grupos.map((g, i) => (
         <ul key={i} className="space-y-0.5">
           {g.map((e) => {
-            const activo = pathname === e.href || pathname.startsWith(e.href + "/");
+            const activo = pathname === e.href || (e.href !== "/piezas" && pathname.startsWith(e.href + "/"));
             return (
               <li key={e.href}>
                 <Link

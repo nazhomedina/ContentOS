@@ -78,7 +78,7 @@ export async function TuMesa() {
               <li key={p.id} className="flex items-center gap-3 px-3 py-2.5">
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <Link href={`/piezas/${p.id}`} className="flex min-w-0 items-baseline gap-2 hover:underline">
-                    <IdPublico id={p.id_publico} />
+                    <span className="shrink-0 whitespace-nowrap"><IdPublico id={p.id_publico} /></span>
                     <span className="truncate text-sm font-semibold">{p.titulo ?? "(sin título)"}</span>
                   </Link>
                   <p className="text-xs text-muted-foreground">
@@ -107,7 +107,7 @@ export async function TuMesa() {
               <li key={p.id} className="flex items-center gap-3 px-3 py-2.5">
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <Link href={`/piezas/${p.id}`} className="flex min-w-0 items-baseline gap-2 hover:underline">
-                    <IdPublico id={p.id_publico} />
+                    <span className="shrink-0 whitespace-nowrap"><IdPublico id={p.id_publico} /></span>
                     <span className="truncate text-sm font-semibold">{p.titulo ?? "(sin título)"}</span>
                   </Link>
                   <p className="text-xs text-muted-foreground">

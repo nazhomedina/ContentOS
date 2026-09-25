@@ -4,7 +4,7 @@ import { Navegacion } from "@/components/app/navegacion";
 import { Toaster } from "@/components/ui/sonner";
 import type { Rol } from "@/lib/dominio/roles";
 
-export default async function LayoutApp({ children }: { children: React.ReactNode }) {
+export default async function LayoutApp({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
   return (
@@ -13,6 +13,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       <main className="min-w-0 flex-1">
         <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">{children}</div>
       </main>
+      {modal}
       <Toaster position="top-center" />
     </div>
   );

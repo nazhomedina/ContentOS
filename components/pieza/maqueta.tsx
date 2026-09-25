@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * La pestaña Maqueta de una pieza: la versión elegida (la vigente por defecto) en un iframe con sandbox vacío
  * (sin scripts, sin formularios, sin acceso a la app), el selector de versiones y el aviso si el copy avanzó.
  */
-export async function MaquetaPieza({ piezaId, idPublico, version }: { piezaId: string; idPublico: string; version?: number }) {
+export async function MaquetaPieza({ piezaId, idPublico, version, enPanel = false }: { piezaId: string; idPublico: string; version?: number; enPanel?: boolean }) {
   const supabase = await crearClienteServidor();
   const [{ data: versiones }, m] = await Promise.all([
     supabase.from("assets").select("version, contenido_version, nota, created_at").eq("pieza_id", piezaId).eq("carpeta", "maqueta").not("version", "is", null).order("version", { ascending: false }),
@@ -35,6 +35,8 @@ export async function MaquetaPieza({ piezaId, idPublico, version }: { piezaId: s
             <Link
               key={v.version}
               href={`/piezas/${piezaId}?vista=maqueta&v=${v.version}`}
+              replace={enPanel}
+              scroll={false}
               aria-current={v.version === m.version ? "page" : undefined}
               title={`${fechaHora(v.created_at)}${v.nota ? ` · ${v.nota}` : ""}`}
               className={cn("rounded-full border px-3 py-1 text-xs font-medium tabular-nums", v.version === m.version ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}

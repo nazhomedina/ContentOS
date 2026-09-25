@@ -318,3 +318,10 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 - Los yaps del banco con programa aprobado no llenan las listas: aparecen como cifra al pie con liga a Reels.
 - «Ya grabé» pasa la pieza de grabación a diseño: aparece en «Para trabajar» de Mariela y libera un lugar del tope.
 - Las tareas «grabar» dejan de repetirse en «Esperan tu mano».
+
+## 2026-09-25 · Las piezas se abren en un panel lateral
+
+- Abrir una pieza desde cualquier pantalla de la app (Inicio, Mi tablero, Reels, Calendario…) ya no cambia de pantalla: la pieza entra en un panel desde la derecha, con la ficha completa, y cerrarlo (Esc, clic fuera o «Cerrar») regresa a donde estabas. Rutas interceptadas de Next: `app/(app)/@modal/(.)piezas/[id]`.
+- La liga directa, una recarga o «Página completa» siguen abriendo la página de la pieza.
+- Dentro del panel, Contenido y Maqueta cambian sin apilar historial, así que cerrar regresa en un paso.
+- La ficha vive en `components/pieza/detalle-pieza.tsx` y la usan la página y el panel.
