@@ -25,6 +25,7 @@ export async function cambiarEstadoPieza(piezaId: string, estado: string): Promi
   revalidatePath(`/piezas/${piezaId}`);
   revalidatePath("/piezas");
   revalidatePath("/cola");
+  revalidatePath("/inicio");
   return { ok: true };
 }
 

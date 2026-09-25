@@ -311,3 +311,10 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 - Implementada la spec «Maquetas HTML en ContentOS» sin tabla nueva: carpeta `maqueta` en `assets`, columnas `version`, `contenido_version` y `nota`, vista `maqueta_actual` (migración 027). Detalle en docs/maquetas.md.
 - Decisiones abiertas de la spec tomadas por defecto: Mariela no sube maquetas desde la app, guardar una maqueta no toca tareas, se conservan todas las versiones, la maqueta no es obligatoria para diseño.
 - Diferencias con la spec: la nota vive en `assets.nota` (y también en la bitácora); «Abrir en pestaña nueva» usa una ruta de ContentOS con CSP `sandbox` en lugar de la URL firmada de Supabase, que puede servir el HTML como texto y no bloquea scripts. La app no tiene CSP propia, así que las fuentes de Google cargan dentro del iframe sin cambios.
+
+## 2026-09-25 · Inicio: «Tu mesa»
+
+- Inicio suma el bloque **Tu mesa** con dos listas: *Para grabar* (piezas en grabación, con tipo, formato, palabras del guion, si ya hay RAW y cuándo sale) y *Para redactar* (piezas en redacción, con qué les falta: hipótesis o contenido). Arriba, el tope de producción ocupado sobre 10; en rojo cuando está lleno.
+- Los yaps del banco con programa aprobado no llenan las listas: aparecen como cifra al pie con liga a Reels.
+- «Ya grabé» pasa la pieza de grabación a diseño: aparece en «Para trabajar» de Mariela y libera un lugar del tope.
+- Las tareas «grabar» dejan de repetirse en «Esperan tu mano».

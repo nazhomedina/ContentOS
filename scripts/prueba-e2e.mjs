@@ -140,6 +140,7 @@ try {
   ok("owner / → /inicio", r.status === 307 && r.location?.endsWith("/inicio"), `${r.status} ${r.location}`);
   r = await getO("/inicio");
   ok("/inicio 200 con los bloques del tablero de Nazho", r.status === 200 && r.html.includes("Esperan tu mano") && r.html.includes("Metas de la semana") && r.html.includes("La máquina"), String(r.status));
+  ok("/inicio muestra Tu mesa con para grabar, para redactar y el tope", r.html.includes("Tu mesa") && r.html.includes("Para grabar") && r.html.includes("Para redactar") && /Tope de producción \d+ \/ 10/.test(r.html), "");
   ok("/inicio muestra latidos y equipo", r.html.includes("latidos") && r.html.includes("Mariela"), "");
   r = await getO("/ideas");
   ok("/ideas 200 con borradores IDE-", r.status === 200 && r.html.includes("IDE-01") && r.html.includes("Producir"), String(r.status));

@@ -10,6 +10,7 @@ import { InsigniaEstado } from "@/components/app/insignias";
 import { BotonAprobarHistorias } from "@/components/hoy/aprobar-historias";
 import { Captura } from "@/components/pieza/captura";
 import { AhoraPersona } from "@/components/equipo/ahora";
+import { TuMesa } from "@/components/inicio/tu-mesa";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Inicio" };
@@ -31,10 +32,9 @@ export default async function Inicio() {
   const semana = lunesDeHoy();
   const hoy = hoyISO();
 
-  const [{ data: propuestas }, { data: bloqueadas }, { data: grabar }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }, { data: produccion }, { data: enKit }, { data: porResolver }] = await Promise.all([
+  const [{ data: propuestas }, { data: bloqueadas }, { data: buffer }, { data: cuota }, { data: latidos }, { data: sistemas }, { data: editores }, { data: ind }, { data: produccion }, { data: enKit }, { data: porResolver }] = await Promise.all([
     supabase.from("historias").select("id, dia, tipo, copy").eq("semana", semana).eq("estado", "propuesta").order("dia"),
     supabase.from("tareas").select("id, tipo, nota_bloqueo, vence, pieza:piezas(id, id_publico, titulo), asignado:perfiles!tareas_asignado_a_fkey(nombre)").eq("estado", "bloqueada").order("vence"),
-    supabase.from("tareas").select("id, vence, pieza:piezas(id, id_publico, titulo, tipo)").eq("tipo", "grabar").neq("estado", "hecha").order("vence"),
     supabase.from("piezas").select("id").in("estado", ["listo", "programada"]),
     supabase.rpc("cuota_semana", { p_semana: semana }),
     supabase.rpc("latidos"),
@@ -65,7 +65,6 @@ export default async function Inicio() {
     ...(propuestas ?? []).length > 0 ? [{ clave: "aprobar", texto: <>Aprobar <b>{propuestas!.length}</b> {propuestas!.length === 1 ? "historia" : "historias"} de esta semana</>, detalle: propuestas!.map((h) => `${DIAS_SEMANA[(h.dia ?? 1) - 1]} · ${NOMBRE_TIPO_HISTORIA[h.tipo] ?? h.tipo}`).join(" · "), href: "/historias" }] : [],
     ...(bloqueadas ?? []).map((t) => ({ clave: `b-${t.id}`, texto: <>Destrabar a {t.asignado?.nombre ?? "Mariela"}: <b>{t.tipo}</b> {t.pieza?.id_publico}</>, detalle: t.nota_bloqueo ?? "", href: t.pieza ? `/piezas/${t.pieza.id}` : "/cola", tono: "rojo" as const })),
     ...(enKit ?? []).map((p) => ({ clave: `k-${p.id}`, texto: <>Programar <b>{numeroEdicion(p.titulo) ?? p.id_publico}</b> en Kit para el {fechaCorta(p.fecha_objetivo)}</>, detalle: "está en Kit como borrador · al programarla pasa a lista", href: `/piezas/${p.id}`, tono: "ambar" as const })),
-    ...(grabar ?? []).map((t) => ({ clave: `g-${t.id}`, texto: <>Grabar <b>{t.pieza?.id_publico}</b> {t.pieza?.titulo}</>, detalle: t.vence ? `vence ${fechaCorta(t.vence)}` : "sin fecha", href: t.pieza ? `/piezas/${t.pieza.id}` : "/cola" })),
     ...(porResolver ?? []).map((x) => ({ clave: `h-${x.id}`, texto: <>Resolver la hipótesis «{x.texto.slice(0, 70)}{x.texto.length > 70 ? "…" : ""}»</>, detalle: `${x.campo} ≥ ${x.numero} · venció ${fechaCorta(x.fecha)}`, href: "/hipotesis", tono: "ambar" as const })),
   ];
   const clases = Array.from(new Set(pendientes.map((p) => p.clave.split("-")[0])));
@@ -112,6 +111,9 @@ export default async function Inicio() {
           </ul>
         </Bloque>
       )}
+
+      {/* 3b · Tu mesa: lo que tienes para grabar y para redactar */}
+      <TuMesa />
 
       {/* 4 · Metas de la semana */}
       <Bloque titulo="Metas de la semana">
