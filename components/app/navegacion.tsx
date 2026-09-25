@@ -15,7 +15,7 @@ type Grupo = Entrada[];
 const GRUPOS: Grupo[] = [
   [
     { href: "/inicio", etiqueta: "Inicio", icono: Sun, roles: ["owner"] },
-    { href: "/cola", etiqueta: "Cola", icono: ListChecks, roles: ["editor"] },
+    { href: "/cola", etiqueta: "Mi tablero", icono: ListChecks, roles: ["owner", "editor"] },
     { href: "/ideas", etiqueta: "Ideas", icono: Lightbulb, roles: ["owner"] },
     { href: "/calendario", etiqueta: "Calendario", icono: CalendarRange, roles: ["owner", "editor", "viewer"] },
   ],

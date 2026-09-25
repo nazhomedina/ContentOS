@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-24 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 024.
+// Generado con el conector de Supabase el 2026-09-25 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 025.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -68,6 +68,7 @@ export type Database = {
           fecha: string
           id: string
           minutos: number | null
+          origen: string
           perfil_id: string
           pieza_id: string | null
           tarea_id: string | null
@@ -79,6 +80,7 @@ export type Database = {
           fecha?: string
           id?: string
           minutos?: number | null
+          origen?: string
           perfil_id: string
           pieza_id?: string | null
           tarea_id?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           fecha?: string
           id?: string
           minutos?: number | null
+          origen?: string
           perfil_id?: string
           pieza_id?: string | null
           tarea_id?: string | null
@@ -1389,6 +1392,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      anotar_bitacora: {
+        Args: { p_pieza_id?: string; p_tarea_id?: string; p_texto: string }
+        Returns: undefined
+      }
       aprobar_historias: {
         Args: { p_editor?: string; p_semana: string }
         Returns: number
@@ -1926,7 +1933,138 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      pieza_lista: {
+        Args: { p_pieza_id: string }
+        Returns: {
+          comunidad_id: string
+          contenido: string | null
+          created_at: string
+          estado: string
+          etapa_embudo: string | null
+          etiquetas: string[]
+          fecha_objetivo: string | null
+          formato_id: string | null
+          hipotesis_id: string | null
+          id: string
+          id_publico: string | null
+          notas: string | null
+          notion_url: string | null
+          plataforma: string | null
+          programa_aprobado: boolean
+          publicada_en: string | null
+          responsable_id: string | null
+          series: string[]
+          tipo: string | null
+          titulo: string | null
+          updated_at: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "piezas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       prefijo_tipo: { Args: { t: string }; Returns: string }
+      programar_pieza: {
+        Args: { p_fecha: string; p_pieza_id: string }
+        Returns: {
+          comunidad_id: string
+          contenido: string | null
+          created_at: string
+          estado: string
+          etapa_embudo: string | null
+          etiquetas: string[]
+          fecha_objetivo: string | null
+          formato_id: string | null
+          hipotesis_id: string | null
+          id: string
+          id_publico: string | null
+          notas: string | null
+          notion_url: string | null
+          plataforma: string | null
+          programa_aprobado: boolean
+          publicada_en: string | null
+          responsable_id: string | null
+          series: string[]
+          tipo: string | null
+          titulo: string | null
+          updated_at: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "piezas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      publicar_desde_tablero: {
+        Args: { p_pieza_id: string; p_plataforma: string; p_url: string }
+        Returns: {
+          comunidad_id: string
+          contenido: string | null
+          created_at: string
+          estado: string
+          etapa_embudo: string | null
+          etiquetas: string[]
+          fecha_objetivo: string | null
+          formato_id: string | null
+          hipotesis_id: string | null
+          id: string
+          id_publico: string | null
+          notas: string | null
+          notion_url: string | null
+          plataforma: string | null
+          programa_aprobado: boolean
+          publicada_en: string | null
+          responsable_id: string | null
+          series: string[]
+          tipo: string | null
+          titulo: string | null
+          updated_at: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "piezas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      publicar_historia: {
+        Args: { p_id: string }
+        Returns: {
+          asset_url: string | null
+          comunidad_id: string | null
+          copy: string | null
+          created_at: string
+          dia: number | null
+          dms: number | null
+          estado: string
+          id: string
+          keyword: string | null
+          metricas_en: string | null
+          metricas_por: string | null
+          orden: number
+          pieza_amplificada_id: string | null
+          programada_para: string | null
+          publicada_en: string | null
+          recurso_id: string | null
+          registro: string
+          replies: number | null
+          semana: string | null
+          tipo: string
+          views: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "historias"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       recalcular_multiplicadores: { Args: never; Returns: number }
       registrar_corrida: {
         Args: {
@@ -2039,6 +2177,47 @@ export type Database = {
       siguiente_edicion_criterio: { Args: never; Returns: number }
       siguiente_envio: { Args: { p_formato?: string }; Returns: string }
       siguiente_id_publico: { Args: { p_prefijo: string }; Returns: string }
+      tablero_material: {
+        Args: never
+        Returns: {
+          asset_carpeta: string
+          asset_en: string
+          fecha_objetivo: string
+          id: string
+          id_publico: string
+          palabras: number
+          tarea_de: string
+          tarea_de_nombre: string
+          tarea_desde: string
+          tarea_estado: string
+          tarea_id: string
+          tarea_tipo: string
+          tipo: string
+          titulo: string
+          ultimo_asset: string
+        }[]
+      }
+      tomar_pieza: {
+        Args: { p_pieza_id: string }
+        Returns: {
+          asignado_a: string | null
+          created_at: string
+          estado: string
+          hecha_en: string | null
+          historia_id: string | null
+          id: string
+          nota_bloqueo: string | null
+          pieza_id: string | null
+          tipo: string
+          vence: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tareas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transicion_permitida: {
         Args: { p_a: string; p_de: string; p_rol: string }
         Returns: boolean

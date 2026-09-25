@@ -290,3 +290,11 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 - La verdad universal de quién es Nazho y cómo escribe vive en la tabla `identidad` (siete filas: quien-soy, audiencia, postura, voz, oferta, reglas, evidencia), con historial en `identidad_versiones` (migración 024). Seed inicial desde `docs/identidad/*.md`.
 - Se lee desde la app (`/identidad`, todos los roles), por MCP (`leer_identidad`) y por HTTP para clientes sin MCP como Grok (`/api/identidad`, `/api/identidad/{clave}.md`, `/api/identidad.md`) con la misma key del MCP. Se escribe solo por MCP y solo owner (`actualizar_identidad`), con motivo obligatorio; cada cambio guarda la versión anterior y deja corrida.
 - Los skills de Cowork leen `voz` y `reglas` antes de redactar y `audiencia` y `postura` antes de planear. La identidad no guarda estado ni aprendizajes de piezas: eso sigue en hipótesis, veredictos y notas.
+
+## 2026-09-25 · El tablero de Mariela: tres bolsas, no una cola
+
+- `/cola` deja de ser una lista de tareas por urgencia y pasa a ser el tablero de Mariela: **objetivos de la semana** arriba (cuota 3 reels · 2 carruseles · 4 días de historias · 1 newsletter, con publicadas y programadas) y **una sola tabla** con tres bolsas por chip: *Listo para publicar* (el buffer del que sale la meta), *Para trabajar* (lo grabado por Nazho y lo escrito con texto final: piezas en `diseno`) y *En mis manos* (lo que ella tomó). Un filtro por tipo cruza las tres.
+- Dos verbos en Listo, **Programar** (fecha) y **Publicada** (cierra; pide URL solo si la pieza la necesita), y uno en cada otra bolsa: **Tomar** y **Lista**. «Agendar» y «Copiar» desaparecen como acciones: copiar el texto de una historia es un icono junto al texto.
+- Cada botón deja registro en `bitacora` con `origen = 'auto'` (RPCs `tomar_pieza`, `pieza_lista`, `programar_pieza`, `publicar_desde_tablero`, `publicar_historia`; migración 025). **Mi día** muestra automáticos y manuales; sigue en ámbar hasta que ella declara algo a mano.
+- La editora ahora puede leer `cuota_semana` y `tablero_material()` (piezas en diseño con quién las tiene). Las tareas siguen existiendo debajo; ella ya no las ve como lista.
+- La prueba e2e se puso al día: las páginas de la semana demo se consultan con `?semana=2026-09-07`.

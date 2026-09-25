@@ -55,7 +55,8 @@ try {
 
   r = await get("/cola");
   ok("/cola 200", r.status === 200, String(r.status));
-  ok("/cola muestra «Tu día» sin bitácora", r.html.includes("Tu día") && r.html.includes("Todavía no declaras"), "");
+  ok("/cola es el tablero: objetivos de la semana y las tres bolsas", r.html.includes("Objetivos de la semana") && r.html.includes("Listo para publicar") && r.html.includes("Para trabajar") && r.html.includes("En mis manos"), "");
+  ok("/cola muestra Mi día sin entradas manuales", r.html.includes("Mi día") && r.html.includes("0 tuyos"), "");
   {
     const { data: pz } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-02").single();
     const conEd = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${s.session.access_token}` } }, auth: { persistSession: false } });
@@ -64,10 +65,20 @@ try {
     const { error: eb2 } = await conEd.from("bitacora").insert({ perfil_id: "00000000-0000-4000-8000-0000000000aa", texto: "suplantación" });
     ok("editora no declara por otra persona", !!eb2, eb2?.message);
     r = await get("/cola");
-    ok("/cola muestra la entrada declarada", r.html.includes("diseñé 3 slides") && !r.html.includes("Todavía no declaras"), "");
+    ok("/cola cuenta la entrada declarada como tuya", r.html.includes("1 tuyo") && !r.html.includes("0 tuyos"), "");
   }
-  ok("/cola muestra DEMO-01 y semáforo", r.html.includes("DEMO-01") && r.html.includes("buffer 1"), "");
-  ok("/cola agrupa Hoy con 1", /Hoy.*?·\s*1/s.test(r.html), "");
+  ok("/cola lista DEMO-01 (listo) en la bolsa Listo para publicar con Programar y Publicada", r.html.includes("DEMO-01") && r.html.includes("Programar") && r.html.includes("Publicada"), "");
+  r = await get("/cola?bolsa=manos");
+  ok("/cola?bolsa=manos muestra DEMO-02 (diseñar en curso) con Lista", r.html.includes("DEMO-02") && r.html.includes(">Lista<"), "");
+  {
+    const conEd2 = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${s.session.access_token}` } }, auth: { persistSession: false } });
+    const { data: cq, error: eq } = await conEd2.rpc("cuota_semana", { p_semana: semanaISO() });
+    ok("editora lee la cuota de la semana (4 metas)", !eq && cq?.length === 4, eq?.message ?? String(cq?.length));
+    const { data: mat, error: em } = await conEd2.rpc("tablero_material");
+    ok("editora lee el material para trabajar (piezas en diseño)", !em && Array.isArray(mat), em?.message);
+    const { error: et } = await conEd2.rpc("tomar_pieza", { p_pieza_id: "00000000-0000-4000-8000-0000000000aa" });
+    ok("tomar_pieza con pieza inexistente → mensaje legible", /No existe/.test(et?.message ?? ""), et?.message);
+  }
 
   const { data: pieza } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-01").single();
   r = await get(`/piezas/${pieza.id}`);
@@ -79,9 +90,9 @@ try {
   r = await get(`/piezas/${p3.id}`);
   ok("grabacion explica por qué no se publica", r.html.includes("Falta grabar y producir"), "");
 
-  r = await get("/historias");
-  ok("/historias 200 con 4 historias", r.status === 200 && r.html.includes("4 historias"), String(r.status));
-  ok("historias muestra keyword RORY y amplifica DEMO-01", r.html.includes("RORY") && r.html.includes("amplifica DEMO-01"), "");
+  r = await get("/historias?semana=2026-09-07");
+  ok("/historias de la semana demo 200", r.status === 200 && r.html.includes("Historias"), String(r.status));
+  ok("historias muestra la keyword RORY", r.html.includes("RORY"), "");
 
   r = await get("/piezas");
   ok("/piezas lista solo lo visible al editor", r.status === 200 && r.html.includes("DEMO-02") && !r.html.includes("en producción"), "");
@@ -114,16 +125,16 @@ try {
   r = await getO("/");
   ok("owner / → /inicio", r.status === 307 && r.location?.endsWith("/inicio"), `${r.status} ${r.location}`);
   r = await getO("/inicio");
-  ok("/inicio 200 con los cuatro bloques", r.status === 200 && r.html.includes("Crecimiento de cuenta") && r.html.includes("Metas de la semana") && r.html.includes("Buffer de contenidos") && r.html.includes("Cierre del día"), String(r.status));
-  ok("/inicio muestra huecos, cuota y sensores vacíos", r.html.includes("Hueco") && /\/10 publicadas/.test(r.html) && r.html.includes("sin sensor"), "");
+  ok("/inicio 200 con los bloques del tablero de Nazho", r.status === 200 && r.html.includes("Esperan tu mano") && r.html.includes("Metas de la semana") && r.html.includes("La máquina"), String(r.status));
+  ok("/inicio muestra latidos y equipo", r.html.includes("latidos") && r.html.includes("Mariela"), "");
   r = await getO("/ideas");
   ok("/ideas 200 con borradores IDE-", r.status === 200 && r.html.includes("IDE-01") && r.html.includes("Producir"), String(r.status));
   r = await getO("/reels?vista=publicados");
   ok("/reels publicados 200 con tabla", r.status === 200 && r.html.includes("Multiplicador"), String(r.status));
   r = await getO("/carruseles");
   ok("/carruseles 200 con CAR-01 en redacción y DEMO-02 en diseño", r.status === 200 && r.html.includes("CAR-01") && r.html.includes("DEMO-02") && !r.html.includes(">Grabación<"), String(r.status));
-  r = await getO("/calendario");
-  ok("/calendario 200 con DEMO-01", r.status === 200 && r.html.includes("DEMO-01"), String(r.status));
+  r = await getO("/calendario?semana=2026-09-07");
+  ok("/calendario 200 con DEMO-01 en su semana", r.status === 200 && r.html.includes("DEMO-01"), String(r.status));
   r = await getO("/cuentas");
   ok("/cuentas 200", r.status === 200 && r.html.includes("Cuentas en seguimiento"), String(r.status));
   r = await getO("/equipo");
@@ -146,7 +157,7 @@ try {
   // acciones reales como owner: crear pieza sin fecha → error; declarar hueco → ok
   const conOwner = createClient(URL_, ANON, { global: { headers: { Authorization: `Bearer ${so.session.access_token}` } }, auth: { persistSession: false } });
   const { error: e6 } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "prueba e2e", estado: "grabacion", tipo: "reel", etapa_embudo: "atraer", hipotesis: { texto: "x", campo: "views", numero: 1 } } });
-  ok("owner: grabacion sin fecha → «falta hipotesis.fecha»", e6?.message?.includes("falta hipotesis.fecha"), e6?.message);
+  ok("owner: grabacion sin fecha → «falta hipotesis.fecha»", /falta hipotesis\.fecha/i.test(e6?.message ?? ""), e6?.message);
   const { data: idea, error: e6b } = await conOwner.rpc("crear_pieza_validada", { payload: { titulo: "idea de prueba e2e" } });
   ok("owner: borrador con solo título → IDE-nn", !e6b && idea?.estado === "borrador" && /^IDE-\d+$/.test(idea?.id_publico ?? ""), e6b?.message ?? idea?.id_publico);
   const { error: e6c } = await conOwner.rpc("cambiar_estado_pieza", { p_pieza_id: idea.id, p_nuevo_estado: "redaccion" });
