@@ -1,4 +1,5 @@
 // Prueba del servidor MCP con un owner temporal y su API key. Limpia al final.
+// Las piezas de prueba que entran a redacción o grabación nacen con programa_aprobado para no chocar con el tope real de 10.
 // Uso: node --env-file=.env.local scripts/prueba-mcp.mjs [http://localhost:3017]
 import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -62,7 +63,7 @@ try {
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "idea desde mcp" } }, 41);
   const creada = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("crear_pieza solo con título → borrador IDE-", creada?.estado === "borrador" && /^IDE-/.test(creada?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 120));
-  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, tipo: "yap", etapa_embudo: "atraer", formato: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, contenido: "## Beats", estado: "grabacion" } }, 42);
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: creada.id_publico, tipo: "yap", etapa_embudo: "atraer", formato: "FC-08", hipotesis: { texto: "si abro con la postura", campo: "multiplicador", numero: 3, fecha: "2026-12-31" }, contenido: "## Beats", estado: "grabacion", programa_aprobado: true } }, 42);
   const dev = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("actualizar_pieza desarrolla el borrador → YAP- en grabacion", dev?.estado === "grabacion" && /^YAP-/.test(dev?.id_publico ?? "") && dev?.formato_id, r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (creada?.id) await admin.from("piezas").delete().eq("id", creada.id);
@@ -73,7 +74,7 @@ try {
   ok("guardar_contenido versión 1", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 1, r.json?.result?.content?.[0]?.text?.slice(0, 120));
   r = await rpc(key, "tools/call", { name: "guardar_contenido", arguments: { pieza: st.id_publico, contenido: "## Beats\n1. Yo creo que cobrar barato es la forma más cara de crecer. (v2 más corta)", instruccion: "más corto", autor: "yap-scripter" } }, 56);
   ok("guardar_contenido versión 2 conserva hipótesis", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text).version === 2, r.json?.result?.content?.[0]?.text?.slice(0, 120));
-  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: st.id_publico, tipo: "yap", etapa_embudo: "atraer", estado: "grabacion" } }, 57);
+  r = await rpc(key, "tools/call", { name: "actualizar_pieza", arguments: { pieza: st.id_publico, tipo: "yap", etapa_embudo: "atraer", estado: "grabacion", programa_aprobado: true } }, 57);
   const fin = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("la pieza pasa a grabación con el contenido e hipótesis guardados", fin?.estado === "grabacion" && /^YAP-/.test(fin?.id_publico ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 160));
   if (st?.id) await admin.from("piezas").delete().eq("id", st.id);
@@ -136,7 +137,7 @@ try {
   ok("guardar_recurso con fecha de corte futura → error legible", r.json?.result?.isError && /futura/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100));
   await admin.from("recursos").delete().eq("slug_go", "prueba-mcp");
 
-  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp newsletter", tipo: "newsletter", estado: "redaccion" } }, 74);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp newsletter", tipo: "newsletter", estado: "redaccion", programa_aprobado: true } }, 74);
   const nl = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   ok("crear_pieza newsletter: título numerado, sin serie ni formato, siguiente envío por defecto", /^Criterio #\d{3} — prueba mcp newsletter$/.test(nl?.titulo ?? "") && (nl?.series ?? []).length === 0 && nl?.formato_id == null && /^\d{4}-\d{2}-\d{2}$/.test(nl?.fecha_objetivo ?? "") && nl.fecha_objetivo > new Date().toISOString().slice(0, 10), `${nl?.titulo} · ${nl?.fecha_objetivo} · ${JSON.stringify(nl?.series)}`);
   r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp derivada", tipo: "reel", madre: nl?.id_publico ?? "NEW-99" } }, 741);
@@ -151,7 +152,7 @@ try {
   if (nl?.id) await admin.from("piezas").delete().eq("id", nl.id);
 
   // maquetas HTML (criterios de aceptación de la spec, sobre una pieza temporal)
-  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp maqueta", tipo: "carrusel", estado: "redaccion" } }, 90);
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp maqueta", tipo: "carrusel", estado: "redaccion", programa_aprobado: true } }, 90);
   const pm = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
   const htmlM = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:Outfit}</style></head><body><section>Lámina 1 · ñ · “comillas”</section><script>alert(1)</script></body></html>";
   r = await rpc(key, "tools/call", { name: "guardar_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99", html: htmlM, nota: "primera" } }, 91);

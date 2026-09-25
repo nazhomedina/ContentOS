@@ -100,7 +100,7 @@ try {
     ok("abrir en pestaña nueva sirve HTML con CSP sandbox", rr.status === 200 && (rr.headers.get("content-security-policy") ?? "").startsWith("sandbox") && (rr.headers.get("content-type") ?? "").includes("text/html"), `${rr.status} ${rr.headers.get("content-security-policy")?.slice(0, 20)}`);
     await admin.storage.from("assets").remove([ruta]);
   }
-  const { data: p3 } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-03").single();
+  const { data: p3 } = await admin.from("piezas").select("id").eq("estado", "grabacion").limit(1).single();
   r = await get(`/piezas/${p3.id}`);
   ok("grabacion explica por qué no se publica", r.html.includes("Falta grabar y producir"), "");
 
