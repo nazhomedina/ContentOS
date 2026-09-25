@@ -356,13 +356,19 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     description: "CRITERIO, el newsletter: promesa, día de envío (1 = lunes … 7 = domingo) y el siguiente envío, cadencia, plataforma, la receta completa (6 secciones + checklist de 8 puntos), su hipótesis y las ediciones en camino con sus derivadas. Léelo antes de redactar o planear una edición. El newsletter no es un formato ni una serie.",
     inputSchema: { con_receta: z.boolean().default(true) },
   }, async ({ con_receta }) => {
-    const [{ data: nl, error: e }, { data: envio }, { data: eds }] = await Promise.all([
+    const [{ data: nl, error: e }, { data: envio }, { data: eds, error: e2 }] = await Promise.all([
       supabase.from("newsletter").select("nombre, promesa, dia_envio, cadencia, plataforma, dominio, receta, notas, actualizado, hipotesis:hipotesis(id, texto, campo, numero, fecha, estado)").eq("id", 1).single(),
       supabase.rpc("siguiente_envio"),
-      supabase.from("piezas").select("id, id_publico, titulo, estado, fecha_objetivo, derivadas:piezas!piezas_madre_id_fkey(id_publico, tipo, estado)").eq("tipo", "newsletter").not("estado", "in", "(archivada,publicada,en_trial)").order("fecha_objetivo", { ascending: true, nullsFirst: false }),
+      supabase.from("piezas").select("id, id_publico, titulo, estado, fecha_objetivo").eq("tipo", "newsletter").not("estado", "in", "(archivada,publicada,en_trial)").order("fecha_objetivo", { ascending: true, nullsFirst: false }),
     ]);
-    if (e) return error(e.message);
-    return json({ ...nl, receta: con_receta ? nl.receta : undefined, siguiente_envio: envio, ediciones_en_camino: eds ?? [] });
+    if (e || e2) return error((e ?? e2)!.message);
+    const ids = (eds ?? []).map((x) => x.id);
+    const { data: hijas, error: e3 } = ids.length
+      ? await supabase.from("piezas").select("madre_id, id_publico, tipo, estado").in("madre_id", ids)
+      : { data: [] as { madre_id: string | null; id_publico: string; tipo: string | null; estado: string }[], error: null };
+    if (e3) return error(e3.message);
+    const ediciones = (eds ?? []).map((x) => ({ ...x, derivadas: (hijas ?? []).filter((h) => h.madre_id === x.id).map(({ madre_id: _m, ...h }) => h) }));
+    return json({ ...nl, receta: con_receta ? nl.receta : undefined, siguiente_envio: envio, ediciones_en_camino: ediciones });
   });
 
   server.registerTool("actualizar_newsletter", {
