@@ -305,3 +305,9 @@ Formato: fecha · decisión · por qué · descartado. Las decisiones de product
 - Las ediciones siguen siendo piezas tipo newsletter (contenido versionado, hipótesis, tareas, cuota), pero el esquema les prohíbe formato y serie (`newsletter_sin_formato`, `newsletter_sin_serie`).
 - La serie de los 30 yaps de postura se llamaba «Criterio»; ahora se llama **Postura** (nombre elegido por Claude a falta de otro; se cambia con `guardar_serie`). Los id_publico CRI-NN se conservan. La serie duplicada «CRITERIO» se borró.
 - Derivadas: `piezas.madre_id` liga el reel hablado o el carrusel del caso con su edición. MCP: `leer_newsletter`, `actualizar_newsletter`, y `madre` en `crear_pieza` / `actualizar_pieza`. `actualizar_formato` ya no tiene día de envío.
+
+## 2026-09-25 · Maquetas HTML por pieza
+
+- Implementada la spec «Maquetas HTML en ContentOS» sin tabla nueva: carpeta `maqueta` en `assets`, columnas `version`, `contenido_version` y `nota`, vista `maqueta_actual` (migración 027). Detalle en docs/maquetas.md.
+- Decisiones abiertas de la spec tomadas por defecto: Mariela no sube maquetas desde la app, guardar una maqueta no toca tareas, se conservan todas las versiones, la maqueta no es obligatoria para diseño.
+- Diferencias con la spec: la nota vive en `assets.nota` (y también en la bitácora); «Abrir en pestaña nueva» usa una ruta de ContentOS con CSP `sandbox` en lugar de la URL firmada de Supabase, que puede servir el HTML como texto y no bloquea scripts. La app no tiene CSP propia, así que las fuentes de Google cargan dentro del iframe sin cambios.

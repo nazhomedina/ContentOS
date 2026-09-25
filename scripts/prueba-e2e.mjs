@@ -86,6 +86,20 @@ try {
   ok("detalle muestra hipótesis, guion y botón Publicada", r.html.includes("Hipótesis") && r.html.includes("Contenido") && r.html.includes("Publicada"), "");
   ok("detalle propone «Pasar a Programada» desde listo", r.html.includes("Pasar a Programada"), "");
 
+  {
+    // Maqueta: la editora la ve en la pestaña, aislada, y la ruta de pestaña nueva la sirve con CSP sandbox
+    const { data: d2 } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-02").single();
+    r = await get(`/piezas/${d2.id}?vista=maqueta`);
+    ok("pestaña Maqueta vacía explica qué hacer", r.status === 200 && r.html.includes("no tiene maqueta"), String(r.status));
+    const ruta = `piezas/${d2.id}/maqueta/v1.html`;
+    const { error: eu } = await admin.storage.from("assets").upload(ruta, new Blob(["<!DOCTYPE html><html><body><h1>Lámina prueba e2e</h1><script>alert(1)</script></body></html>"], { type: "text/html; charset=utf-8" }), { contentType: "text/html; charset=utf-8", upsert: true });
+    await admin.from("assets").update({ version: 1, carpeta: "maqueta" }).eq("ruta", ruta);
+    r = await get(`/piezas/${d2.id}?vista=maqueta`);
+    ok("pestaña Maqueta muestra la v1 en un iframe con sandbox vacío", !eu && r.html.includes('sandbox=""') && r.html.includes("Lámina prueba e2e") && r.html.includes("Maqueta · v1"), eu?.message ?? "");
+    const rr = await fetch(`${BASE}/piezas/${d2.id}/maqueta/v1`, { headers: { cookie } });
+    ok("abrir en pestaña nueva sirve HTML con CSP sandbox", rr.status === 200 && (rr.headers.get("content-security-policy") ?? "").startsWith("sandbox") && (rr.headers.get("content-type") ?? "").includes("text/html"), `${rr.status} ${rr.headers.get("content-security-policy")?.slice(0, 20)}`);
+    await admin.storage.from("assets").remove([ruta]);
+  }
   const { data: p3 } = await admin.from("piezas").select("id").eq("id_publico", "DEMO-03").single();
   r = await get(`/piezas/${p3.id}`);
   ok("grabacion explica por qué no se publica", r.html.includes("Falta grabar y producir"), "");

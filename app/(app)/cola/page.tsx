@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LayoutTemplate } from "lucide-react";
 import { redirect } from "next/navigation";
 import { crearClienteServidor, sesionActual } from "@/lib/supabase/server";
 import { fechaCorta, hoyISO, lunesDeHoy, sumarDias, DIAS_SEMANA } from "@/lib/dominio/tiempo";
@@ -26,6 +27,7 @@ type Fila = {
   fecha: string;
   fechaTono: "normal" | "azul" | "ambar" | "rojo";
   destacada?: boolean;
+  maqueta?: "vigente" | "vieja";
   accion: React.ReactNode;
 };
 
@@ -56,6 +58,8 @@ export default async function Tablero({ searchParams }: { searchParams: Promise<
     supabase.rpc("tablero_material"),
     supabase.from("bitacora").select("id, texto, minutos, origen, created_at, pieza:piezas(id_publico)").eq("perfil_id", yo).eq("fecha", hoy).order("created_at"),
   ]);
+  const { data: maquetas } = await supabase.from("maqueta_actual").select("pieza_id, desactualizada");
+  const maquetaDe = new Map((maquetas ?? []).map((m) => [m.pieza_id as string, m.desactualizada ? "vieja" as const : "vigente" as const]));
 
   // Objetivos ------------------------------------------------------------------------------------------------------------
   const buffers = { reel: (buffer ?? []).filter((p) => ["reel", "yap", "youtube"].includes(p.tipo ?? "")).length, carrusel: (buffer ?? []).filter((p) => p.tipo === "carrusel").length, newsletter: (buffer ?? []).filter((p) => p.tipo === "newsletter").length };
@@ -136,7 +140,7 @@ export default async function Tablero({ searchParams }: { searchParams: Promise<
 
   const porBolsa: Record<Bolsa, Fila[]> = { listo: filasListo, trabajar: filasTrabajar, manos: filasManos };
   const conteos: Record<Bolsa, number> = { listo: filasListo.length, trabajar: filasTrabajar.length, manos: filasManos.length };
-  const filas = porBolsa[bolsa].filter((f) => pasaFiltro(tipo, f.tipo));
+  const filas = porBolsa[bolsa].filter((f) => pasaFiltro(tipo, f.tipo)).map((f) => (f.id && maquetaDe.has(f.id) ? { ...f, maqueta: maquetaDe.get(f.id) } : f));
   const columnas = COLUMNAS[bolsa];
   const nombre = sesion.perfil.nombre.split(" ")[0];
   const diaNombre = DIAS_SEMANA[(new Date(hoy + "T12:00:00Z").getUTCDay() + 6) % 7].toLowerCase();
@@ -170,7 +174,14 @@ export default async function Tablero({ searchParams }: { searchParams: Promise<
             {filas.map((f) => (
               <li key={f.clave} className={cn("grid gap-2 px-4 py-3 md:grid-cols-[5.5rem_minmax(0,1fr)_6rem_minmax(0,18rem)_8.5rem_auto] md:items-center md:gap-4", f.destacada && "bg-ambar/5")}>
                 <div className="flex items-center gap-2 md:block"><IdPublico id={f.idPublico} /><span className="text-xs text-muted-foreground md:hidden">{nombreTipo(f.tipo)}</span></div>
-                <Link href={f.href} className="min-w-0 truncate font-semibold hover:underline">{f.titulo}</Link>
+                <span className="flex min-w-0 items-center gap-2">
+                  <Link href={f.href} className="min-w-0 truncate font-semibold hover:underline">{f.titulo}</Link>
+                  {f.maqueta && (
+                    <Link href={`${f.href}?vista=maqueta`} title={f.maqueta === "vieja" ? "Tiene maqueta, pero el copy cambió después" : "Tiene maqueta"} aria-label={f.maqueta === "vieja" ? "Maqueta desactualizada" : "Ver maqueta"} className={cn("shrink-0 rounded p-0.5 hover:bg-muted", f.maqueta === "vieja" ? "text-ambar" : "text-primary")}>
+                      <LayoutTemplate className="size-4" />
+                    </Link>
+                  )}
+                </span>
                 <span className="hidden text-sm text-muted-foreground md:block">{nombreTipo(f.tipo)}</span>
                 <div className="min-w-0 text-sm text-muted-foreground">{f.detalle}</div>
                 <span className={cn("text-sm", f.fechaTono === "azul" && "font-semibold text-primary", f.fechaTono === "ambar" && "font-semibold text-ambar", f.fechaTono === "rojo" && "font-semibold text-rojo", f.fechaTono === "normal" && "text-muted-foreground")}>{f.fecha}</span>

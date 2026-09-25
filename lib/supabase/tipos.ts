@@ -1,4 +1,4 @@
-// Generado con el conector de Supabase el 2026-09-25 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 026.
+// Generado con el conector de Supabase el 2026-09-25 (proyecto gnzsaafoxphmkwvvfmoy), tras la migración 027.
 // Regenerar tras cada migración: ver docs/decisiones.md.
 export type Json =
   | string
@@ -19,30 +19,39 @@ export type Database = {
       assets: {
         Row: {
           carpeta: string
+          contenido_version: number | null
           created_at: string
           id: string
           nombre: string
+          nota: string | null
           pieza_id: string
           ruta: string
           subido_por: string | null
+          version: number | null
         }
         Insert: {
           carpeta: string
+          contenido_version?: number | null
           created_at?: string
           id?: string
           nombre: string
+          nota?: string | null
           pieza_id: string
           ruta: string
           subido_por?: string | null
+          version?: number | null
         }
         Update: {
           carpeta?: string
+          contenido_version?: number | null
           created_at?: string
           id?: string
           nombre?: string
+          nota?: string | null
           pieza_id?: string
           ruta?: string
           subido_por?: string | null
+          version?: number | null
         }
         Relationships: [
           {
@@ -1395,7 +1404,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      maqueta_actual: {
+        Row: {
+          contenido_actual: number | null
+          contenido_version: number | null
+          created_at: string | null
+          desactualizada: boolean | null
+          nota: string | null
+          pieza_id: string | null
+          ruta: string | null
+          version: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_pieza_id_fkey"
+            columns: ["pieza_id"]
+            isOneToOne: false
+            referencedRelation: "piezas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       actualizar_hipotesis: {

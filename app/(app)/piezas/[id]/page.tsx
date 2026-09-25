@@ -13,6 +13,8 @@ import { HipotesisPieza } from "@/components/pieza/hipotesis-pieza";
 import { SeriesPieza } from "@/components/pieza/series-pieza";
 import { UrlPieza } from "@/components/pieza/url-pieza";
 import { Versiones, type Version } from "@/components/pieza/versiones";
+import { MaquetaPieza } from "@/components/pieza/maqueta";
+import Link from "next/link";
 import { NOMBRE_TAREA, type TipoTarea } from "@/lib/dominio/estados";
 import { bucketVencimiento, fechaCorta, fechaHora } from "@/lib/dominio/tiempo";
 import type { Rol } from "@/lib/dominio/roles";
@@ -24,8 +26,11 @@ export const dynamic = "force-dynamic";
  * La pieza abierta (docs/decisiones.md 2026-09-16): el camino de estados arriba, el contenido como
  * documento a la izquierda y la ficha fija a la derecha con todo lo que describe la pieza.
  */
-export default async function DetallePieza({ params }: { params: Promise<{ id: string }> }) {
+export default async function DetallePieza({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ vista?: string; v?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const vistaMaqueta = sp.vista === "maqueta";
+  const versionMaqueta = sp.v && /^\d+$/.test(sp.v) ? Number(sp.v) : undefined;
   const sesion = await sesionActual();
   if (!sesion) redirect("/login");
   const supabase = await crearClienteServidor();
@@ -49,6 +54,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
     supabase.from("formatos").select("id, codigo, nombre").order("codigo"),
     supabase.from("contenido_versiones").select("version, contenido, instruccion, autor, created_at").eq("pieza_id", id).order("version"),
   ]);
+  const { data: maq } = await supabase.from("maqueta_actual").select("version, desactualizada").eq("pieza_id", id).maybeSingle();
   const { data: seriesActivas } = await supabase.from("series").select("nombre").eq("activa", true).order("nombre");
   const { data: abiertas } = esOwner
     ? await supabase.from("hipotesis").select("id, texto, campo, numero, fecha, estado").eq("estado", "abierta").order("created_at", { ascending: false }).limit(150)
@@ -98,6 +104,13 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
 
       <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
         <section className="min-w-0 space-y-6">
+          <nav aria-label="Vista de la pieza" className="flex gap-1.5">
+            <Link href={`/piezas/${pieza.id}`} aria-current={!vistaMaqueta ? "page" : undefined} className={cn("rounded-full border px-3 py-1 text-xs font-medium", !vistaMaqueta ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>Contenido</Link>
+            <Link href={`/piezas/${pieza.id}?vista=maqueta`} aria-current={vistaMaqueta ? "page" : undefined} className={cn("rounded-full border px-3 py-1 text-xs font-medium", vistaMaqueta ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted", maq?.desactualizada && !vistaMaqueta && "border-ambar text-ambar")}>
+              Maqueta{maq ? ` · v${maq.version}` : ""}{maq?.desactualizada ? " · desactualizada" : ""}
+            </Link>
+          </nav>
+          {vistaMaqueta ? <MaquetaPieza piezaId={pieza.id} idPublico={pieza.id_publico ?? ""} version={versionMaqueta} /> : <>
           <div className="rounded-xl border px-5 py-5 sm:px-7">
             <div className="mb-3 flex flex-wrap items-baseline gap-2.5">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{vigente ? `Contenido · v${vigente.version}` : "Contenido"}</span>
@@ -118,6 +131,7 @@ export default async function DetallePieza({ params }: { params: Promise<{ id: s
               {pieza.notas ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{pieza.notas}</p> : <p className="text-sm text-muted-foreground">Sin notas.</p>}
             </div>
           </details>
+          </>}
 
 
           <Bloque titulo="Comentarios">

@@ -150,6 +150,43 @@ try {
   if (der?.id) await admin.from("piezas").delete().eq("id", der.id);
   if (nl?.id) await admin.from("piezas").delete().eq("id", nl.id);
 
+  // maquetas HTML (criterios de aceptación de la spec, sobre una pieza temporal)
+  r = await rpc(key, "tools/call", { name: "crear_pieza", arguments: { titulo: "prueba mcp maqueta", tipo: "carrusel", estado: "redaccion" } }, 90);
+  const pm = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  const htmlM = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:Outfit}</style></head><body><section>Lámina 1 · ñ · “comillas”</section><script>alert(1)</script></body></html>";
+  r = await rpc(key, "tools/call", { name: "guardar_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99", html: htmlM, nota: "primera" } }, 91);
+  const m1 = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("guardar_maqueta devuelve version 1 y url_app (html con <script> se guarda)", m1?.version === 1 && /\?vista=maqueta$/.test(m1?.url_app ?? ""), r.json?.result?.content?.[0]?.text?.slice(0, 120));
+  const { data: fa } = await admin.from("assets").select("carpeta, version, contenido_version, nota").eq("pieza_id", pm?.id ?? "00000000-0000-0000-0000-000000000000");
+  ok("fila en assets con carpeta maqueta y versión", fa?.length === 1 && fa[0].carpeta === "maqueta" && fa[0].version === 1 && fa[0].nota === "primera", JSON.stringify(fa));
+  r = await rpc(key, "tools/call", { name: "guardar_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99", html: htmlM.replace("Lámina 1", "Lámina 1 v2") } }, 92);
+  const m2 = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  const { data: arch } = await admin.storage.from("assets").list(`piezas/${pm?.id}/maqueta`);
+  ok("segunda llamada → version 2 y la v1 sigue en el bucket", m2?.version === 2 && (arch ?? []).map((a) => a.name).sort().join(",") === "v1.html,v2.html", `${m2?.version} · ${(arch ?? []).map((a) => a.name).join(",")}`);
+  r = await rpc(key, "tools/call", { name: "leer_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99", version: 1 } }, 93);
+  const lm = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("leer_maqueta v1 devuelve el mismo HTML byte por byte", lm?.html === htmlM, `${lm?.html?.length} vs ${htmlM.length}`);
+  r = await rpc(key, "tools/call", { name: "guardar_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99", html: "<!DOCTYPE html><html><body>" + "x".repeat(3 * 1024 * 1024) + "</body></html>" } }, 94);
+  ok("maqueta de 3 MB → error de tamaño", r.json?.result?.isError && /máximo es 2 MB/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100) ?? String(r.status));
+  r = await rpc(key, "tools/call", { name: "guardar_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99", html: "<div>no es documento</div>" } }, 95);
+  ok("html incompleto → «falta <html>»", r.json?.result?.isError && /falta <html>/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text?.slice(0, 100));
+  r = await rpc(key, "tools/call", { name: "guardar_maqueta", arguments: { pieza: "CAR-999", html: htmlM } }, 96);
+  ok("pieza inexistente → «No existe la pieza CAR-999.»", r.json?.result?.isError && /No existe la pieza CAR-999/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
+  r = await rpc(key, "tools/call", { name: "listar_piezas", arguments: { tipo: "carrusel", estado: "redaccion" } }, 97);
+  const lp = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
+  const lpM = lp.find((x) => x.id === pm?.id);
+  ok("listar_piezas marca tiene_maqueta y la versión", lpM?.tiene_maqueta === true && lpM?.maqueta_version === 2 && lpM?.maqueta_desactualizada === false, JSON.stringify({ t: lpM?.tiene_maqueta, v: lpM?.maqueta_version, d: lpM?.maqueta_desactualizada }));
+  r = await rpc(key, "tools/call", { name: "guardar_contenido", arguments: { pieza: pm?.id_publico ?? "CAR-99", contenido: "## Lámina 1\nCopy nuevo después de la maqueta." } }, 98);
+  r = await rpc(key, "tools/call", { name: "leer_maqueta", arguments: { pieza: pm?.id_publico ?? "CAR-99" } }, 99);
+  const lm2 = r.json?.result?.isError ? null : JSON.parse(r.json.result.content[0].text);
+  ok("tras guardar_contenido la maqueta vigente queda desactualizada", lm2?.version === 2 && lm2?.desactualizada === true, JSON.stringify({ v: lm2?.version, d: lm2?.desactualizada, cv: lm2?.contenido_version, ca: lm2?.contenido_actual }));
+  const { count: tEd } = await admin.from("tareas").select("*", { count: "exact", head: true }).eq("pieza_id", pm?.id ?? "00000000-0000-0000-0000-000000000000").eq("tipo", "editar");
+  ok("subir maqueta no crea tarea editar", (tEd ?? 0) === 0, String(tEd));
+  if (pm?.id) {
+    await admin.storage.from("assets").remove([`piezas/${pm.id}/maqueta/v1.html`, `piezas/${pm.id}/maqueta/v2.html`]);
+    await admin.from("piezas").delete().eq("id", pm.id);
+  }
+
   // identidad: lectura por MCP y por HTTP; escritura solo owner con versión y motivo
   r = await rpc(key, "tools/call", { name: "leer_identidad", arguments: {} }, 80);
   const idn = r.json?.result?.isError ? [] : JSON.parse(r.json.result.content[0].text);
@@ -196,6 +233,8 @@ try {
   ok("editor por MCP: crear_pieza bloqueada (requiere owner)", r.json?.result?.isError && /owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(keyE, "tools/call", { name: "leer_identidad", arguments: { clave: "voz" } }, 84);
   ok("editor por MCP: leer_identidad sí puede", !r.json?.result?.isError && JSON.parse(r.json.result.content[0].text)[0]?.clave === "voz", r.json?.result?.content?.[0]?.text?.slice(0, 60));
+  r = await rpc(keyE, "tools/call", { name: "guardar_maqueta", arguments: { pieza: "CAR-04", html: "<!DOCTYPE html><html><body>x</body></html>" } }, 87);
+  ok("editor por MCP: guardar_maqueta → error de rol", r.json?.result?.isError && /Solo el owner puede guardar maquetas/.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(keyE, "tools/call", { name: "actualizar_newsletter", arguments: { dia_envio: 2 } }, 86);
   ok("editor por MCP: actualizar_newsletter → «requiere rol owner»", r.json?.result?.isError && /requiere rol owner/i.test(r.json.result.content[0].text), r.json?.result?.content?.[0]?.text);
   r = await rpc(keyE, "tools/call", { name: "actualizar_identidad", arguments: { clave: "voz", cuerpo: "x".repeat(100), motivo: "no debería poder" } }, 85);

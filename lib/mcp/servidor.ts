@@ -6,6 +6,7 @@ import { crearClienteAdmin } from "@/lib/supabase/admin";
 import type { Database, Perfil, TablesInsert, TablesUpdate } from "@/lib/supabase/tipos";
 import { lunesDeHoy } from "@/lib/dominio/tiempo";
 import { MARCA } from "@/lib/dominio/marca";
+import { guardarMaqueta, leerMaqueta, resolverPieza, MAX_BYTES_MAQUETA } from "@/lib/maquetas";
 
 type Cliente = SupabaseClient<Database>;
 
@@ -160,7 +161,7 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
   });
 
   server.registerTool("listar_piezas", {
-    description: "Piezas por estado (borrador · redaccion · grabacion · diseno · listo · programada · publicada · en_trial · archivada), tipo, serie, etiqueta o semana objetivo. Sin filtros devuelve las no archivadas más recientes, borradores incluidos.",
+    description: "Piezas por estado (borrador · redaccion · grabacion · diseno · listo · programada · publicada · en_trial · archivada), tipo, serie, etiqueta o semana objetivo. Sin filtros devuelve las no archivadas más recientes, borradores incluidos. Cada pieza trae tiene_maqueta y maqueta_desactualizada.",
     inputSchema: {
       estado: z.string().optional(), tipo: z.string().optional(), serie: z.string().optional(), etiqueta: z.string().optional(), semana: fecha.optional().describe("lunes; filtra por fecha_objetivo en esa semana"),
       limite: z.number().int().min(1).max(300).default(100),
@@ -173,11 +174,49 @@ export function crearServidorMcp(supabase: Cliente, perfil: Perfil) {
     if (serie) q = q.contains("series", [serie]);
     if (semana) q = q.gte("fecha_objetivo", semana).lt("fecha_objetivo", sumar(semana, 7));
     const { data, error: e } = await q;
-    return e ? error(e.message) : json(data);
+    if (e) return error(e.message);
+    const ids = (data ?? []).map((p) => p.id);
+    const { data: maqs } = ids.length ? await supabase.from("maqueta_actual").select("pieza_id, version, desactualizada").in("pieza_id", ids) : { data: [] };
+    const porPieza = new Map((maqs ?? []).map((m) => [m.pieza_id, m]));
+    return json((data ?? []).map((p) => ({ ...p, tiene_maqueta: porPieza.has(p.id), maqueta_version: porPieza.get(p.id)?.version ?? null, maqueta_desactualizada: porPieza.get(p.id)?.desactualizada ?? false })));
+  });
+
+  // -------------------------------------------------------------------------
+  // Maquetas HTML (docs/maquetas.md): solo HTML y CSS, sin JavaScript
+  // -------------------------------------------------------------------------
+  server.registerTool("guardar_maqueta", {
+    description: `Guarda la maqueta HTML de una pieza (p. ej. las láminas de un carrusel) como versión nueva; nunca sobrescribe. Mariela la ve en la ficha, pestaña Maqueta. Reglas: documento completo que empiece con <!DOCTYPE html> o <html, solo HTML y CSS (la vista la muestra sin JavaScript), fuentes de Google Fonts o incrustadas, imágenes como data: o https, máximo ${MAX_BYTES_MAQUETA / 1024 / 1024} MB. Queda ligada a la versión vigente del copy: si después cambia el copy, la ficha avisa que está desactualizada. Solo rol owner.`,
+    inputSchema: {
+      pieza: z.string().describe("id_publico (CAR-04) o uuid"),
+      html: z.string().min(20).describe("el documento completo"),
+      nota: z.string().max(300).optional().describe("qué cambió: «se quitó la lámina 2»"),
+    },
+  }, async ({ pieza, html, nota }) => {
+    if (perfil.rol !== "owner") return error("Solo el owner puede guardar maquetas desde el conector.");
+    const p = await resolverPieza(supabase, pieza);
+    if (!p) return error(`No existe la pieza ${pieza}.`);
+    const r = await guardarMaqueta(supabase, p.id, html, nota);
+    if (!r.ok) return error(r.mensaje);
+    if (nota) await supabase.rpc("anotar_bitacora", { p_texto: `Maqueta v${r.valor.version} de ${p.id_publico}: ${nota}`, p_pieza_id: p.id });
+    await corrida("guardar_maqueta", `${p.id_publico} maqueta v${r.valor.version} (${Math.round(r.valor.bytes / 1024)} KB)`, { pieza_id: p.id, version: r.valor.version, bytes: r.valor.bytes }, perfil);
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://content-os-nazho-flkmxs-projects.vercel.app";
+    return json({ id_publico: p.id_publico, ...r.valor, url_app: `${base}/piezas/${p.id}?vista=maqueta` });
+  });
+
+  server.registerTool("leer_maqueta", {
+    description: "Devuelve la maqueta HTML de una pieza para partir de ella antes de ajustarla: la vigente, o una versión concreta. Trae desactualizada = true si el copy avanzó después de la maqueta.",
+    inputSchema: { pieza: z.string().describe("id_publico o uuid"), version: z.number().int().min(1).optional() },
+  }, async ({ pieza, version }) => {
+    const p = await resolverPieza(supabase, pieza);
+    if (!p) return error(`No existe la pieza ${pieza}.`);
+    const m = await leerMaqueta(supabase, p.id, version);
+    if (!m) return error(version ? `${p.id_publico} no tiene maqueta v${version}.` : `${p.id_publico} no tiene maqueta.`);
+    if (m.html === null) return error(`No se pudo leer el archivo de la maqueta v${m.version} de ${p.id_publico}.`);
+    return json({ id_publico: p.id_publico, version: m.version, contenido_version: m.contenido_version, contenido_actual: m.contenido_actual, desactualizada: m.desactualizada, nota: m.nota, html: m.html });
   });
 
   server.registerTool("listar_series", {
-    description: "Las series declaradas (Postura, Róbate, Brand Reels…). El newsletter CRITERIO no es serie: leer_newsletter con descripción, si están activas y cuántas piezas llevan. Una pieza puede pertenecer a varias.",
+    description: "Las series declaradas (Postura, Róbate, Brand Reels…) con descripción, si están activas y cuántas piezas llevan. Una pieza puede pertenecer a varias. El newsletter CRITERIO no es serie: leer_newsletter.",
     inputSchema: { solo_activas: z.boolean().default(false) },
   }, async ({ solo_activas }) => {
     let q = supabase.from("series").select("id, nombre, descripcion, activa, created_at").order("activa", { ascending: false }).order("nombre");
